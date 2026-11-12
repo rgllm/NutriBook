@@ -1,0 +1,24 @@
+{
+  "name": "NutriBook",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "docker compose up --build -d --wait && pnpm --dir frontend dev",
+    "stop": "docker compose down",
+    "test": "docker compose exec backend bin/rails test",
+    "lint": "docker compose exec backend bin/rubocop && pnpm --dir frontend lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.18.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.18.0",
+  "type": "module"
+}
