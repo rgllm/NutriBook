@@ -198,15 +198,13 @@
     --well-being-first-section-item-min-width: 216px;
 }
 
-/* Semantic roles reference the source palette so future changes stay aligned. */
+/* Semantic roles reference the source palette so future changes stay aligned.
+   shadcn/ui roles (background, foreground, muted, border, input, ring, ...)
+   live in globals.css. The roles below are NutriBook additions. */
 @theme inline {
-  --color-background: var(--gray-3);
-  --color-foreground: var(--gray-900);
   --color-surface: var(--white);
   --color-surface-muted: var(--highlight-bg-third);
   --color-body: var(--message-body-color);
-  --color-muted: var(--gray-900-light);
-  --color-border: var(--gray-900-transparent);
   --color-input-border: var(--gray-900-light);
   --color-action: var(--primary);
   --color-action-hover: var(--primary-light-hover);

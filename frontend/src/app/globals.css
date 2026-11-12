@@ -1,26 +1,100 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./theme.css";
 
+/* The NutriBook palette is light only (DESIGN.md). Keeping `dark:` bound to a
+   `.dark` class that is never set stops shadcn components from switching to
+   dark styles when the OS prefers a dark scheme. */
+@custom-variant dark (&:is(.dark *));
+
+/* shadcn/ui semantic tokens, mapped onto the source palette in theme.css.
+   `--primary` (#1ab394) is already defined there and is reused as is. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--gray-3);
+  --foreground: var(--gray-900);
+  --card: var(--white);
+  --card-foreground: var(--gray-900);
+  --popover: var(--white);
+  --popover-foreground: var(--gray-900);
+  /* Black on primary green: 7.92:1. Charcoal and white both fail. */
+  --primary-foreground: var(--black);
+  --secondary: var(--highlight-bg-third);
+  --secondary-foreground: var(--gray-900);
+  --muted: var(--highlight-bg-third);
+  --muted-foreground: var(--gray-900-light);
+  --accent: var(--primary-lighter);
+  --accent-foreground: var(--gray-900);
+  /* Not part of the supplied palette. 6.57:1 on white, 6.40:1 on canvas. */
+  --destructive: #b42318;
+  --border: var(--gray-900-transparent);
+  --input: var(--gray-900-light);
+  --ring: var(--blue-800);
+  --chart-1: var(--primary);
+  --chart-2: var(--blue-500);
+  --chart-3: var(--yellow-500);
+  --chart-4: var(--fuchia-500);
+  --chart-5: var(--blue-800);
+  /* Kept for components that read it directly; the radius scale itself
+     comes from theme.css (inputs 6/8px, cards 12/16px). */
+  --radius: 12px;
+  --sidebar: var(--white);
+  --sidebar-foreground: var(--gray-900);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--black);
+  --sidebar-accent: var(--primary-lighter);
+  --sidebar-accent-foreground: var(--gray-900);
+  --sidebar-border: var(--gray-900-transparent);
+  --sidebar-ring: var(--blue-800);
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
 }

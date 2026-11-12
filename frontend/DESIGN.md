@@ -2,7 +2,7 @@
 
 Light surfaces, charcoal typography, and a green primary action. NutriBook helps people request appointments with nutritionists. Keep the interface calm, readable, and clear about whether an appointment has been requested or confirmed.
 
-This document and `frontend/src/app/theme.css` adapt the supplied palette for the project's Next.js frontend and Tailwind CSS v4. They define the intended styling. The current frontend is a starter and does not yet import this theme.
+This document and `frontend/src/app/theme.css` adapt the supplied palette for the project's Next.js frontend and Tailwind CSS v4. `frontend/src/app/globals.css` imports the theme and maps it onto the shadcn/ui tokens (see [Component library](#component-library-shadcnui)).
 
 ## Color palette
 
@@ -43,29 +43,38 @@ The original `--_duall---*` aliases and source spellings, including `fuchia`, re
 
 ## Semantic roles
 
+shadcn/ui roles are defined in `globals.css`; NutriBook-only roles are defined in `theme.css`. Prefer the shadcn role when one exists so components and pages share a vocabulary.
+
 | Role | Token | Source |
 |------|-------|--------|
 | Page background | `--color-background` | `--gray-3` |
 | Default text | `--color-foreground` | `--gray-900` |
-| Card or form surface | `--color-surface` | `--white` |
-| Muted surface | `--color-surface-muted` | `--highlight-bg-third` |
-| Body copy | `--color-body` | `--message-body-color` |
-| Supporting copy | `--color-muted` | `--gray-900-light` |
-| Decorative border | `--color-border` | `--gray-900-transparent` |
-| Input border | `--color-input-border` | `--gray-900-light` |
-| Main action | `--color-action` | `--primary` |
+| Card and popover surface | `--color-card`, `--color-popover` | `--white` |
+| Main action | `--color-primary` (alias `--color-action`) | `--primary` |
+| Text on main action | `--color-primary-foreground` (alias `--color-on-action`) | `--black` |
 | Action hover | `--color-action-hover` | `--primary-light-hover` |
-| Text on main action | `--color-on-action` | `--black` |
-| Link and focus indicator | `--color-link`, `--color-focus` | `--blue-800` |
+| Muted or secondary surface | `--color-muted`, `--color-secondary` (alias `--color-surface-muted`) | `--highlight-bg-third` |
+| Supporting copy | `--color-muted-foreground` | `--gray-900-light` |
+| Selected or hovered item | `--color-accent` | `--primary-lighter` |
+| Decorative border | `--color-border` | `--gray-900-transparent` |
+| Input border | `--color-input` (alias `--color-input-border`) | `--gray-900-light` |
+| Focus indicator | `--color-ring` (alias `--color-focus`) | `--blue-800` |
+| Link | `--color-link` | `--blue-800` |
+| Error and destructive | `--color-destructive` | `#b42318` (not in the source palette) |
+| Body copy | `--color-body` | `--message-body-color` |
+| Card or form surface | `--color-surface` | `--white` |
 | Footer and footer text | `--color-footer`, `--color-on-footer` | `--footer-background-color`, `--white` |
+| Charts | `--color-chart-1` to `--color-chart-5` | primary, blue-500, yellow-500, fuchia-500, blue-800 |
+
+`muted` follows the shadcn convention: `bg-muted` is a surface and `text-muted-foreground` is supporting copy. Earlier drafts used `--color-muted` for text; use `text-muted-foreground` instead.
 
 Use black text on primary green buttons. Charcoal `#343a46` on `#1ab394` reaches only 4.30:1, so it is insufficient for normal-size button labels. White on `#1ab394` is too low contrast for normal text. Use dark blue for text links on white or pale surfaces. Reserve `#9b9b9b` for decoration and disabled states, and use secondary charcoal for readable helper copy.
 
-Transparent dividers are decorative. Inputs need the stronger input-border token so their boundaries remain visible. On dark surfaces, use white text and a light focus indicator. Always pair appointment states and validation messages with text or icons; color alone must not carry their meaning. This palette does not define an error color. Choose and validate a separate semantic error treatment when implementing validation.
+Transparent dividers are decorative. Inputs need the stronger input-border token so their boundaries remain visible. On dark surfaces, use white text and a light focus indicator. Always pair appointment states and validation messages with text or icons; color alone must not carry their meaning. The source palette does not define an error color. `--color-destructive` is `#b42318`, which reaches 6.57:1 on white and 6.40:1 on the canvas; pair it with text or an icon.
 
 ## Typography
 
-The supplied brand families are Geomanist and Geomanist Book. No font files are included. Provide licensed files through `@font-face` before relying on either family. `--font-sans` includes a system sans fallback. The frontend currently loads Geist; select one font strategy when integrating rather than loading both unnecessarily.
+The supplied brand families are Geomanist and Geomanist Book. No font files are included. Provide licensed files through `@font-face` before relying on either family. Until then, `--font-sans` falls back to the system sans stack; the frontend no longer loads Geist. shadcn's `font-heading` uses the same family.
 
 | Role | Size | Line height | Theme tokens |
 |------|------|-------------|--------------|
@@ -115,43 +124,41 @@ Cards use 24px padding and 12px or 16px corners. Inputs use 6px or 8px corners. 
 
 Use pastel accents sparingly. Green owns the primary action; blue is the supporting interactive color. Avoid carrying over Cap-specific download buttons, recording mockups, traffic-light controls, and invented social-proof claims from the previous reference.
 
+## Component library (shadcn/ui)
+
+The frontend uses [shadcn/ui](https://ui.shadcn.com) with [Base UI](https://base-ui.com) primitives (`base-nova` style, `components.json`). Components live in `src/components/ui` and are project code: adjust them to this document rather than overriding them at every call site.
+
+- Add components with `pnpm dlx shadcn@latest add <name>` from `frontend/`.
+- After adding, change `import { cn } from "cn"` to `import { cn } from "@/lib/utils"`. The CLI imports the stock `cn`, which does not know this theme's scales. For example, stock `cn("text-foreground", "text-caption")` drops `text-foreground` because it reads `text-caption` as a colour. The configured `cn` in `src/lib/utils.ts` registers the custom text, leading, spacing, and shadow names; extend it when you add a scale to `theme.css`.
+- Replace `ring-ring/50` with `ring-ring`. A 50% dark-blue ring falls below 3:1 against white.
+- Replace `text-primary` on text links with `text-link`. Green text on white is too low contrast.
+- Keep interactive controls at least 44px tall. The `default`, `lg`, and `icon` button sizes and the input are 44px or more; `xs`, `sm`, and the small icon sizes are for dense secondary UI only.
+- The palette is light only. `dark:` is bound to a `.dark` class that is never set, so the `dark:` classes in generated components stay inert. Do not add a `.dark` token block without a validated dark palette.
+- Changes already applied: buttons (44px default, `hover:bg-action-hover`, `border-input` outline variant, dark-blue links and focus ring), inputs (44px, 8px corners, 16px text at every width), cards (24px padding, decorative border, `shadow-card`), and badges (dark-blue links and focus ring, `border-input` outline).
+
 ## Integration
 
-The design reference is at the project root and the theme is at `frontend/src/app/theme.css`. To apply the theme, import it after Tailwind in `frontend/src/app/globals.css`:
+The design reference is `frontend/DESIGN.md` and the theme is `frontend/src/app/theme.css`. `frontend/src/app/globals.css` imports it after Tailwind and the shadcn base styles, then defines the shadcn tokens:
 
 ```css
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 @import "./theme.css";
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-}
 ```
 
-The theme also defines `--color-background` and `--color-foreground` for `bg-background` and `text-foreground`. When integrating, replace the starter's competing background, foreground, font, and automatic dark-mode declarations with the intended light theme. Remove starter page classes that force unrelated colors. The palette supplied here defines light mode only.
-
-For the plain CSS body example above, add these aliases to the consuming stylesheet:
-
-```css
-:root {
-  --background: var(--gray-3);
-  --foreground: var(--gray-900);
-}
-```
+`--primary` is defined once, in `theme.css`, and shared by both layers. The radius scale also comes from `theme.css`; do not reintroduce shadcn's computed `--radius-*` values, which would change the 6/8/12/16px corners. The starter page in `src/app/page.tsx` still uses unrelated `zinc` classes; replace it when building the first real screen.
 
 The `:root` source tokens work in plain CSS. The complete file contains Tailwind-specific `@theme` directives and must pass through Tailwind v4 to generate utilities.
 
 Example primary action:
 
-```html
-<button
-  type="submit"
-  class="min-h-11 rounded-full bg-action px-md py-xs text-content-sm leading-content-sm font-medium text-on-action transition-colors hover:bg-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
->
+```tsx
+import { Button } from "@/components/ui/button"
+
+<Button type="submit" className="rounded-full">
   Request an appointment
-</button>
+</Button>
 ```
 
 Before shipping a styled flow, verify mobile wrapping, keyboard navigation, focus visibility, text contrast, loading and error states, and the distinction between requested and confirmed appointments.
