@@ -13,7 +13,7 @@ The layout and the content of each region follow the reference. The colours and 
 | Result card | Avatar, tag, green name, title and licence, location, service and price, two stacked buttons on the right | Same regions; the name is ink, and every service is listed with its price instead of sitting behind a dropdown |
 | Card buttons | Peach "Schedule appointment", mint "Website" | Ink "Schedule appointment", outlined "Personal page" |
 | Pagination | Numbered, left-aligned, mint active page | Numbered, left-aligned, ink active page |
-| Pending requests | Grid of cards with avatar, name, date, time, and an "Answer request" footer | Same grid; the footer holds the Accept and Reject actions |
+| Pending requests | Grid of cards with avatar, name, date, time, and an "Answer request" footer; carousel arrows, share, and history buttons in the header | Same grid; the footer holds the Accept and Reject actions. The grid shows every request, so there are no carousel arrows, and share and history are left out until they have a use |
 
 The reference puts white text on green and green text on white. Both are about 2.65:1, below the 4.5:1 that body text needs, which is one reason the green is limited to fills with ink text on them.
 
@@ -108,11 +108,11 @@ The three custom sizes carry their line height and letter spacing, so they need 
 
 ## Pending requests page
 
-This page is not built yet. Build it to this spec.
+Lives at `/nutritionists/[id]/requests`. It reads mock data from `src/lib/pending-requests.ts` until the API serves it.
 
 - A page title "Pending requests" in `text-heading`, with a one-line graphite description under it.
 - A grid of cards: one column on mobile, two from `sm`, three from `lg`.
-- Each card shows the guest's avatar, name, and email, then the requested date and time, each with an icon.
+- Each card shows the guest's avatar, name, and the requested service, then the email, date, and time range, each with an icon. Dates and times show in the practice's time zone, Europe/Lisbon.
 - The card footer holds "Accept" (primary) and "Reject" (outline) at equal width. Each shows its pending state while the action runs.
 - With no requests, show the empty state in place of the grid.
 
