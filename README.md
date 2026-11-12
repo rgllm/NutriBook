@@ -46,3 +46,14 @@ pnpm dev
 The frontend runs at <http://localhost:3000>. This initial setup provides the Rails
 application and development/test databases. Appointment models, search, email
 notifications, and frontend API integration are pending implementation.
+
+## Design
+
+`frontend/DESIGN.md` is the design reference. The UI keeps the layout of the
+challenge's reference image (search band, result card, numbered pagination) and
+deliberately changes its colours and type: ink-black actions, flat white cards,
+Cal Sans headings, and green as a single accent. The reference's white-on-green
+and green-on-white text is about 2.65:1, below the 4.5:1 that body text needs.
+
+Inter and Cal Sans load through `next/font/google`, so `pnpm build` needs
+network access to download them.

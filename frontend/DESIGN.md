@@ -1,164 +1,129 @@
 # NutriBook design reference
 
-Light surfaces, charcoal typography, and a green primary action. NutriBook helps people request appointments with nutritionists. Keep the interface calm, readable, and clear about whether an appointment has been requested or confirmed.
+NutriBook keeps the structure of the challenge's reference image and renders it in a bold, mostly monochrome style: ink-black actions, white cards with hairline borders, heavy display headings, and one green accent. This document is the source of truth for the frontend's look. The tokens live in `src/app/theme.css`, and `src/app/globals.css` maps them onto the shadcn/ui roles.
 
-This document and `frontend/src/app/theme.css` adapt the supplied palette for the project's Next.js frontend and Tailwind CSS v4. `frontend/src/app/globals.css` imports the theme and maps it onto the shadcn/ui tokens (see [Component library](#component-library-shadcnui)).
+## Relation to the reference image
 
-## Color palette
+The layout and the content of each region follow the reference. The colours and the type do not.
 
-Keep these source values exact. Prefer semantic roles in components and use named palette tokens for deliberate accents.
+| Region | Reference image | NutriBook |
+|--------|-----------------|-----------|
+| Header and search band | Green gradient, white logo and link | Same structure on an ink band |
+| Search form | Two white inputs and an orange Search button | Two white inputs and a green Search button |
+| Result card | Avatar, tag, green name, title and licence, location, service and price, two stacked buttons on the right | Same regions; the name is ink, and every service is listed with its price instead of sitting behind a dropdown |
+| Card buttons | Peach "Schedule appointment", mint "Website" | Ink "Schedule appointment", outlined "Personal page" |
+| Pagination | Numbered, left-aligned, mint active page | Numbered, left-aligned, ink active page |
+| Pending requests | Grid of cards with avatar, name, date, time, and an "Answer request" footer | Same grid; the footer holds the Accept and Reject actions |
 
-| Color | Value | Tailwind theme token | Use |
-|-------|-------|----------------------|-----|
-| Primary green | `#1ab394` | `--color-primary` | Main actions and selected accents |
-| Light green | `#62cdc0` | `--color-primary-light` | Soft emphasis and navbar buttons |
-| Green hover | `#47baac` | `--color-primary-light-hover` | Hover on green actions |
-| Pale mint | `#e2fcfc` | `--color-primary-lighter` | Selected backgrounds |
-| Charcoal | `#343a46` | `--color-gray-900` | Headings and default text |
-| Secondary charcoal | `#404b59` | `--color-gray-900-light` | Supporting text and input outlines |
-| Body gray | `#3e3e3e` | `--color-message-body` | Body copy |
-| Transparent gray | `#b0b1b24d` | `--color-gray-900-transparent` | Decorative dividers on light surfaces |
-| White | `#ffffff` | `--color-white` | Cards, forms, and text on dark surfaces |
-| Translucent white | `#ffffff99` | `--color-white-bg-50` | Overlays with a checked background |
-| Page canvas | `#fafcff` | `--color-canvas` | Page and mobile menu background |
-| Footer | `#333945` | `--color-footer-bg` | Dark footer surface |
-| Footer bar | `#434a59` | `--color-footer-bottom-bar` | Bottom footer strip |
-| Decorative gray | `#9b9b9b` | `--color-dark-grey` | Disabled or decorative details |
-| Neutral blue wash | `#e5f8fd` | `--color-highlight-first` | Informational sections |
-| Blue wash | `#e5f1ff` | `--color-highlight-second` | Supporting sections |
-| Green wash | `#e3f4f4` | `--color-highlight-third` | Muted surfaces and selected cards |
-| Pale blue | `#ebf4ff` | `--color-blue-200` | Informational backgrounds |
-| Light blue | `#83bcff` | `--color-blue-500` | Illustration and data accents |
-| Dark blue | `#2e619e` | `--color-blue-800` | Links and focus indicators on light surfaces |
-| Bright blue | `#0099ff` | `--color-valesaude-primary2` | Occasional decorative emphasis |
-| Duall blue | `#74abec` | `--color-duall-blue` | Supporting illustration accent |
-| Lilac blue | `#bddcff` | `--color-lilac-2` | Soft supporting background |
-| Yellow | `#f3ca58` | `--color-yellow-500` | Supporting accent |
-| Fuchsia | `#d6b8db` | `--color-fuchia-500` | Supporting accent |
-| Pale fuchsia | `#f9f5fa` | `--color-fuchia-200` | Soft supporting background |
-| Pale coral | `#faede5` | `--color-coral-200` | Soft supporting background |
-| Black | `#000000` | `--color-black` | Exceptional high-contrast details |
+The reference puts white text on green and green text on white. Both are about 2.65:1, below the 4.5:1 that body text needs, which is one reason the green is limited to fills with ink text on them.
 
-The original `--_duall---*` aliases and source spellings, including `fuchia`, remain available in `:root`. Their Tailwind equivalents use `--color-duall-*` names. `--color-accessible-grey` preserves a source alias for `#9b9b9b`; its name does not establish sufficient text contrast.
+## Colour
 
-## Semantic roles
+| Token | Value | Use |
+|-------|-------|-----|
+| `--color-ink` | `#111111` | Text, primary actions, the header band, the active page |
+| `--color-graphite` | `#4b5563` | Supporting text |
+| `--color-line` | `#e5e7eb` | Card borders and dividers (decorative) |
+| `--color-line-strong` | `#8a8f98` | Input and outline-button borders |
+| `--color-wash` | `#f3f4f6` | Hover and muted surfaces |
+| `--color-canvas` | `#f9f9fa` | Page background, sampled from the reference |
+| `--color-brand` | `#1ab394` | The Search button, the logo mark, the success icon |
+| `--color-brand-hover` | `#47baac` | Hover on a brand fill |
+| `--color-brand-soft` | `#ddf9ef` | Tag background, sampled from the reference |
+| `--color-brand-ink` | `#0b5e4d` | Text on `brand-soft` |
+| `--color-focus` | `#2563eb` | Focus ring, on light and on ink surfaces |
+| `--color-danger` | `#b42318` | Errors and destructive actions |
 
-shadcn/ui roles are defined in `globals.css`; NutriBook-only roles are defined in `theme.css`. Prefer the shadcn role when one exists so components and pages share a vocabulary.
+Components use the shadcn/ui roles, not the palette names, wherever a role exists:
 
-| Role | Token | Source |
-|------|-------|--------|
-| Page background | `--color-background` | `--gray-3` |
-| Default text | `--color-foreground` | `--gray-900` |
-| Card and popover surface | `--color-card`, `--color-popover` | `--white` |
-| Main action | `--color-primary` (alias `--color-action`) | `--primary` |
-| Text on main action | `--color-primary-foreground` (alias `--color-on-action`) | `--black` |
-| Action hover | `--color-action-hover` | `--primary-light-hover` |
-| Muted or secondary surface | `--color-muted`, `--color-secondary` (alias `--color-surface-muted`) | `--highlight-bg-third` |
-| Supporting copy | `--color-muted-foreground` | `--gray-900-light` |
-| Selected or hovered item | `--color-accent` | `--primary-lighter` |
-| Decorative border | `--color-border` | `--gray-900-transparent` |
-| Input border | `--color-input` (alias `--color-input-border`) | `--gray-900-light` |
-| Focus indicator | `--color-ring` (alias `--color-focus`) | `--blue-800` |
-| Link | `--color-link` | `--blue-800` |
-| Error and destructive | `--color-destructive` | `#b42318` (not in the source palette) |
-| Body copy | `--color-body` | `--message-body-color` |
-| Card or form surface | `--color-surface` | `--white` |
-| Footer and footer text | `--color-footer`, `--color-on-footer` | `--footer-background-color`, `--white` |
-| Charts | `--color-chart-1` to `--color-chart-5` | primary, blue-500, yellow-500, fuchia-500, blue-800 |
+| Role | Utility | Palette token |
+|------|---------|---------------|
+| Page background | `bg-background` | canvas |
+| Default text | `text-foreground` | ink |
+| Card and popover surface | `bg-card`, `bg-popover` | white |
+| Primary action | `bg-primary text-primary-foreground` | ink, white |
+| Muted surface and hover | `bg-muted`, `bg-secondary`, `bg-accent` | wash |
+| Supporting text | `text-muted-foreground` | graphite |
+| Decorative border | `border-border` | line |
+| Input border | `border-input` | line-strong |
+| Focus ring | `ring-ring` | focus |
+| Error | `text-destructive` | danger |
 
-`muted` follows the shadcn convention: `bg-muted` is a surface and `text-muted-foreground` is supporting copy. Earlier drafts used `--color-muted` for text; use `text-muted-foreground` instead.
+The brand tokens have no shadcn role. Use `bg-brand`, `bg-brand-soft`, and `text-brand-ink` directly, or the `brand` variant of `Button` and `Badge`.
 
-Use black text on primary green buttons. Charcoal `#343a46` on `#1ab394` reaches only 4.30:1, so it is insufficient for normal-size button labels. White on `#1ab394` is too low contrast for normal text. Use dark blue for text links on white or pale surfaces. Reserve `#9b9b9b` for decoration and disabled states, and use secondary charcoal for readable helper copy.
+Rules:
 
-Transparent dividers are decorative. Inputs need the stronger input-border token so their boundaries remain visible. On dark surfaces, use white text and a light focus indicator. Always pair appointment states and validation messages with text or icons; color alone must not carry their meaning. The source palette does not define an error color. `--color-destructive` is `#b42318`, which reaches 6.57:1 on white and 6.40:1 on the canvas; pair it with text or an icon.
+- Green is an accent, used at most once or twice per screen. Ink owns the primary action.
+- Never set text in `brand` on a light surface (2.65:1). Text on a `brand` fill is ink (7.12:1). Text on `brand-soft` is `brand-ink` (6.93:1).
+- Supporting text is graphite (7.56:1 on white, 7.18:1 on the canvas). Do not go lighter for text.
+- `line` is decorative. A control whose edge must be visible uses `line-strong` (3.25:1 on white).
+- The focus ring reaches 5.17:1 on white and 3.65:1 on ink, so one colour serves both surfaces.
+- A state such as pending, accepted, or rejected always carries a text label or an icon. Colour alone does not carry it.
+- The palette is light only. `dark:` is bound to a `.dark` class that is never set, so the `dark:` classes in generated components stay inert.
 
 ## Typography
 
-The supplied brand families are Geomanist and Geomanist Book. No font files are included. Provide licensed files through `@font-face` before relying on either family. Until then, `--font-sans` falls back to the system sans stack; the frontend no longer loads Geist. shadcn's `font-heading` uses the same family.
+Headings use Cal Sans and everything else uses Inter. Both load through `next/font/google` in `src/app/layout.tsx`, which self-hosts the files at build time.
 
-| Role | Size | Line height | Theme tokens |
-|------|------|-------------|--------------|
-| Caption | 12px | 1.5 | `--text-caption`, `--leading-caption` |
-| Compact body | 14px | 1.43 | `--text-body-sm`, `--leading-body-sm` |
-| Small content | 16px | 24px | `--text-content-sm`, `--leading-content-sm` |
-| Main content | 18px | 28px | `--text-content`, `--leading-content` |
-| Subheading | 20px | 1.4 | `--text-subheading`, `--leading-subheading` |
-| Heading | 30px | 1.25 | `--text-heading`, `--leading-heading` |
-| Section header | 38px | 50px | `--text-section-header`, `--leading-section-header` |
-| Display | 50px | 1.1 | `--text-display`, `--leading-display` |
+Cal Sans ships a single weight. Do not add `font-semibold` or `font-bold` to a heading for emphasis; `globals.css` sets `font-synthesis-weight: none` so the browser never fakes one.
 
-Use regular body text and medium or bold headings where the loaded font supports those weights. Keep form labels at least 14px and inputs at least 16px. Allow headings to wrap naturally on mobile. Apply the matching `leading-*` utility alongside custom `text-*` sizes.
+| Utility | Size | Line height | Use |
+|---------|------|-------------|-----|
+| `text-display` | 40px | 1.05 | Reserved for a page that needs a hero line |
+| `text-heading` | 30px | 1.15 | Page title (`h1`) |
+| `text-subheading` | 20px | 1.3 | Card and dialog titles, the logo |
+| `text-base` | 16px | Tailwind default | Inputs and emphasised body |
+| `text-sm` | 14px | Tailwind default | Body, labels, buttons |
+| `text-xs` | 12px | Tailwind default | Tags and captions |
 
-## Spacing and layout
+The three custom sizes carry their line height and letter spacing, so they need no `leading-*` or `tracking-*` class. Pair them with `font-heading`. Inputs stay at 16px so mobile browsers do not zoom on focus.
 
-| Token suffix | Value |
-|--------------|-------|
-| `3xs` | 2px |
-| `2xs` | 4px |
-| `xs` | 8px |
-| `sm` | 16px |
-| `md` | 24px |
-| `lg` | 32px |
-| `xl` | 40px |
-| `2xl` | 48px |
-| `3xl` | 64px |
+## Layout and shape
 
-Use named spacing utilities such as `gap-xs`, `p-md`, and `px-lg`. Avoid numeric spacing aliases such as `--spacing-4: 4px`, which would change the meaning of Tailwind's existing numeric utilities.
+- Content sits in a centred `max-w-5xl` (1024px) column with `px-4`, and `px-8` from the `sm` breakpoint.
+- Spacing uses Tailwind's numeric scale. The usual steps are `gap-2` inside a control group, `gap-4` between cards, and `gap-6` between regions and inside cards.
+- Corners: 8px on inputs (`rounded-md`), 12px on buttons (`rounded-lg`), 16px on cards and dialogs (`rounded-xl`), full on avatars and tags.
+- Surfaces are flat. A card is white with a 1px `line` border and no shadow. Only overlays such as the dialog cast a shadow.
+- Primary controls are at least 44px tall: the `default`, `lg`, and `icon` button sizes, inputs, and pagination links. The `xs` and `sm` sizes are for dense secondary UI only.
 
-Center public pages within a suggested 1200px maximum width. The supplied page-margin tokens are 64px on desktop, 40px on medium screens, 32px on small screens, and 24px on the smallest screens. Components may use the supplied 16px container padding where space is constrained.
+## Search page
 
-Public landing sections can use the supplied 112px top and 104px bottom spacing. Curved-section values are 168px top and 192px bottom, with 160px tablet top spacing and 128px mobile top and bottom spacing. These are marketing layout options, not required padding for appointment forms or compact application views.
+- **Header band.** `bg-primary text-primary-foreground`. The first row holds the logo on the left and the "Are you a nutrition professional?" link on the right. The second row holds the search form.
+- **Search form.** Two 48px white inputs with visually hidden labels and placeholders, the location input with a pin icon at its end, then a `brand` Search button. The fields stack on mobile.
+- **Results title.** The `h1` states the count and the resolved city, for example "6 nutritionists in Braga". An unknown location shows an alert above it that names the fallback city.
+- **Result card.** Three regions in a row, stacked on mobile:
+  1. A 64px avatar. Without a photo it is an ink circle with white initials.
+  2. An optional `brand` tag, the name as an `h2`, then title, licence number, and rating in graphite. Below that, two columns: the address with a pin icon, and the list of services with prices right-aligned in tabular figures.
+  3. The actions, stacked and equal in width: "Schedule appointment" (primary) above "Personal page" (outline).
+- **Pagination.** Left-aligned under the list. Previous and next are icon-only, and the current page is an ink fill.
+- **Empty state.** A bordered white panel that says what was searched and offers to clear the query.
 
-Cards use 24px padding and 12px or 16px corners. Inputs use 6px or 8px corners. Public CTAs may use full pill corners. Keep form actions consistent within each flow. Shadows should be subtle; use the supplied `shadow-card`, `shadow-dropdown`, and `shadow-modal` tokens only where elevation helps explain layering.
+## Appointment dialog
 
-## Components
+- The title uses `font-heading text-subheading`, and the description names the nutritionist.
+- Name and email sit side by side, then the calendar next to a three-column grid of time slots.
+- A selected day or slot is an ink fill with white text. Unavailable days are struck through as well as dimmed.
+- The footer has "Cancel" (outline) and "Request appointment" (primary).
+- The confirmation says the appointment is requested, not confirmed, and that the answer arrives by email. Do not style a pending request as a confirmed booking.
 
-- Navigation uses a white or canvas surface, charcoal links, and green emphasis. A dark hero may use the supplied white menu text and translucent charcoal navbar background. Check contrast against the actual image or background.
-- Primary buttons use `bg-action text-on-action hover:bg-action-hover`. Keep targets at least 44px tall and provide visible keyboard focus.
-- Secondary buttons use white surfaces, charcoal text, and a visible outline. Keep one clearly dominant action per appointment step.
-- Cards use white surfaces, decorative borders, and restrained shadows. Selected cards can use pale mint or the green wash with a stronger outline and a textual selected indicator.
-- Inputs have persistent labels, secondary-charcoal borders, and dark-blue focus indicators. Place helper and error text beside the relevant input.
-- Date and time controls distinguish available, selected, unavailable, and focused states. Selected green cells use black labels. Unavailable slots remain distinguishable without relying on opacity alone.
-- Request receipts explicitly say that the appointment is requested until the backend confirms it. Do not style a pending request as a confirmed booking.
-- Footers use `#333945` with white text and an optional `#434a59` bottom bar. Supporting links must remain readable.
+## Pending requests page
 
-Use pastel accents sparingly. Green owns the primary action; blue is the supporting interactive color. Avoid carrying over Cap-specific download buttons, recording mockups, traffic-light controls, and invented social-proof claims from the previous reference.
+This page is not built yet. Build it to this spec.
+
+- A page title "Pending requests" in `text-heading`, with a one-line graphite description under it.
+- A grid of cards: one column on mobile, two from `sm`, three from `lg`.
+- Each card shows the guest's avatar, name, and email, then the requested date and time, each with an icon.
+- The card footer holds "Accept" (primary) and "Reject" (outline) at equal width. Each shows its pending state while the action runs.
+- With no requests, show the empty state in place of the grid.
 
 ## Component library (shadcn/ui)
 
-The frontend uses [shadcn/ui](https://ui.shadcn.com) with [Base UI](https://base-ui.com) primitives (`base-nova` style, `components.json`). Components live in `src/components/ui` and are project code: adjust them to this document rather than overriding them at every call site.
+The frontend uses [shadcn/ui](https://ui.shadcn.com) with [Base UI](https://base-ui.com) primitives (`base-nova` style, `components.json`). Components live in `src/components/ui` and are project code: change the component to fit this document instead of overriding it at every call site.
 
 - Add components with `pnpm dlx shadcn@latest add <name>` from `frontend/`.
-- After adding, change `import { cn } from "cn"` to `import { cn } from "@/lib/utils"`. The CLI imports the stock `cn`, which does not know this theme's scales. For example, stock `cn("text-foreground", "text-caption")` drops `text-foreground` because it reads `text-caption` as a colour. The configured `cn` in `src/lib/utils.ts` registers the custom text, leading, spacing, and shadow names; extend it when you add a scale to `theme.css`.
-- Replace `ring-ring/50` with `ring-ring`. A 50% dark-blue ring falls below 3:1 against white.
-- Replace `text-primary` on text links with `text-link`. Green text on white is too low contrast.
-- Keep interactive controls at least 44px tall. The `default`, `lg`, and `icon` button sizes and the input are 44px or more; `xs`, `sm`, and the small icon sizes are for dense secondary UI only.
-- The palette is light only. `dark:` is bound to a `.dark` class that is never set, so the `dark:` classes in generated components stay inert. Do not add a `.dark` token block without a validated dark palette.
-- Changes already applied: buttons (44px default, `hover:bg-action-hover`, `border-input` outline variant, dark-blue links and focus ring), inputs (44px, 8px corners, 16px text at every width), cards (24px padding, decorative border, `shadow-card`), and badges (dark-blue links and focus ring, `border-input` outline).
+- After adding, change `import { cn } from "cn"` to `import { cn } from "@/lib/utils"`. The stock `cn` reads `text-heading` as a colour and drops `text-foreground` next to it. The configured `cn` in `src/lib/utils.ts` registers the custom text sizes; extend it when you add one to `theme.css`.
+- Replace `ring-ring/50` with `ring-ring`. A half-opacity ring falls below 3:1 on white.
+- Replace `text-primary` on a text link with `text-foreground underline`. Links are ink and underlined.
+- Remove any `shadow-*` class from a non-overlay component.
 
-## Integration
-
-The design reference is `frontend/DESIGN.md` and the theme is `frontend/src/app/theme.css`. `frontend/src/app/globals.css` imports it after Tailwind and the shadcn base styles, then defines the shadcn tokens:
-
-```css
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "./theme.css";
-```
-
-`--primary` is defined once, in `theme.css`, and shared by both layers. The radius scale also comes from `theme.css`; do not reintroduce shadcn's computed `--radius-*` values, which would change the 6/8/12/16px corners. The starter page in `src/app/page.tsx` still uses unrelated `zinc` classes; replace it when building the first real screen.
-
-The `:root` source tokens work in plain CSS. The complete file contains Tailwind-specific `@theme` directives and must pass through Tailwind v4 to generate utilities.
-
-Example primary action:
-
-```tsx
-import { Button } from "@/components/ui/button"
-
-<Button type="submit" className="rounded-full">
-  Request an appointment
-</Button>
-```
-
-Before shipping a styled flow, verify mobile wrapping, keyboard navigation, focus visibility, text contrast, loading and error states, and the distinction between requested and confirmed appointments.
+`theme.css` declares the palette with `@theme static`. Most palette variables are read only through the roles in `globals.css`, and Tailwind drops theme variables that no utility uses unless the block is static.

@@ -1,98 +1,33 @@
-/* NutriBook theme for Tailwind CSS v4. Import after tailwindcss.
-   The :root block preserves the supplied source tokens.
-   Geomanist requires separately provided font files and @font-face rules. */
+/* NutriBook palette and scales for Tailwind CSS v4 (see DESIGN.md).
+   globals.css maps these onto the shadcn/ui roles. `static` keeps every
+   variable in the output, since most are read only through those roles. */
 
-@theme {
-  /* Colors - Brand & Primary */
-  --color-primary: #1ab394;
-  --color-primary-light: #62cdc0;
-  --color-primary-light-hover: #47baac;
-  --color-primary-lighter: #e2fcfc;
+@theme static {
+  --color-ink: #111111;
+  --color-graphite: #4b5563;
+  --color-line: #e5e7eb;
+  --color-line-strong: #8a8f98;
+  --color-wash: #f3f4f6;
+  --color-canvas: #f9f9fa;
 
-  /* Colors - Neutrals & Dark Surfaces */
-  --color-gray-900: #343a46;
-  --color-gray-900-light: #404b59;
-  --color-gray-900-transparent: #b0b1b24d;
-  --color-message-body: #3e3e3e;
-  --color-footer-bg: #333945;
-  --color-footer-bottom-bar: #434a59;
-  --color-dark-grey: #9b9b9b;
-  --color-accessible-grey: #9b9b9b;
+  --color-brand: #1ab394;
+  --color-brand-hover: #47baac;
+  --color-brand-soft: #ddf9ef;
+  --color-brand-ink: #0b5e4d;
 
-  /* Colors - Surfaces & Canvas */
-  --color-white: #ffffff;
-  --color-white-bg-50: #ffffff99;
-  --color-black: #000000;
-  --color-gray-3: #fafcff;
-  --color-canvas: #fafcff;
-  --color-mobile-menu-bg: #fafcff;
+  --color-focus: #2563eb;
+  --color-danger: #b42318;
 
-  /* Colors - Pastel Highlight Washes */
-  --color-highlight-first: #e5f8fd;
-  --color-highlight-second: #e5f1ff;
-  --color-highlight-third: #e3f4f4;
-  --color-blue-200: #ebf4ff;
-  --color-blue-500: #83bcff;
-  --color-blue-800: #2e619e;
-  --color-valesaude-primary2: #0099ff;
-  --color-yellow-500: #f3ca58;
-  --color-fuchia-500: #d6b8db;
-  --color-fuchia-200: #f9f5fa;
-  --color-lilac-2: #bddcff;
-  --color-coral-200: #faede5;
-
-  /* Colors - Component Specific */
-  --color-navbar-button: #62cdc0;
-  --color-navbar-hover: #47baac;
-
-  /* Colors - Duall Token Aliases */
-  --color-duall-grey-01: #343a46;
-  --color-duall-grey-02: #434a59;
-  --color-duall-grey-03: #fafcff;
-  --color-duall-green: #62cdc0;
-  --color-duall-white: #ffffff;
-  --color-duall-blue: #74abec;
-  --color-duall-black: #000000;
-  --color-duall-light-blue: #e5f1ff;
-  --color-duall-light-green: #e3f4f4;
-  --color-duall-neutral-blue: #e5f8fd;
-
-  /* Typography - Font Families */
-  --font-geomanist: Geomanist, sans-serif;
-  --font-geomanist-book: "Geomanist Book", "Times New Roman", sans-serif;
-  --font-sans: Geomanist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-
-  /* Typography - Scale */
-  --text-caption: 12px;
-  --leading-caption: 1.5;
-  --tracking-caption: 0.2px;
-  --text-body-sm: 14px;
-  --leading-body-sm: 1.43;
-  --text-content-sm: 16px;
-  --leading-content-sm: 24px;
-  --text-content: 18px;
-  --leading-content: 28px;
   --text-subheading: 20px;
-  --leading-subheading: 1.4;
+  --text-subheading--line-height: 1.3;
+  --text-subheading--letter-spacing: 0.01em;
   --text-heading: 30px;
-  --leading-heading: 1.25;
-  --text-section-header: 38px;
-  --leading-section-header: 50px;
-  --text-display: 50px;
-  --leading-display: 1.1;
+  --text-heading--line-height: 1.15;
+  --text-heading--letter-spacing: 0em;
+  --text-display: 40px;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.01em;
 
-  /* Spacing */
-  --spacing-3xs: 2px;
-  --spacing-2xs: 4px;
-  --spacing-xs: 8px;
-  --spacing-sm: 16px;
-  --spacing-md: 24px;
-  --spacing-lg: 32px;
-  --spacing-xl: 40px;
-  --spacing-2xl: 48px;
-  --spacing-3xl: 64px;
-
-  /* Border Radius */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -100,117 +35,10 @@
   --radius-xl: 16px;
   --radius-2xl: 20px;
   --radius-3xl: 24px;
-  --radius-full: 9999px;
-
-  /* Shadows */
-  --shadow-subtle: rgba(0, 0, 0, 0.04) 0px 1px 2px 0px;
-  --shadow-card: rgba(52, 58, 70, 0.06) 0px 4px 16px 0px;
-  --shadow-card-hover: rgba(52, 58, 70, 0.12) 0px 8px 24px 0px;
-  --shadow-dropdown: rgba(52, 58, 70, 0.15) 0px 10px 30px 0px;
-  --shadow-modal: rgba(52, 58, 70, 0.25) 0px 20px 40px 0px;
 }
 
-:root {
-    --white: #fff;
-    --spacing-xs: 8px;
-    --page-margin: var(--spacing-3xl);
-    --navbar-box-shadow-color: transparent;
-    --gray-900: #343a46;
-    --page-margin-md: var(--spacing-xl);
-    --page-margin-sm: var(--spacing-lg);
-    --page-margin-xs: var(--spacing-md);
-    --text-content-line-height-sm: 24px;
-    --primary-light-hover: #47baac;
-    --spacing-3xl: 64px;
-    --navbar-gradient-initial-color: #343a4680;
-    --primary-lighter: #e2fcfc;
-    --spacing-2xs: 4px;
-    --spacing-lg: 32px;
-    --spacing-md: 24px;
-    --white-bg-50: #fff9;
-    --primary-light: #62cdc0;
-    --message-body-color: #3e3e3e;
-    --spacing-sm: 16px;
-    --mobile-menu-bg: #fafcff;
-    --company-logos-gap-lg: var(--spacing-2xl);
-    --company-logos-gap-xs: var(--spacing-md);
-    --company-logos-gap-md: var(--spacing-lg);
-    --section-header-font-size: 38px;
-    --section-header-line-height: 50px;
-    --footer-bottom-bar-color: #434a59;
-    --highlight-bg-first: #e5f8fd;
-    --highlight-bg-second: #e5f1ff;
-    --blue-500: #83bcff;
-    --blue-800: #2e619e;
-    --primary: #1ab394;
-    --blue-200: #ebf4ff;
-    --spacing-xl: 40px;
-    --text-content-font-size-sm: 16px;
-    --top-padding-section-with-curve: 168px;
-    --spacing-3xs: 2px;
-    --spacing-2xl: 48px;
-    --gray-900-light: #404b59;
-    --gray-900-transparent: #b0b1b24d;
-    --container-padding-sm: var(--spacing-sm);
-    --navbar-hover: #47baac;
-    --accordion1-margin-bottom: 10px;
-    --accordion2-margin-bottom: 10px;
-    --menu-item-color: white;
-    --gray-3: #fafcff;
-    --bottom-padding-section: 104px;
-    --valesaude-primary2: #09f;
-    --yellow-500: #f3ca58;
-    --fuchia-500: #d6b8db;
-    --top-padding-section: 112px;
-    --bottom-padding-section-with-curve: 192px;
-    --lilac-2: #bddcff;
-    --navbar-button-color: #62cdc0;
-    --highlight-bg-third: #e3f4f4;
-    --fuchia-200: #f9f5fa;
-    --coral-200: #faede5;
-    --accessible-components--dark-grey: #9b9b9b;
-    --_duall---grey-03: #fafcff;
-    --_duall---grey-02: #434a59;
-    --_duall---grey-01: #343a46;
-    --_duall---green: #62cdc0;
-    --_duall---white: white;
-    --_duall---blue: #74abec;
-    --_duall---black: black;
-    --_duall---light-blue: #e5f1ff;
-    --_duall---light-green: #e3f4f4;
-    --_duall---neutral-blue: #e5f8fd;
-    --black: black;
-    --font-geomanist: Geomanist,sans-serif;
-    --font-geomanist-book: "Geomanist Book","Times New Roman",sans-serif;
-    --text-content-font-size: 18px;
-    --text-content-line-height: 28px;
-    --footer-background-color: #333945;
-    --accordion3-margin-bottom: 10px;
-    --hero-spacing-mobile: var(--spacing-3xl);
-    --language-picker-background-height: 0vh;
-    --tablet-top-padding-section-with-curve: 160px;
-    --mobile-top-padding-section-with-curve: 128px;
-    --mobile-bottom-padding-section-with-curve: 128px;
-    --rolling-width: 120px;
-    --rolling-height: 59px;
-    --rolling-container-width: 96px;
-    --rolling-container-height: 50px;
-    --well-being-first-section-item-min-width: 216px;
-}
-
-/* Semantic roles reference the source palette so future changes stay aligned.
-   shadcn/ui roles (background, foreground, muted, border, input, ring, ...)
-   live in globals.css. The roles below are NutriBook additions. */
+/* next/font sets --font-inter and --font-cal on <html> (layout.tsx). */
 @theme inline {
-  --color-surface: var(--white);
-  --color-surface-muted: var(--highlight-bg-third);
-  --color-body: var(--message-body-color);
-  --color-input-border: var(--gray-900-light);
-  --color-action: var(--primary);
-  --color-action-hover: var(--primary-light-hover);
-  --color-on-action: var(--black);
-  --color-link: var(--blue-800);
-  --color-focus: var(--blue-800);
-  --color-footer: var(--footer-background-color);
-  --color-on-footer: var(--white);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-cal), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }

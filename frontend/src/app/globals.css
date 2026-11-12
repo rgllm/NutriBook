@@ -8,61 +8,33 @@
    dark styles when the OS prefers a dark scheme. */
 @custom-variant dark (&:is(.dark *));
 
-/* shadcn/ui semantic tokens, mapped onto the source palette in theme.css.
-   `--primary` (#1ab394) is already defined there and is reused as is. */
+/* shadcn/ui semantic tokens, mapped onto the palette in theme.css. */
 :root {
-  --background: var(--gray-3);
-  --foreground: var(--gray-900);
-  --card: var(--white);
-  --card-foreground: var(--gray-900);
-  --popover: var(--white);
-  --popover-foreground: var(--gray-900);
-  /* Black on primary green: 7.92:1. Charcoal and white both fail. */
-  --primary-foreground: var(--black);
-  --secondary: var(--highlight-bg-third);
-  --secondary-foreground: var(--gray-900);
-  --muted: var(--highlight-bg-third);
-  --muted-foreground: var(--gray-900-light);
-  --accent: var(--primary-lighter);
-  --accent-foreground: var(--gray-900);
-  /* Not part of the supplied palette. 6.57:1 on white, 6.40:1 on canvas. */
-  --destructive: #b42318;
-  --border: var(--gray-900-transparent);
-  --input: var(--gray-900-light);
-  --ring: var(--blue-800);
-  --chart-1: var(--primary);
-  --chart-2: var(--blue-500);
-  --chart-3: var(--yellow-500);
-  --chart-4: var(--fuchia-500);
-  --chart-5: var(--blue-800);
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
+  --card: #ffffff;
+  --card-foreground: var(--color-ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-ink);
+  /* White on ink: 18.88:1. */
+  --primary: var(--color-ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-wash);
+  --secondary-foreground: var(--color-ink);
+  --muted: var(--color-wash);
+  --muted-foreground: var(--color-graphite);
+  --accent: var(--color-wash);
+  --accent-foreground: var(--color-ink);
+  --destructive: var(--color-danger);
+  --border: var(--color-line);
+  --input: var(--color-line-strong);
+  --ring: var(--color-focus);
   /* Kept for components that read it directly; the radius scale itself
-     comes from theme.css (inputs 6/8px, cards 12/16px). */
+     comes from theme.css. */
   --radius: 12px;
-  --sidebar: var(--white);
-  --sidebar-foreground: var(--gray-900);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--black);
-  --sidebar-accent: var(--primary-lighter);
-  --sidebar-accent-foreground: var(--gray-900);
-  --sidebar-border: var(--gray-900-transparent);
-  --sidebar-ring: var(--blue-800);
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -96,5 +68,7 @@
   }
   html {
     @apply font-sans;
+    /* Cal Sans ships one weight; never let the browser fake a bolder one. */
+    font-synthesis-weight: none;
   }
 }
