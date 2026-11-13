@@ -1,0 +1,40 @@
+# Times are UTC. ends_at is starts_at plus the service's duration, as the model
+# derives it. Accepted requests for the same nutritionist must not overlap.
+
+pending:
+  service: mary_first_appointment
+  nutritionist: mary_jane
+  guest_name: Rita Gomes
+  guest_email: rita.gomes@example.com
+  starts_at: 2026-12-01 10:00:00
+  ends_at: 2026-12-01 11:00:00
+  status: pending
+
+accepted:
+  service: mary_follow_up
+  nutritionist: mary_jane
+  guest_name: Francisco Neves
+  guest_email: francisco.neves@example.com
+  starts_at: 2026-12-01 14:00:00
+  ends_at: 2026-12-01 14:30:00
+  status: accepted
+  answered_at: 2026-11-20 09:00:00
+
+rejected:
+  service: ana_sports_nutrition
+  nutritionist: ana_ferreira
+  guest_name: Tiago Lopes
+  guest_email: tiago.lopes@example.com
+  starts_at: 2026-12-02 09:00:00
+  ends_at: 2026-12-02 09:45:00
+  status: rejected
+  answered_at: 2026-11-20 10:00:00
+
+superseded:
+  service: mary_first_appointment
+  nutritionist: mary_jane
+  guest_name: Rita Gomes
+  guest_email: rita.gomes@example.com
+  starts_at: 2026-11-28 10:00:00
+  ends_at: 2026-11-28 11:00:00
+  status: superseded

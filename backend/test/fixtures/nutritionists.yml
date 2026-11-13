@@ -1,0 +1,13 @@
+mary_jane:
+  name: Mary Jane
+  slug: mary-jane
+  title: Dietitian
+  license_number: 2963N
+  offers_online: true
+
+ana_ferreira:
+  name: Ana Ferreira
+  slug: ana-ferreira
+  title: Nutritionist
+  license_number: 1874N
+  offers_online: false

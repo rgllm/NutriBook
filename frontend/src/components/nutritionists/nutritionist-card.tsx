@@ -1,4 +1,4 @@
-import { StarIcon, UserRoundIcon, VideoIcon } from "lucide-react"
+import { UserRoundIcon, VideoIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -34,14 +34,6 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
               <span>{nutritionist.title}</span>
               <span aria-hidden>•</span>
               <span>{nutritionist.licenseNumber}</span>
-              <span aria-hidden>•</span>
-              <span className="inline-flex items-center gap-1">
-                <StarIcon aria-hidden className="size-3.5 fill-foreground text-foreground" />
-                <span className="font-medium text-foreground">
-                  {nutritionist.rating.toFixed(1)}
-                </span>
-                ({nutritionist.reviewCount} reviews)
-              </span>
             </p>
           </div>
 
