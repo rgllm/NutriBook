@@ -1,7 +1,7 @@
 require "test_helper"
 
 class NutritionistsControllerTest < ActionDispatch::IntegrationTest
-  test "lists the nutritionists at the location with their services there" do
+  test "lists the nutritionists in the city with their services" do
     mary = nutritionists(:mary_jane)
 
     get nutritionists_url, params: { q: "follow", location: "Braga" }
@@ -14,22 +14,20 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
         "name" => "Mary Jane",
         "title" => "Dietitian",
         "license_number" => "2963N",
+        "city" => "Braga",
+        "address" => "Rua do Souto 45",
         "offers_online" => true,
         "services" => [
           {
             "id" => services(:mary_first_appointment).id,
             "name" => "First appointment",
             "price" => "25.0",
-            "location" => "Braga",
-            "address" => "Rua do Souto 45",
             "duration_minutes" => 60
           },
           {
             "id" => services(:mary_follow_up).id,
             "name" => "Follow-up",
             "price" => "20.0",
-            "location" => "Braga",
-            "address" => "Rua do Souto 45",
             "duration_minutes" => 30
           }
         ]

@@ -2,22 +2,16 @@ mary_first_appointment:
   nutritionist: mary_jane
   name: First appointment
   price: 25.00
-  location: Braga
-  address: Rua do Souto 45
   duration_minutes: 60
 
 mary_follow_up:
   nutritionist: mary_jane
   name: Follow-up
   price: 20.00
-  location: Braga
-  address: Rua do Souto 45
   duration_minutes: 30
 
 ana_sports_nutrition:
   nutritionist: ana_ferreira
   name: Sports nutrition
   price: 40.00
-  location: Porto
-  address: Rua de Santa Catarina 120
   duration_minutes: 45

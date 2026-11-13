@@ -3,6 +3,8 @@ mary_jane:
   slug: mary-jane
   title: Dietitian
   license_number: 2963N
+  city: Braga
+  address: Rua do Souto 45
   offers_online: true
 
 ana_ferreira:
@@ -10,4 +12,6 @@ ana_ferreira:
   slug: ana-ferreira
   title: Nutritionist
   license_number: 1874N
+  city: Porto
+  address: Rua de Santa Catarina 120
   offers_online: false
