@@ -33,6 +33,32 @@ docker compose down
 Backend source changes reload through the bind mount. Rebuild the image after
 changing the Gemfile or Gemfile.lock.
 
+### Shortcuts
+
+The root `package.json` wraps these commands as pnpm scripts, so you can run
+them from the project root without typing `docker compose exec`. Extra
+arguments pass through to the underlying command.
+
+```sh
+pnpm dev                  # start Docker services, then the frontend
+pnpm stop                 # stop Docker services
+pnpm rails <args>         # any Rails command, e.g. pnpm rails generate model Service
+pnpm db:migrate
+pnpm db:rollback
+pnpm db:seed
+pnpm db:psql
+pnpm backend:test         # add a path to run one file
+pnpm backend:lint
+pnpm backend:ci
+pnpm backend:console
+pnpm backend:logs
+pnpm frontend:lint
+pnpm frontend:typecheck
+pnpm frontend:build
+pnpm test                 # backend tests
+pnpm lint                 # backend and frontend lint
+```
+
 ## Frontend
 
 Run the existing frontend separately.
