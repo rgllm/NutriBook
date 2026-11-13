@@ -10,6 +10,7 @@ class CreateNutritionists < ActiveRecord::Migration[8.1]
       t.timestamps
 
       t.index :slug, unique: true
-      t.check_constraint "title IN ('Dietitian', 'Nutritionist')", name: "nutritionists_title_allowed"    end
+      t.check_constraint "title IN ('Dietitian', 'Nutritionist')", name: "nutritionists_title_allowed"
+    end
   end
 end

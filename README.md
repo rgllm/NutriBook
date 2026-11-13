@@ -148,9 +148,9 @@ The frontend runs at <http://localhost:3000>. The nutritionist's pending
 requests page is at <http://localhost:3000/nutritionists/123/requests>; it has
 no authentication, as the challenge allows. The database schema and models are
 in place; the API endpoints, search, email notifications, and frontend API
-integration are pending implementation. Until
-then, both pages read mock data from `frontend/src/lib/`; accepting or rejecting
-a request removes it from an in-memory list that resets when the server restarts.
+integration are pending implementation. Until then, both pages read mock data
+from `frontend/src/lib/`; accepting or rejecting a request removes it from an
+in-memory list that resets when the server restarts.
 
 ## Design
 

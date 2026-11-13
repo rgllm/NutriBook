@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
-import { Cal_Sans, Inter } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from "next"
+import { Cal_Sans, Inter } from "next/font/google"
+import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const calSans = Cal_Sans({
   subsets: ["latin"],
   weight: "400",
@@ -10,12 +10,12 @@ const calSans = Cal_Sans({
   // next/font has no metrics for Cal Sans, so it cannot build an adjusted fallback.
   adjustFontFallback: false,
   fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
-});
+})
 
 export const metadata: Metadata = {
   title: "NutriBook · Find a nutritionist",
   description: "Search nutritionists by name, service, and location, and request an appointment.",
-};
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -25,5 +25,5 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
-  );
+  )
 }
