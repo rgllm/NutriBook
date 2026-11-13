@@ -26,8 +26,6 @@ export type Nutritionist = {
   city: City
   address: string
   offersOnline: boolean
-  rating: number
-  reviewCount: number
   services: Service[]
 }
 
@@ -40,8 +38,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Braga",
     address: "Rua do Souto 45",
     offersOnline: true,
-    rating: 4.9,
-    reviewCount: 32,
     services: [
       { name: "First appointment", priceEur: 25 },
       { name: "Follow-up", priceEur: 20 },
@@ -56,8 +52,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Braga",
     address: "Avenida da Liberdade 210",
     offersOnline: false,
-    rating: 4.7,
-    reviewCount: 18,
     services: [
       { name: "First appointment", priceEur: 35 },
       { name: "Sports nutrition", priceEur: 40 },
@@ -72,8 +66,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Braga",
     address: "Praça da República 12",
     offersOnline: true,
-    rating: 4.8,
-    reviewCount: 41,
     services: [
       { name: "First appointment", priceEur: 30 },
       { name: "Plant-based diets", priceEur: 35 },
@@ -89,8 +81,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Braga",
     address: "Rua de São Vicente 88",
     offersOnline: true,
-    rating: 4.6,
-    reviewCount: 9,
     services: [
       { name: "Child nutrition", priceEur: 35 },
       { name: "Pregnancy nutrition", priceEur: 40 },
@@ -105,8 +95,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Braga",
     address: "Rua Dom Pedro V 150",
     offersOnline: false,
-    rating: 4.5,
-    reviewCount: 14,
     services: [
       { name: "Sports nutrition", priceEur: 45 },
       { name: "Body composition analysis", priceEur: 20 },
@@ -120,8 +108,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Braga",
     address: "Largo do Paço 3",
     offersOnline: true,
-    rating: 5,
-    reviewCount: 27,
     services: [
       { name: "Food intolerances", priceEur: 40 },
       { name: "First appointment", priceEur: 35 },
@@ -136,8 +122,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Porto",
     address: "Rua de Santa Catarina 300",
     offersOnline: true,
-    rating: 4.8,
-    reviewCount: 52,
     services: [
       { name: "Weight loss", priceEur: 35 },
       { name: "Sports nutrition", priceEur: 40 },
@@ -152,8 +136,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Porto",
     address: "Avenida da Boavista 1200",
     offersOnline: false,
-    rating: 4.4,
-    reviewCount: 11,
     services: [
       { name: "Diabetes management", priceEur: 45 },
       { name: "First appointment", priceEur: 40 },
@@ -167,8 +149,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Lisboa",
     address: "Avenida da República 50",
     offersOnline: true,
-    rating: 4.9,
-    reviewCount: 64,
     services: [
       { name: "Plant-based diets", priceEur: 45 },
       { name: "Weight loss", priceEur: 45 },
@@ -183,8 +163,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Guimarães",
     address: "Rua de Santa Maria 17",
     offersOnline: true,
-    rating: 4.7,
-    reviewCount: 8,
     services: [
       { name: "First appointment", priceEur: 25 },
       { name: "Sports nutrition", priceEur: 30 },
@@ -198,8 +176,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Coimbra",
     address: "Rua Ferreira Borges 60",
     offersOnline: false,
-    rating: 4.6,
-    reviewCount: 21,
     services: [
       { name: "Child nutrition", priceEur: 30 },
       { name: "Food intolerances", priceEur: 35 },
@@ -213,8 +189,6 @@ export const NUTRITIONISTS: Nutritionist[] = [
     city: "Leiria",
     address: "Rua de Leiria 9",
     offersOnline: true,
-    rating: 4.8,
-    reviewCount: 16,
     services: [
       { name: "First appointment", priceEur: 25 },
       { name: "Follow-up", priceEur: 20 },

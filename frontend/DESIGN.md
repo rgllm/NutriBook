@@ -93,7 +93,7 @@ The three custom sizes carry their line height and letter spacing, so they need 
 - **Results title.** The `h1` states the count and the resolved city, for example "6 nutritionists in Braga". An unknown location shows an alert above it that names the fallback city.
 - **Result card.** Three regions in a row, stacked on mobile:
   1. A 64px avatar. Without a photo it is an ink circle with white initials.
-  2. An optional `brand` tag, the name as an `h2`, then title, licence number, and rating in graphite. Below that, two columns: the address with a pin icon, and the list of services with prices right-aligned in tabular figures.
+  2. An optional `brand` tag, the name as an `h2`, then title and licence number in graphite. Below that, two columns: the address with a pin icon, and the list of services with prices right-aligned in tabular figures.
   3. The actions, stacked and equal in width: "Schedule appointment" (primary) above "Personal page" (outline).
 - **Pagination.** Left-aligned under the list. Previous and next are icon-only, and the current page is an ink fill.
 - **Empty state.** A bordered white panel that says what was searched and offers to clear the query.

@@ -41,4 +41,7 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Fake names and addresses for db/seeds.rb
+  gem "faker", "~> 3.8"
 end

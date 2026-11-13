@@ -1,13 +1,13 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+mary_jane:
+  name: Mary Jane
+  slug: mary-jane
+  title: Dietitian
+  license_number: 2963N
+  offers_online: true
 
-one:
-  name: MyString
-  slug: MyString
-  title: MyString
-  license_number: MyString
-
-two:
-  name: MyString
-  slug: MyString
-  title: MyString
-  license_number: MyString
+ana_ferreira:
+  name: Ana Ferreira
+  slug: ana-ferreira
+  title: Nutritionist
+  license_number: 1874N
+  offers_online: false
