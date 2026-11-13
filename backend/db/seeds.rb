@@ -9,6 +9,7 @@
 
 Faker::Config.locale = "pt"
 Faker::Config.random = Random.new(2026)
+Faker::UniqueGenerator.clear
 
 CITY_COUNTS = {
   "Braga" => 8,
@@ -110,8 +111,9 @@ ActiveRecord::Base.transaction do
     guest_name = unique_person_name
     guest_email = "#{guest_name.parameterize(separator: ".")}@example.com"
 
-    # One pending request per guest, so the email identifies the seeded request.
-    AppointmentRequest.pending.find_or_create_by!(guest_email: guest_email) do |request|
+    # Each demo guest gets one seeded request, so the email identifies it
+    # whatever its status. Once answered in the app, reseeding leaves it alone.
+    AppointmentRequest.find_or_create_by!(guest_email: guest_email) do |request|
       request.service = service
       request.guest_name = guest_name
       request.starts_at = lisbon.parse("#{date} #{time}")
