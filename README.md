@@ -134,6 +134,63 @@ by city, `services (nutritionist_id, id)` for the composite key and lookups by
 nutritionist, and `appointment_requests (nutritionist_id, status, starts_at)`
 for a nutritionist's request list.
 
+## API
+
+`GET /nutritionists` searches nutritionists. It takes three optional query
+parameters.
+
+| Parameter | Meaning |
+| --- | --- |
+| `q` | Matches part of a nutritionist's name or the name of one of their services at the location |
+| `location` | The city to search |
+| `page` | The results page, five nutritionists per page |
+
+Matching ignores case and accents, so `joao` finds João and `guimaraes` finds
+Guimarães. PostgreSQL's `unaccent` extension does this for `q`. The known
+locations are the cities that have at least one service, plus `Lisbon` and
+`Oporto` as aliases. A blank location searches Braga, and so does an unknown
+one. The response says which case applied in `location.source`: `input`,
+`default`, or `fallback`. A page past the end returns the last page, and a
+missing or invalid page returns the first.
+
+Results are ordered by name. Each nutritionist lists only the services they
+offer at the searched location. Prices are decimal strings.
+
+```sh
+curl 'http://localhost:3001/nutritionists?q=first&location=braga'
+```
+
+```json
+{
+  "nutritionists": [
+    {
+      "id": 1,
+      "slug": "mary-jane",
+      "name": "Mary Jane",
+      "title": "Dietitian",
+      "license_number": "2963N",
+      "offers_online": true,
+      "services": [
+        {
+          "id": 1,
+          "name": "First appointment",
+          "price": "25.0",
+          "location": "Braga",
+          "address": "Rua do Souto 45",
+          "duration_minutes": 60
+        }
+      ]
+    }
+  ],
+  "location": { "city": "Braga", "source": "input" },
+  "pagination": { "page": 1, "per_page": 5, "total_count": 1, "total_pages": 1 }
+}
+```
+
+`NutritionistSearch` in `backend/app/models/` owns location resolution,
+matching, and paging. It runs a fixed number of queries whatever the page
+size, because the page's services are preloaded in one query.
+
 ## Frontend
 
 Run the existing frontend separately.
@@ -146,10 +203,10 @@ pnpm dev
 
 The frontend runs at <http://localhost:3000>. The nutritionist's pending
 requests page is at <http://localhost:3000/nutritionists/123/requests>; it has
-no authentication, as the challenge allows. The database schema and models are
-in place; the API endpoints, search, email notifications, and frontend API
-integration are pending implementation. Until then, both pages read mock data
-from `frontend/src/lib/`; accepting or rejecting a request removes it from an
+no authentication, as the challenge allows. The search API is in place; the
+request endpoints, email notifications, and frontend API integration are
+pending implementation. Until then, both pages read mock data from
+`frontend/src/lib/`; accepting or rejecting a request removes it from an
 in-memory list that resets when the server restarts.
 
 ## Design

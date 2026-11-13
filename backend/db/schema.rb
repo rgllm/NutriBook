@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_13_104948) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_13_182824) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "unaccent"
 
   create_table "appointment_requests", force: :cascade do |t|
     t.bigint "service_id", null: false
