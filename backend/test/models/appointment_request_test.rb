@@ -22,6 +22,24 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert_equal Time.utc(2027, 1, 4, 10, 0), request.ends_at
   end
 
+  test "keeps its booked interval when the service duration changes later" do
+    request = appointment_requests(:pending)
+    booked_until = request.ends_at
+    request.service.update!(duration_minutes: 90)
+
+    request.update!(status: "accepted", answered_at: Time.current)
+
+    assert_equal booked_until, request.reload.ends_at
+  end
+
+  test "recalculates the end time when the start time changes" do
+    request = appointment_requests(:pending)
+
+    request.update!(starts_at: Time.utc(2026, 12, 1, 15, 0))
+
+    assert_equal Time.utc(2026, 12, 1, 16, 0), request.reload.ends_at
+  end
+
   test "ignores a nutritionist that does not match the service" do
     request = build_request(nutritionist: nutritionists(:ana_ferreira))
 
