@@ -14,7 +14,7 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
           NutriBook
         </Link>
         <Link
-          href="#"
+          href="https://nutrium.com/"
           className="inline-flex h-11 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"
         >
           <span className="hidden sm:inline">
