@@ -5,7 +5,6 @@ import { ResultsHeading } from "@/components/search/results-heading"
 import { ResultsPagination } from "@/components/search/results-pagination"
 import { SearchUnavailable } from "@/components/search/search-unavailable"
 import { ApiUnavailableError } from "@/lib/api/http"
-import { fetchLocations } from "@/lib/api/locations"
 import { searchNutritionists } from "@/lib/api/nutritionists"
 import {
   parseSearchParams,
@@ -20,24 +19,18 @@ export async function SearchResults({
 }) {
   const search = parseSearchParams(await searchParams)
 
-  const responses = await Promise.all([searchNutritionists(search), fetchLocations()]).catch(
-    (error: unknown) => {
-      if (error instanceof ApiUnavailableError) return undefined
-      throw error
-    },
-  )
-  if (!responses) return <SearchUnavailable retryHref={searchHref(search)} />
+  const results = await searchNutritionists(search).catch((error: unknown) => {
+    if (error instanceof ApiUnavailableError) return undefined
+    throw error
+  })
+  if (!results) return <SearchUnavailable retryHref={searchHref(search)} />
 
-  const [{ nutritionists, location, pagination }, locations] = responses
+  const { nutritionists, location, pagination } = results
 
   return (
     <>
       {location.source === "fallback" && (
-        <LocationFallbackAlert
-          input={search.location}
-          city={location.city}
-          knownCities={locations.locations}
-        />
+        <LocationFallbackAlert input={search.location} city={location.city} />
       )}
 
       <ResultsHeading count={pagination.totalCount} city={location.city} query={search.query} />

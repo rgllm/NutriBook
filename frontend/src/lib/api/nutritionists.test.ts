@@ -52,14 +52,13 @@ describe("searchNutritionists", () => {
       nutritionists: [
         {
           id: 9,
-          slug: "eduarda-macedo",
           name: "Eduarda Macedo",
           title: "Dietitian",
           licenseNumber: "3496N",
           address: "Avenida Ladislau Moraes, 232",
           offersOnline: false,
           city: "Porto",
-          services: [{ id: 34, name: "Follow-up", priceEur: 19.5, durationMinutes: 30 }],
+          services: [{ id: 34, name: "Follow-up", priceEur: 19.5 }],
         },
       ],
       location: { city: "Porto", source: "input" },

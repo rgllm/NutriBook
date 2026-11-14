@@ -8,18 +8,12 @@ const serviceSchema = z
     id: z.number(),
     name: z.string(),
     price: z.coerce.number(),
-    duration_minutes: z.number(),
   })
-  .transform(({ duration_minutes, price, ...service }) => ({
-    ...service,
-    priceEur: price,
-    durationMinutes: duration_minutes,
-  }))
+  .transform(({ price, ...service }) => ({ ...service, priceEur: price }))
 
 const nutritionistSchema = z
   .object({
     id: z.number(),
-    slug: z.string(),
     name: z.string(),
     title: z.enum(["Dietitian", "Nutritionist"]),
     license_number: z.string(),
@@ -58,8 +52,7 @@ const searchResponseSchema = z
     },
   }))
 
-export type SearchResponse = z.infer<typeof searchResponseSchema>
-export type Nutritionist = SearchResponse["nutritionists"][number]
+export type Nutritionist = z.infer<typeof searchResponseSchema>["nutritionists"][number]
 export type Service = Nutritionist["services"][number]
 
 export function searchNutritionists(search: SearchState) {
