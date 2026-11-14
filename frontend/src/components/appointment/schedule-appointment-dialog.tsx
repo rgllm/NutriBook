@@ -14,7 +14,7 @@ export function ScheduleAppointmentDialog({
 }) {
   return (
     <Dialog>
-      <DialogTrigger render={<Button className="w-full" />}>
+      <DialogTrigger render={<Button variant="coral-soft" className="w-full" />}>
         <CalendarPlusIcon data-icon="inline-start" />
         Schedule appointment
       </DialogTrigger>

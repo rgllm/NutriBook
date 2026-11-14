@@ -2,7 +2,7 @@ import Form from "next/form"
 import { MapPinIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
   InputGroupAddon,
@@ -29,18 +29,18 @@ export function SearchForm({
       key={`${query}|${location}`}
       action="/"
       role="search"
-      className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+      className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start"
     >
       <Field>
         <FieldLabel htmlFor="search-query" className="sr-only">
-          Name or service
+          Nutritionist or service
         </FieldLabel>
         <InputGroup className={FIELD_ON_BAND}>
           <InputGroupInput
             id="search-query"
             name="q"
             defaultValue={query}
-            placeholder="Name or service"
+            placeholder="Search for a nutritionist or service"
           />
         </InputGroup>
       </Field>
@@ -55,12 +55,18 @@ export function SearchForm({
             list={locations && "known-cities"}
             autoComplete="address-level2"
             defaultValue={location}
-            placeholder={locations ? `Location (${locations.default} by default)` : "Location"}
+            placeholder="Location"
+            aria-describedby={locations && "search-location-hint"}
           />
           <InputGroupAddon align="inline-end">
             <MapPinIcon />
           </InputGroupAddon>
         </InputGroup>
+        {locations && (
+          <FieldDescription id="search-location-hint" className="px-3 text-xs text-brand-soft">
+            If no location is provided we default to {locations.default}.
+          </FieldDescription>
+        )}
         {locations && (
           <datalist id="known-cities">
             {locations.locations.map((city) => (
@@ -69,7 +75,7 @@ export function SearchForm({
           </datalist>
         )}
       </Field>
-      <Button type="submit" size="lg" className="sm:px-10">
+      <Button type="submit" variant="brand-soft" size="lg" className="sm:px-10">
         Search
       </Button>
     </Form>

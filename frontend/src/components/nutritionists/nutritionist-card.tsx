@@ -16,7 +16,7 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
     <Card>
       <CardContent className="flex flex-col gap-6 sm:flex-row sm:items-start">
         <Avatar className="size-16">
-          <AvatarFallback className="bg-primary font-heading text-subheading text-primary-foreground">
+          <AvatarFallback className="bg-brand-soft font-heading text-subheading text-brand-ink">
             {initials(nutritionist.name)}
           </AvatarFallback>
         </Avatar>
@@ -29,7 +29,7 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
                 Online
               </Badge>
             )}
-            <h2 className="font-heading text-subheading">{nutritionist.name}</h2>
+            <h2 className="font-heading text-subheading text-brand-strong">{nutritionist.name}</h2>
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
               <span>{nutritionist.title}</span>
               <span aria-hidden>•</span>
@@ -49,7 +49,7 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
 
         <div className="flex flex-col gap-2 sm:w-52 sm:self-center">
           <ScheduleAppointmentDialog nutritionist={nutritionist} />
-          <Button variant="outline" className="w-full">
+          <Button variant="brand-soft" className="w-full">
             <UserRoundIcon data-icon="inline-start" />
             Personal page
           </Button>

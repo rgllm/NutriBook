@@ -16,8 +16,8 @@
   --card-foreground: var(--color-ink);
   --popover: #ffffff;
   --popover-foreground: var(--color-ink);
-  /* White on ink: 18.88:1. */
-  --primary: var(--color-ink);
+  /* White on brand-strong: 5.13:1. */
+  --primary: var(--color-brand-strong);
   --primary-foreground: #ffffff;
   --secondary: var(--color-wash);
   --secondary-foreground: var(--color-ink);
@@ -68,7 +68,5 @@
   }
   html {
     @apply font-sans;
-    /* Cal Sans ships one weight; never let the browser fake a bolder one. */
-    font-synthesis-weight: none;
   }
 }

@@ -14,7 +14,7 @@ export function RequestCard({ request }: { request: PendingRequest }) {
       <CardContent className="flex flex-1 flex-col gap-5">
         <div className="flex items-center gap-4">
           <Avatar className="size-16">
-            <AvatarFallback className="bg-primary font-heading text-subheading text-primary-foreground">
+            <AvatarFallback className="bg-brand-soft font-heading text-subheading text-brand-ink">
               {initials(request.guestName)}
             </AvatarFallback>
           </Avatar>
