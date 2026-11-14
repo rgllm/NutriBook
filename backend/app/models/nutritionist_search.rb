@@ -46,7 +46,7 @@ class NutritionistSearch
   end
 
   def known_locations
-    Service.distinct.pluck(:location).index_by { |city| location_key(city) }
+    Service.locations.index_by { |city| location_key(city) }
   end
 
   def location_key(value)
