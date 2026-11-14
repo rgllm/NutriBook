@@ -61,7 +61,7 @@ export function SearchForm({
           ))}
         </datalist>
       </Field>
-      <Button type="submit" variant="brand" size="lg" className="sm:px-10">
+      <Button type="submit" size="lg" className="sm:px-10">
         Search
       </Button>
     </Form>
