@@ -5,6 +5,7 @@ import { format, startOfToday } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogClose,
   DialogDescription,
@@ -22,6 +23,13 @@ import {
   FieldSet,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { Nutritionist } from "@/lib/api/nutritionists"
 import {
@@ -41,6 +49,11 @@ export function AppointmentForm({
   nutritionist: Nutritionist
   onSubmit: (request: AppointmentRequest) => void
 }) {
+  const { services } = nutritionist
+  const [serviceId, setServiceId] = useState(
+    services.length === 1 ? services[0].id : undefined,
+  )
+  const [online, setOnline] = useState(false)
   const [date, setDate] = useState<Date>()
   const [time, setTime] = useState<TimeSlot>()
   const [errors, setErrors] = useState<AppointmentErrors>({})
@@ -51,6 +64,8 @@ export function AppointmentForm({
     const draft: AppointmentDraft = {
       name: String(form.get("name") ?? ""),
       email: String(form.get("email") ?? ""),
+      serviceId,
+      online,
       date,
       time,
     }
@@ -63,6 +78,11 @@ export function AppointmentForm({
 
   const clearError = (key: keyof AppointmentErrors) =>
     setErrors((current) => ({ ...current, [key]: undefined }))
+
+  function selectService(next: number | null) {
+    setServiceId(next ?? undefined)
+    clearError("serviceId")
+  }
 
   function selectDate(next: Date | undefined) {
     setDate(next)
@@ -110,6 +130,39 @@ export function AppointmentForm({
           />
           <FieldError>{errors.email}</FieldError>
         </Field>
+      </FieldGroup>
+
+      <FieldGroup>
+        <Field data-invalid={Boolean(errors.serviceId)}>
+          <FieldLabel htmlFor="service">Service</FieldLabel>
+          <Select
+            items={services.map((service) => ({ value: service.id, label: service.name }))}
+            value={serviceId ?? null}
+            onValueChange={selectService}
+          >
+            <SelectTrigger
+              id="service"
+              className="w-full"
+              aria-invalid={Boolean(errors.serviceId)}
+            >
+              <SelectValue placeholder="Choose a service" />
+            </SelectTrigger>
+            <SelectContent>
+              {services.map((service) => (
+                <SelectItem key={service.id} value={service.id}>
+                  {service.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError>{errors.serviceId}</FieldError>
+        </Field>
+        {nutritionist.offersOnline && (
+          <Field orientation="horizontal">
+            <Checkbox id="online" checked={online} onCheckedChange={setOnline} />
+            <FieldLabel htmlFor="online">Online appointment</FieldLabel>
+          </Field>
+        )}
       </FieldGroup>
 
       <FieldSet>

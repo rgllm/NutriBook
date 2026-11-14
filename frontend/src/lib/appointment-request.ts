@@ -17,6 +17,8 @@ export type TimeSlot = (typeof TIME_SLOTS)[number]
 export type AppointmentRequest = {
   name: string
   email: string
+  serviceId: number
+  online: boolean
   date: Date
   time: TimeSlot
 }
@@ -32,6 +34,7 @@ export function validateAppointment(draft: AppointmentDraft): AppointmentErrors 
   if (!draft.email?.trim()) errors.email = "Enter your email."
   else if (!EMAIL_PATTERN.test(draft.email.trim()))
     errors.email = "Enter a valid email, like name@example.com."
+  if (draft.serviceId === undefined) errors.serviceId = "Choose a service."
   if (!draft.date) errors.date = "Pick a day."
   if (!draft.time) errors.time = "Pick a time."
   return errors
