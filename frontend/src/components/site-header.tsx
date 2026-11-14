@@ -1,16 +1,15 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowRightIcon, LeafIcon } from "lucide-react"
+import { ArrowRightIcon } from "lucide-react"
 
 export function SiteHeader({ children }: { children?: ReactNode }) {
   return (
-    <header className="bg-brand text-ink [--ring:var(--color-ink)]">
+    <header className="bg-primary text-primary-foreground [--ring:white]">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-8">
         <Link
           href="/"
-          className="inline-flex h-11 items-center gap-2 font-heading text-subheading"
+          className="inline-flex h-11 items-center font-heading text-subheading"
         >
-          <LeafIcon aria-hidden className="size-6" />
           NutriBook
         </Link>
         <Link

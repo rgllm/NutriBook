@@ -50,7 +50,7 @@ function PaginationLink({
       data-slot="pagination-link"
       data-active={isActive}
       className={cn(
-        buttonVariants({ variant: isActive ? "default" : "ghost", size }),
+        buttonVariants({ variant: isActive ? "brand-soft" : "ghost", size }),
         className
       )}
       {...props}
