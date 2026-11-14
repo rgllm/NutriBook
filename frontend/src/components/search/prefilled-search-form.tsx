@@ -1,5 +1,5 @@
 import { SearchForm } from "@/components/search/search-form"
-import { ApiUnavailableError } from "@/lib/api/client"
+import { ApiUnavailableError } from "@/lib/api/http"
 import { fetchLocations } from "@/lib/api/locations"
 import { parseSearchParams, type SearchParams } from "@/lib/search-params"
 

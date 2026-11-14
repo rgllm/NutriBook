@@ -4,7 +4,7 @@ import { NoResults } from "@/components/search/no-results"
 import { ResultsHeading } from "@/components/search/results-heading"
 import { ResultsPagination } from "@/components/search/results-pagination"
 import { SearchUnavailable } from "@/components/search/search-unavailable"
-import { ApiUnavailableError } from "@/lib/api/client"
+import { ApiUnavailableError } from "@/lib/api/http"
 import { fetchLocations } from "@/lib/api/locations"
 import { searchNutritionists } from "@/lib/api/nutritionists"
 import {

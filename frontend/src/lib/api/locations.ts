@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { apiGet } from "@/lib/api/client"
+import { apiGet } from "@/lib/api/http"
 
 const locationsSchema = z.object({
   locations: z.array(z.string()),

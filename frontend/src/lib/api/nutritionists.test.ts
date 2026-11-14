@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { ApiUnavailableError } from "@/lib/api/client"
+import { ApiUnavailableError } from "@/lib/api/http"
 import { searchNutritionists } from "@/lib/api/nutritionists"
 
 vi.mock("server-only", () => ({}))

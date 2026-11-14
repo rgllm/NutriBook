@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { apiGet } from "@/lib/api/client"
+import { apiGet } from "@/lib/api/http"
 import { searchQuery, type SearchState } from "@/lib/search-params"
 
 const serviceSchema = z
