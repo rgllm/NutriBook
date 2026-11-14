@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useTransition, type FormEvent } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import Form from "next/form"
 import { useRouter } from "next/navigation"
 import { MapPinIcon } from "lucide-react"
@@ -30,21 +30,36 @@ export function SearchForm({
   const router = useRouter()
   const [isSearching, startTransition] = useTransition()
   const pendingSearch = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const [fields, setFields] = useState({ query, location })
+  const [shownSearch, setShownSearch] = useState({ query, location })
+  const [typedHrefs, setTypedHrefs] = useState<string[]>([])
 
   useEffect(() => () => clearTimeout(pendingSearch.current), [])
 
+  // The form outlives navigations. A URL our own typing produced leaves the
+  // fields alone, since the guest may have typed more since. Any other
+  // navigation (the logo, back, a link) resets them to the URL.
+  if (query !== shownSearch.query || location !== shownSearch.location) {
+    setShownSearch({ query, location })
+    if (!typedHrefs.includes(searchHref({ query, location, page: 1 }))) {
+      setFields({ query, location })
+      setTypedHrefs([])
+    }
+  }
+
   // Typing searches after a pause. Enter and the button still submit at once,
   // and the form works as a plain GET without JavaScript.
-  function searchAfterPause(event: FormEvent<HTMLFormElement>) {
-    const form = event.currentTarget
+  function updateField(field: keyof typeof fields, value: string) {
+    const next = { ...fields, [field]: value }
+    setFields(next)
     clearTimeout(pendingSearch.current)
     pendingSearch.current = setTimeout(() => {
-      const fields = new FormData(form)
       const href = searchHref({
-        query: String(fields.get("q") ?? "").trim(),
-        location: String(fields.get("location") ?? "").trim(),
+        query: next.query.trim(),
+        location: next.location.trim(),
         page: 1,
       })
+      setTypedHrefs((hrefs) => [...hrefs, href])
       startTransition(() => router.replace(href, { scroll: false }))
     }, SEARCH_DELAY_MS)
   }
@@ -53,7 +68,6 @@ export function SearchForm({
     <Form
       action="/"
       role="search"
-      onInput={searchAfterPause}
       onSubmit={() => clearTimeout(pendingSearch.current)}
       aria-busy={isSearching}
       className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
@@ -66,7 +80,8 @@ export function SearchForm({
           <InputGroupInput
             id="search-query"
             name="q"
-            defaultValue={query}
+            value={fields.query}
+            onChange={(event) => updateField("query", event.target.value)}
             placeholder="Name or service"
           />
         </InputGroup>
@@ -81,7 +96,8 @@ export function SearchForm({
             name="location"
             list={locations && "known-cities"}
             autoComplete="address-level2"
-            defaultValue={location}
+            value={fields.location}
+            onChange={(event) => updateField("location", event.target.value)}
             placeholder={locations ? `Location (${locations.default} by default)` : "Location"}
           />
           <InputGroupAddon align="inline-end">
