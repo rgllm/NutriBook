@@ -22,6 +22,13 @@ import {
   FieldSet,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { Nutritionist } from "@/lib/api/nutritionists"
 import {
@@ -33,6 +40,12 @@ import {
   type AppointmentRequest,
   type TimeSlot,
 } from "@/lib/appointment-request"
+import { formatEuros } from "@/lib/format"
+
+const APPOINTMENT_MODES = [
+  { value: false, label: "In person" },
+  { value: true, label: "Online" },
+]
 
 export function AppointmentForm({
   nutritionist,
@@ -41,6 +54,11 @@ export function AppointmentForm({
   nutritionist: Nutritionist
   onSubmit: (request: AppointmentRequest) => void
 }) {
+  const { services } = nutritionist
+  const [serviceId, setServiceId] = useState(
+    services.length === 1 ? services[0].id : undefined,
+  )
+  const [online, setOnline] = useState(false)
   const [date, setDate] = useState<Date>()
   const [time, setTime] = useState<TimeSlot>()
   const [errors, setErrors] = useState<AppointmentErrors>({})
@@ -51,6 +69,8 @@ export function AppointmentForm({
     const draft: AppointmentDraft = {
       name: String(form.get("name") ?? ""),
       email: String(form.get("email") ?? ""),
+      serviceId,
+      online,
       date,
       time,
     }
@@ -63,6 +83,11 @@ export function AppointmentForm({
 
   const clearError = (key: keyof AppointmentErrors) =>
     setErrors((current) => ({ ...current, [key]: undefined }))
+
+  function selectService(next: number | null) {
+    setServiceId(next ?? undefined)
+    clearError("serviceId")
+  }
 
   function selectDate(next: Date | undefined) {
     setDate(next)
@@ -109,6 +134,64 @@ export function AppointmentForm({
             aria-invalid={Boolean(errors.email)}
           />
           <FieldError>{errors.email}</FieldError>
+        </Field>
+      </FieldGroup>
+
+      <FieldGroup className="sm:flex-row">
+        <Field data-invalid={Boolean(errors.serviceId)}>
+          <FieldLabel htmlFor="service">Service</FieldLabel>
+          <Select
+            items={services.map((service) => ({ value: service.id, label: service.name }))}
+            value={serviceId ?? null}
+            onValueChange={selectService}
+          >
+            <SelectTrigger
+              id="service"
+              className="w-full"
+              aria-invalid={Boolean(errors.serviceId)}
+            >
+              <SelectValue placeholder="Choose a service" />
+            </SelectTrigger>
+            <SelectContent>
+              {services.map((service) => (
+                <SelectItem key={service.id} value={service.id}>
+                  {service.name}
+                  <span className="ml-auto text-muted-foreground tabular-nums">
+                    {formatEuros(service.priceEur)}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError>{errors.serviceId}</FieldError>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="appointment-mode">Appointment</FieldLabel>
+          <Select
+            items={APPOINTMENT_MODES}
+            value={online}
+            onValueChange={(next) => setOnline(next === true)}
+          >
+            <SelectTrigger id="appointment-mode" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {APPOINTMENT_MODES.map((mode) => (
+                <SelectItem
+                  key={mode.label}
+                  value={mode.value}
+                  disabled={mode.value && !nutritionist.offersOnline}
+                >
+                  {mode.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!nutritionist.offersOnline && (
+            <FieldDescription>
+              {nutritionist.name} only sees patients in person.
+            </FieldDescription>
+          )}
         </Field>
       </FieldGroup>
 

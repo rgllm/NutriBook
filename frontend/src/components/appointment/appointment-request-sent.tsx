@@ -19,6 +19,7 @@ export function AppointmentRequestSent({
   nutritionist: Nutritionist
   request: AppointmentRequest
 }) {
+  const service = nutritionist.services.find(({ id }) => id === request.serviceId)
   return (
     <>
       <DialogHeader className="items-center text-center">
@@ -29,6 +30,8 @@ export function AppointmentRequestSent({
         <DialogDescription className="max-w-[28rem] text-balance">
           You asked {nutritionist.name} for{" "}
           <strong className="text-foreground">
+            {service?.name}
+            {request.online && " (online)"} on{" "}
             {format(request.date, "EEEE, d MMMM")} at {request.time}
           </strong>
           . This is not confirmed yet. We will email {request.email} once{" "}
