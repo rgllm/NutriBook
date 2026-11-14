@@ -13,3 +13,13 @@ module ActiveSupport
     # Add more helper methods to be used by all tests here...
   end
 end
+
+module ActionDispatch
+  class IntegrationTest
+    include Committee::Rails::Test::Methods
+
+    def committee_options
+      { schema_path: Rails.root.join("public/openapi.yaml").to_s, strict_reference_validation: true }
+    end
+  end
+end

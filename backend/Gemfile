@@ -45,3 +45,8 @@ group :development, :test do
   # Fake names and addresses for db/seeds.rb
   gem "faker", "~> 3.8"
 end
+
+group :test do
+  # Validates request test responses against public/openapi.yaml
+  gem "committee-rails", "~> 0.10"
+end
