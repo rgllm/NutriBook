@@ -1,10 +1,12 @@
+// Portuguese convention puts the symbol after the amount ("39€"), which no
+// locale's currency style produces with English digits, so append it.
 const euros = new Intl.NumberFormat("en-IE", {
-  style: "currency",
-  currency: "EUR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
   trailingZeroDisplay: "stripIfInteger",
 })
 
-export const formatEuros = (amount: number) => euros.format(amount)
+export const formatEuros = (amount: number) => `${euros.format(amount)}€`
 
 export const initials = (name: string) =>
   name
