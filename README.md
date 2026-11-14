@@ -189,6 +189,19 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
 }
 ```
 
+`GET /locations` lists the cities that have at least one service, once each and
+in alphabetical order, for the search form's location input. These are the
+same cities `GET /nutritionists` accepts as known locations; both read
+`Service.locations`.
+
+```sh
+curl 'http://localhost:3001/locations'
+```
+
+```json
+{ "locations": ["Braga", "Porto"] }
+```
+
 `NutritionistSearch` in `backend/app/models/` owns location resolution,
 matching, and paging. It runs a fixed number of queries whatever the page
 size, because the page's services are preloaded in one query.
