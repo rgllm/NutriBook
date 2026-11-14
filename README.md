@@ -248,6 +248,11 @@ pnpm exec tsc --noEmit
 - **No caching.** Search and locations are fetched fresh on every request.
   Results change only when the seeds run, nothing would invalidate a cache
   tag, and free-text queries rarely repeat a cache key.
+- **Search as you type.** Both inputs update the URL 300 ms after the guest
+  stops typing, replacing the history entry inside a transition so the current
+  results stay on screen until the new ones arrive. Enter and the Search
+  button still submit at once, and the form remains a plain GET without
+  JavaScript.
 - **Two kinds of failure.** When Rails is unreachable, times out after five
   seconds, or answers 5xx, the results area shows an inline "Search is
   unavailable" message and the search form keeps working. Anything else, such
