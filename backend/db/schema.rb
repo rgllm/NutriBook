@@ -44,9 +44,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_190000) do
     t.boolean "offers_online", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "city", null: false
     t.string "address", null: false
-    t.index ["city", "name"], name: "index_nutritionists_on_city_and_name"
     t.index ["slug"], name: "index_nutritionists_on_slug", unique: true
     t.check_constraint "title::text = ANY (ARRAY['Dietitian'::character varying, 'Nutritionist'::character varying]::text[])", name: "nutritionists_title_allowed"
   end
@@ -55,9 +53,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_190000) do
     t.bigint "nutritionist_id", null: false
     t.string "name", null: false
     t.decimal "price", precision: 8, scale: 2, null: false
+    t.string "location", null: false
     t.integer "duration_minutes", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["location", "nutritionist_id"], name: "index_services_on_location_and_nutritionist_id"
     t.index ["nutritionist_id", "id"], name: "index_services_on_nutritionist_id_and_id", unique: true
     t.check_constraint "duration_minutes > 0", name: "services_duration_positive"
     t.check_constraint "price >= 0::numeric", name: "services_price_not_negative"

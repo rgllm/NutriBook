@@ -9,11 +9,12 @@ class ServiceTest < ActiveSupport::TestCase
     assert @service.valid?
   end
 
-  test "requires a name" do
+  test "requires name and location" do
     service = Service.new(nutritionist: nutritionists(:mary_jane))
 
     assert_not service.valid?
     assert_includes service.errors[:name], "can't be blank"
+    assert_includes service.errors[:location], "can't be blank"
   end
 
   test "price may be zero but not negative" do

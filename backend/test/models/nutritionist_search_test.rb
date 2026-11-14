@@ -18,7 +18,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   end
 
   test "location matching ignores case, accents and surrounding spaces" do
-    create_nutritionist("Rui Costa", city: "Guimarães")
+    create_nutritionist("Rui Costa", location: "Guimarães")
 
     [ "guimaraes", " GUIMARÃES ", "Guimarães" ].each do |input|
       search = search(location: input)
@@ -29,7 +29,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   end
 
   test "English city names resolve through the alias table" do
-    create_nutritionist("Inês Lima", city: "Lisboa")
+    create_nutritionist("Inês Lima", location: "Lisboa")
 
     assert_equal "Lisboa", search(location: "Lisbon").location
     assert_equal "Porto", search(location: "oporto").location
@@ -51,7 +51,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     assert_equal "fallback", search.location_source
   end
 
-  test "without a query it lists everyone in the city" do
+  test "without a query it lists everyone with a service at the location" do
     assert_equal [ nutritionists(:mary_jane) ], search(location: "Braga").nutritionists
     assert_equal [ nutritionists(:ana_ferreira) ], search(location: "Porto").nutritionists
   end
@@ -60,18 +60,18 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     assert_equal [ nutritionists(:mary_jane) ], search(query: "jane", location: "Braga").nutritionists
   end
 
-  test "the query matches a service name" do
+  test "the query matches a service name at the location" do
     assert_equal [ nutritionists(:mary_jane) ], search(query: "FOLLOW", location: "Braga").nutritionists
     assert_equal [ nutritionists(:ana_ferreira) ], search(query: "sports", location: "Porto").nutritionists
   end
 
-  test "a match in another city does not count" do
+  test "a match outside the location does not count" do
     assert_empty search(query: "sports", location: "Braga").nutritionists
     assert_empty search(query: "ana", location: "Braga").nutritionists
   end
 
   test "the query ignores accents on either side" do
-    joao = create_nutritionist("João Martins", city: "Braga", services: [ "Nutrição desportiva" ])
+    joao = create_nutritionist("João Martins", location: "Braga", services: [ "Nutrição desportiva" ])
 
     assert_equal [ joao ], search(query: "joao", location: "Braga").nutritionists
     assert_equal [ joao ], search(query: "JOÃO", location: "Braga").nutritionists
@@ -79,15 +79,23 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   end
 
   test "LIKE wildcards in the query are matched literally" do
-    create_nutritionist("Clara Dias", city: "Braga", services: [ "Low carb" ])
-    percent = create_nutritionist("Nutri 100%", city: "Braga")
+    create_nutritionist("Clara Dias", location: "Braga", services: [ "Low carb" ])
+    percent = create_nutritionist("Nutri 100%", location: "Braga")
 
     assert_equal [ percent ], search(query: "%", location: "Braga").nutritionists
     assert_empty search(query: "w_c", location: "Braga").nutritionists
   end
 
-  test "each nutritionist lists all their services by name" do
-    assert_equal [ "First appointment", "Follow-up" ], search(location: "Braga").nutritionists.first.services.map(&:name)
+  test "a nutritionist in two cities shows only the services at the searched location" do
+    mary = nutritionists(:mary_jane)
+    mary.services.create!(name: "Weight loss", price: 30, location: "Porto", duration_minutes: 45)
+
+    porto = search(location: "Porto").nutritionists
+    assert_equal [ "Ana Ferreira", "Mary Jane" ], porto.map(&:name)
+    assert_equal [ "Weight loss" ], porto.find { |n| n == mary }.services.map(&:name)
+
+    braga = search(location: "Braga").nutritionists
+    assert_equal [ "First appointment", "Follow-up" ], braga.first.services.map(&:name)
   end
 
   test "a nutritionist matching on several services appears once" do
@@ -99,7 +107,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   test "results are paged five at a time in a stable name order" do
     created = [ "Nutri A", "Nutri B", "Nutri B", "Nutri C", "Nutri D", "Nutri E" ].map do |name|
-      create_nutritionist(name, city: "Braga")
+      create_nutritionist(name, location: "Braga")
     end
     expected = [ nutritionists(:mary_jane), *created ]
 
@@ -115,7 +123,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   end
 
   test "a page past the end clamps to the last page" do
-    6.times { |i| create_nutritionist("Nutri #{i}", city: "Braga") }
+    6.times { |i| create_nutritionist("Nutri #{i}", location: "Braga") }
 
     search = search(location: "Braga", page: "99")
 
@@ -141,7 +149,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   test "the query count does not grow with the number of results" do
     one = count_queries { load_page(search(location: "Porto")) }
 
-    4.times { |i| create_nutritionist("Nutri #{i}", city: "Porto", services: [ "First appointment", "Follow-up" ]) }
+    4.times { |i| create_nutritionist("Nutri #{i}", location: "Porto", services: [ "First appointment", "Follow-up" ]) }
     many = nil
     queries = count_queries { many = load_page(search(location: "Porto")) }
 
@@ -155,13 +163,13 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     NutritionistSearch.new(query:, location:, page:)
   end
 
-  def create_nutritionist(name, city:, services: [ "First appointment" ])
+  def create_nutritionist(name, location:, services: [ "First appointment" ])
     nutritionist = Nutritionist.create!(
       name:, slug: "#{name.parameterize}-#{SecureRandom.hex(3)}", title: "Nutritionist", license_number: "9999N",
-      city:, address: "Rua Nova 1"
+      address: "Rua Nova 1"
     )
     services.each do |service|
-      nutritionist.services.create!(name: service, price: 30, duration_minutes: 45)
+      nutritionist.services.create!(name: service, price: 30, location:, duration_minutes: 45)
     end
     nutritionist
   end

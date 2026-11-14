@@ -73,8 +73,7 @@ erDiagram
         string slug UK
         string title "Dietitian or Nutritionist"
         string license_number
-        string city "used by search"
-        string address
+        string address "practice street address"
         boolean offers_online
     }
 
@@ -83,6 +82,7 @@ erDiagram
         bigint nutritionist_id FK
         string name
         decimal price ">= 0"
+        string location "city, used by search"
         integer duration_minutes "> 0"
     }
 
@@ -119,19 +119,20 @@ so editing a service later does not move existing appointments. `superseded`
 marks a pending request replaced by the same guest's newer one, so it stays
 distinct from a request the nutritionist rejected. Nutritionists and services
 use `restrict_with_error`, so records that requests point to cannot be deleted.
-A nutritionist works from one practice, so the city and address belong to the
-nutritionist and every service is offered there.
+The street address belongs to the nutritionist, while each service names the
+city it is offered in, so one nutritionist can see patients in several cities.
 
 `docker compose exec backend bin/rails db:seed` (or `pnpm db:seed`) creates 30
 nutritionists across the eight cities the frontend offers, with services at
 different prices and durations. Braga, the default location, has enough for
-more than one results page. The first Braga nutritionist has four pending requests, two of which
+more than one results page, and three of its nutritionists also see patients in
+Porto. The first Braga nutritionist has four pending requests, two of which
 overlap, to try the automatic rejection. Names come from Faker with a fixed
 random seed, so every run produces the same data, and the file is idempotent.
 Use `bin/rails db:seed:replant` to start over.
 
-Indexes follow the queries: `nutritionists (city, name)` for search by city in
-name order, `services (nutritionist_id, id)` for the composite key and lookups by
+Indexes follow the queries: `services (location, nutritionist_id)` for search
+by city, `services (nutritionist_id, id)` for the composite key and lookups by
 nutritionist, and `appointment_requests (nutritionist_id, status, starts_at)`
 for a nutritionist's request list.
 
@@ -142,20 +143,20 @@ parameters.
 
 | Parameter | Meaning |
 | --- | --- |
-| `q` | Matches part of a nutritionist's name or the name of one of their services |
+| `q` | Matches part of a nutritionist's name or the name of one of their services at the location |
 | `location` | The city to search |
 | `page` | The results page, five nutritionists per page |
 
 Matching ignores case and accents, so `joao` finds João and `guimaraes` finds
 Guimarães. PostgreSQL's `unaccent` extension does this for `q`. The known
-locations are the cities that have at least one nutritionist, plus `Lisbon` and
+locations are the cities that have at least one service, plus `Lisbon` and
 `Oporto` as aliases. A blank location searches Braga, and so does an unknown
 one. The response says which case applied in `location.source`: `input`,
 `default`, or `fallback`. A page past the end returns the last page, and a
 missing or invalid page returns the first.
 
-Results are ordered by name, and each nutritionist lists all their services.
-Prices are decimal strings.
+Results are ordered by name. Each nutritionist lists only the services they
+offer at the searched location. Prices are decimal strings.
 
 ```sh
 curl 'http://localhost:3001/nutritionists?q=first&location=braga'
@@ -170,7 +171,6 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
       "name": "Mary Jane",
       "title": "Dietitian",
       "license_number": "2963N",
-      "city": "Braga",
       "address": "Rua do Souto 45",
       "offers_online": true,
       "services": [
@@ -178,6 +178,7 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
           "id": 1,
           "name": "First appointment",
           "price": "25.0",
+          "location": "Braga",
           "duration_minutes": 60
         }
       ]

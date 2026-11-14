@@ -30,7 +30,7 @@ class NutritionistSearch
   def nutritionists
     @nutritionists ||= matching.order(:name, :id).limit(PER_PAGE).offset((page - 1) * PER_PAGE).to_a.tap do |records|
       ActiveRecord::Associations::Preloader.new(
-        records:, associations: :services, scope: Service.order(:name, :id)
+        records:, associations: :services, scope: Service.where(location:).order(:name, :id)
       ).call
     end
   end
@@ -46,21 +46,25 @@ class NutritionistSearch
   end
 
   def known_locations
-    Nutritionist.distinct.pluck(:city).index_by { |city| location_key(city) }
+    Service.distinct.pluck(:location).index_by { |city| location_key(city) }
   end
 
   def location_key(value)
     ActiveSupport::Inflector.transliterate(value.to_s).downcase.squish
   end
 
+  # A subquery keeps one row per nutritionist however many services match.
   def matching
-    in_city = Nutritionist.where(city: location)
-    return in_city if @query.empty?
+    Nutritionist.where(id: matching_services.select(:nutritionist_id))
+  end
 
-    pattern = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
-    # A subquery keeps one row per nutritionist however many services match.
-    matching_services = Service.where("unaccent(services.name) ILIKE unaccent(?)", pattern).select(:nutritionist_id)
+  def matching_services
+    services = Service.where(location:)
+    return services if @query.empty?
 
-    in_city.where("unaccent(nutritionists.name) ILIKE unaccent(?)", pattern).or(in_city.where(id: matching_services))
+    services.joins(:nutritionist).where(
+      "unaccent(nutritionists.name) ILIKE unaccent(:pattern) OR unaccent(services.name) ILIKE unaccent(:pattern)",
+      pattern: "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+    )
   end
 end

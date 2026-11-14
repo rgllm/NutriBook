@@ -4,8 +4,8 @@ class NutritionistsController < ApplicationController
 
     render json: {
       nutritionists: search.nutritionists.as_json(
-        only: %i[id slug name title license_number city address offers_online],
-        include: { services: { only: %i[id name price duration_minutes] } }
+        only: %i[id slug name title license_number address offers_online],
+        include: { services: { only: %i[id name price location duration_minutes] } }
       ),
       location: { city: search.location, source: search.location_source },
       pagination: {
