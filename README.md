@@ -73,6 +73,7 @@ erDiagram
         string slug UK
         string title "Dietitian or Nutritionist"
         string license_number
+        string address "practice street address"
         boolean offers_online
     }
 
@@ -82,7 +83,6 @@ erDiagram
         string name
         decimal price ">= 0"
         string location "city, used by search"
-        string address
         integer duration_minutes "> 0"
     }
 
@@ -119,6 +119,8 @@ so editing a service later does not move existing appointments. `superseded`
 marks a pending request replaced by the same guest's newer one, so it stays
 distinct from a request the nutritionist rejected. Nutritionists and services
 use `restrict_with_error`, so records that requests point to cannot be deleted.
+The street address belongs to the nutritionist, while each service names the
+city it is offered in, so one nutritionist can see patients in several cities.
 
 `docker compose exec backend bin/rails db:seed` (or `pnpm db:seed`) creates 30
 nutritionists across the eight cities the frontend offers, with services at
@@ -169,6 +171,7 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
       "name": "Mary Jane",
       "title": "Dietitian",
       "license_number": "2963N",
+      "address": "Rua do Souto 45",
       "offers_online": true,
       "services": [
         {
@@ -176,7 +179,6 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
           "name": "First appointment",
           "price": "25.0",
           "location": "Braga",
-          "address": "Rua do Souto 45",
           "duration_minutes": 60
         }
       ]

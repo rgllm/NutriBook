@@ -88,7 +88,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   test "a nutritionist in two cities shows only the services at the searched location" do
     mary = nutritionists(:mary_jane)
-    mary.services.create!(name: "Weight loss", price: 30, location: "Porto", address: "Rua das Flores 10", duration_minutes: 45)
+    mary.services.create!(name: "Weight loss", price: 30, location: "Porto", duration_minutes: 45)
 
     porto = search(location: "Porto").nutritionists
     assert_equal [ "Ana Ferreira", "Mary Jane" ], porto.map(&:name)
@@ -165,10 +165,11 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   def create_nutritionist(name, location:, services: [ "First appointment" ])
     nutritionist = Nutritionist.create!(
-      name:, slug: "#{name.parameterize}-#{SecureRandom.hex(3)}", title: "Nutritionist", license_number: "9999N"
+      name:, slug: "#{name.parameterize}-#{SecureRandom.hex(3)}", title: "Nutritionist", license_number: "9999N",
+      address: "Rua Nova 1"
     )
     services.each do |service|
-      nutritionist.services.create!(name: service, price: 30, location:, address: "Rua Nova 1", duration_minutes: 45)
+      nutritionist.services.create!(name: service, price: 30, location:, duration_minutes: 45)
     end
     nutritionist
   end

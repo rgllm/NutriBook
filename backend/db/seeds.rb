@@ -56,12 +56,11 @@ def street_address
   "#{STREET_TYPES.sample(random: Faker::Config.random)} #{person_name}, #{Faker::Number.between(from: 1, to: 300)}"
 end
 
-def seed_service(nutritionist, catalog_entry, location:, address:)
+def seed_service(nutritionist, catalog_entry, location:)
   name, duration, price_range = catalog_entry
   price = Faker::Number.between(from: price_range.min, to: price_range.max)
 
   nutritionist.services.find_or_create_by!(name: name, location: location) do |service|
-    service.address = address
     service.duration_minutes = duration
     service.price = price
   end
@@ -82,8 +81,9 @@ ActiveRecord::Base.transaction do
         record.title = title
         record.license_number = license_number
         record.offers_online = offers_online
+        record.address = address
       end
-      services.each { |entry| seed_service(nutritionist, entry, location: city, address: address) }
+      services.each { |entry| seed_service(nutritionist, entry, location: city) }
       nutritionist
     end
   end
@@ -91,7 +91,7 @@ ActiveRecord::Base.transaction do
   # A few Braga nutritionists also see patients in Porto, so one nutritionist
   # can match searches in two cities.
   nutritionists.first(3).each do |nutritionist|
-    seed_service(nutritionist, SERVICE_CATALOG.second, location: "Porto", address: street_address)
+    seed_service(nutritionist, SERVICE_CATALOG.second, location: "Porto")
   end
 
   # Pending requests for the first Braga nutritionist. The first two overlap,
