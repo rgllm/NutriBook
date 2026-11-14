@@ -5,6 +5,7 @@ import { format, startOfToday } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DialogClose,
   DialogDescription,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import {
   Field,
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldGroup,
@@ -41,11 +43,6 @@ import {
   type TimeSlot,
 } from "@/lib/appointment-request"
 import { formatEuros } from "@/lib/format"
-
-const APPOINTMENT_MODES = [
-  { value: false, label: "In person" },
-  { value: true, label: "Online" },
-]
 
 export function AppointmentForm({
   nutritionist,
@@ -137,7 +134,7 @@ export function AppointmentForm({
         </Field>
       </FieldGroup>
 
-      <FieldGroup className="sm:flex-row">
+      <FieldGroup>
         <Field data-invalid={Boolean(errors.serviceId)}>
           <FieldLabel htmlFor="service">Service</FieldLabel>
           <Select
@@ -165,33 +162,21 @@ export function AppointmentForm({
           </Select>
           <FieldError>{errors.serviceId}</FieldError>
         </Field>
-        <Field>
-          <FieldLabel htmlFor="appointment-mode">Appointment</FieldLabel>
-          <Select
-            items={APPOINTMENT_MODES}
-            value={online}
-            onValueChange={(next) => setOnline(next === true)}
-          >
-            <SelectTrigger id="appointment-mode" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {APPOINTMENT_MODES.map((mode) => (
-                <SelectItem
-                  key={mode.label}
-                  value={mode.value}
-                  disabled={mode.value && !nutritionist.offersOnline}
-                >
-                  {mode.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!nutritionist.offersOnline && (
-            <FieldDescription>
-              {nutritionist.name} only sees patients in person.
-            </FieldDescription>
-          )}
+        <Field orientation="horizontal">
+          <Checkbox
+            id="online"
+            checked={online}
+            onCheckedChange={setOnline}
+            disabled={!nutritionist.offersOnline}
+          />
+          <FieldContent>
+            <FieldLabel htmlFor="online">Online appointment</FieldLabel>
+            {!nutritionist.offersOnline && (
+              <FieldDescription>
+                {nutritionist.name} only sees patients in person.
+              </FieldDescription>
+            )}
+          </FieldContent>
         </Field>
       </FieldGroup>
 
