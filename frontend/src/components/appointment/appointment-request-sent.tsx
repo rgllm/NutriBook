@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { AppointmentRequest } from "@/lib/appointment-request"
-import type { Nutritionist } from "@/lib/nutritionists"
+import type { Nutritionist } from "@/lib/api/nutritionists"
 
 export function AppointmentRequestSent({
   nutritionist,

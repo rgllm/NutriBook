@@ -10,14 +10,13 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import type { City } from "@/lib/nutritionists"
 
 export function NoResults({
   city,
   query,
   clearHref,
 }: {
-  city: City
+  city: string
   query: string
   clearHref: string
 }) {

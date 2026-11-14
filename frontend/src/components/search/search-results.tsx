@@ -3,9 +3,10 @@ import { LocationFallbackAlert } from "@/components/search/location-fallback-ale
 import { NoResults } from "@/components/search/no-results"
 import { ResultsHeading } from "@/components/search/results-heading"
 import { ResultsPagination } from "@/components/search/results-pagination"
-import { resolveLocation } from "@/lib/location"
-import { paginate } from "@/lib/pagination"
-import { searchNutritionists } from "@/lib/search"
+import { SearchUnavailable } from "@/components/search/search-unavailable"
+import { ApiUnavailableError } from "@/lib/api/client"
+import { fetchLocations } from "@/lib/api/locations"
+import { searchNutritionists } from "@/lib/api/nutritionists"
 import {
   parseSearchParams,
   searchHref,
@@ -18,21 +19,32 @@ export async function SearchResults({
   searchParams: Promise<SearchParams>
 }) {
   const search = parseSearchParams(await searchParams)
-  const location = resolveLocation(search.location)
-  const results = searchNutritionists(search.query, location.city)
-  const { items, page, pageCount } = paginate(results, search.page)
+
+  const responses = await Promise.all([searchNutritionists(search), fetchLocations()]).catch(
+    (error: unknown) => {
+      if (error instanceof ApiUnavailableError) return undefined
+      throw error
+    },
+  )
+  if (!responses) return <SearchUnavailable retryHref={searchHref(search)} />
+
+  const [{ nutritionists, location, pagination }, locations] = responses
 
   return (
     <>
       {location.source === "fallback" && (
-        <LocationFallbackAlert input={search.location} city={location.city} />
+        <LocationFallbackAlert
+          input={search.location}
+          city={location.city}
+          knownCities={locations.locations}
+        />
       )}
 
-      <ResultsHeading count={results.length} city={location.city} query={search.query} />
+      <ResultsHeading count={pagination.totalCount} city={location.city} query={search.query} />
 
-      {items.length > 0 ? (
+      {nutritionists.length > 0 ? (
         <ul className="flex flex-col gap-4">
-          {items.map((nutritionist) => (
+          {nutritionists.map((nutritionist) => (
             <li key={nutritionist.id}>
               <NutritionistCard nutritionist={nutritionist} />
             </li>
@@ -46,10 +58,10 @@ export async function SearchResults({
         />
       )}
 
-      {pageCount > 1 && (
+      {pagination.totalPages > 1 && (
         <ResultsPagination
-          page={page}
-          pageCount={pageCount}
+          page={pagination.page}
+          pageCount={pagination.totalPages}
           hrefFor={(target) => searchHref({ ...search, page: target })}
         />
       )}

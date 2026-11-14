@@ -1,6 +1,6 @@
 import { MapPinIcon } from "lucide-react"
 
-import type { Nutritionist } from "@/lib/nutritionists"
+import type { Nutritionist } from "@/lib/api/nutritionists"
 
 export function NutritionistLocation({
   address,

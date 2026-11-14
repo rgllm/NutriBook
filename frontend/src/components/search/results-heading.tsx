@@ -1,12 +1,10 @@
-import type { City } from "@/lib/nutritionists"
-
 export function ResultsHeading({
   count,
   city,
   query,
 }: {
   count: number
-  city: City
+  city: string
   query: string
 }) {
   return (
