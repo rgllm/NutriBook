@@ -192,14 +192,15 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
 `GET /locations` lists the cities that have at least one service, once each and
 in alphabetical order, for the search form's location input. These are the
 same cities `GET /nutritionists` accepts as known locations; both read
-`Service.locations`.
+`Service.locations`. `default` is the city a blank or unknown location
+searches.
 
 ```sh
 curl 'http://localhost:3001/locations'
 ```
 
 ```json
-{ "locations": ["Braga", "Porto"] }
+{ "locations": ["Braga", "Porto"], "default": "Braga" }
 ```
 
 `NutritionistSearch` in `backend/app/models/` owns location resolution,
@@ -208,21 +209,50 @@ size, because the page's services are preloaded in one query.
 
 ## Frontend
 
-Run the existing frontend separately.
+Run the frontend separately, with the backend running.
 
 ```sh
 cd frontend
+cp .env.example .env.local   # API_URL=http://localhost:3001
 pnpm install
 pnpm dev
 ```
 
-The frontend runs at <http://localhost:3000>. The nutritionist's pending
-requests page is at <http://localhost:3000/nutritionists/123/requests>; it has
-no authentication, as the challenge allows. The search API is in place; the
-request endpoints, email notifications, and frontend API integration are
-pending implementation. Until then, both pages read mock data from
-`frontend/src/lib/`; accepting or rejecting a request removes it from an
-in-memory list that resets when the server restarts.
+The frontend runs at <http://localhost:3000>. `API_URL` is required; the app
+stops with a message pointing at `.env.example` if it is missing.
+
+The search page reads `GET /nutritionists` and `GET /locations` from Server
+Components. The nutritionist's pending requests page is at
+<http://localhost:3000/nutritionists/123/requests>; it has no authentication,
+as the challenge allows. The request endpoints and email notifications are
+pending implementation. Until then the requests page reads a mock list in
+`frontend/src/lib/pending-requests.ts`; accepting or rejecting a request
+removes it from an in-memory list that resets when the server restarts.
+
+```sh
+pnpm test                    # Vitest
+pnpm lint
+pnpm exec tsc --noEmit
+```
+
+### Frontend decisions
+
+- **The backend owns every rule.** Matching, the Braga default and fallback,
+  paging, and the list of known cities come from the API. The frontend renders
+  what it gets and keeps no copy of those rules.
+- **Responses are parsed at the boundary.** `frontend/src/lib/api/` is the only
+  code that calls Rails. A small Zod schema per endpoint checks the payload,
+  renames snake_case to camelCase, and turns decimal price strings into
+  numbers; the app's types are inferred from those schemas. The backend
+  request tests pin the same JSON shape.
+- **No caching.** Search and locations are fetched fresh on every request.
+  Results change only when the seeds run, nothing would invalidate a cache
+  tag, and free-text queries rarely repeat a cache key.
+- **Two kinds of failure.** When Rails is unreachable, times out after five
+  seconds, or answers 5xx, the results area shows an inline "Search is
+  unavailable" message and the search form keeps working. Anything else, such
+  as a 4xx or a payload that fails parsing, is a bug and reaches
+  `app/error.tsx`.
 
 ## Design
 
