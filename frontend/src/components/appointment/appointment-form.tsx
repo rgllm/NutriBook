@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog"
 import {
   Field,
-  FieldContent,
   FieldDescription,
   FieldError,
   FieldGroup,
@@ -158,22 +157,12 @@ export function AppointmentForm({
           </Select>
           <FieldError>{errors.serviceId}</FieldError>
         </Field>
-        <Field orientation="horizontal">
-          <Checkbox
-            id="online"
-            checked={online}
-            onCheckedChange={setOnline}
-            disabled={!nutritionist.offersOnline}
-          />
-          <FieldContent>
+        {nutritionist.offersOnline && (
+          <Field orientation="horizontal">
+            <Checkbox id="online" checked={online} onCheckedChange={setOnline} />
             <FieldLabel htmlFor="online">Online appointment</FieldLabel>
-            {!nutritionist.offersOnline && (
-              <FieldDescription>
-                {nutritionist.name} only sees patients in person.
-              </FieldDescription>
-            )}
-          </FieldContent>
-        </Field>
+          </Field>
+        )}
       </FieldGroup>
 
       <FieldSet>
