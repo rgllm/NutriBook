@@ -42,7 +42,6 @@ import {
   type AppointmentRequest,
   type TimeSlot,
 } from "@/lib/appointment-request"
-import { formatEuros } from "@/lib/format"
 
 export function AppointmentForm({
   nutritionist,
@@ -153,9 +152,6 @@ export function AppointmentForm({
               {services.map((service) => (
                 <SelectItem key={service.id} value={service.id}>
                   {service.name}
-                  <span className="ml-auto text-muted-foreground tabular-nums">
-                    {formatEuros(service.priceEur)}
-                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

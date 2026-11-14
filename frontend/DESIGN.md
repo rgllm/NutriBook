@@ -101,7 +101,7 @@ The three custom sizes carry their line height and letter spacing, so they need 
 ## Appointment dialog
 
 - The title uses `font-heading text-subheading`, and the description names the nutritionist.
-- Name and email sit side by side, then the service select, listing the nutritionist's services with prices (preselected when there is only one), with an "Online appointment" checkbox under it (disabled, with a hint, when the nutritionist does not offer online). Then the calendar next to a three-column grid of time slots.
+- Name and email sit side by side, then the service select, listing the nutritionist's services by name (preselected when there is only one), with an "Online appointment" checkbox under it (disabled, with a hint, when the nutritionist does not offer online). Then the calendar next to a three-column grid of time slots.
 - A selected day or slot is an ink fill with white text. Unavailable days are struck through as well as dimmed.
 - The footer has "Cancel" (outline) and "Request appointment" (primary).
 - The confirmation says the appointment is requested, not confirmed, and that the answer arrives by email. Do not style a pending request as a confirmed booking.
