@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: NutriBook API
+  version: 1.0.0
+  description: >
+    JSON API behind the NutriBook frontend. Guests search nutritionists by
+    name, service, and location. The request tests validate every documented
+    response against this file, so it cannot drift from the code.
+servers:
+  - url: /
+    description: This server
+paths:
+  /nutritionists:
+    get:
+      operationId: searchNutritionists
+      summary: Search nutritionists
+      description: >
+        Matches part of a nutritionist's name or the name of one of their
+        services at the location, ignoring case and accents. A blank or unknown
+        location searches Braga, and `location.source` says which case applied.
+        Results are ordered by name, five per page. A page past the end returns
+        the last page, and a missing or invalid page returns the first. Each
+        nutritionist lists only the services offered at the searched location.
+      tags: [Nutritionists]
+      parameters:
+        - name: q
+          in: query
+          description: Part of a nutritionist's name or of a service name.
+          schema:
+            type: string
+          example: follow
+        - name: location
+          in: query
+          description: City to search. `Lisbon` and `Oporto` are accepted as aliases.
+          schema:
+            type: string
+          example: Braga
+        - name: page
+          in: query
+          description: Results page, starting at 1.
+          schema:
+            type: string
+          example: "1"
+      responses:
+        "200":
+          description: One page of matching nutritionists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NutritionistSearch"
+  /locations:
+    get:
+      operationId: listLocations
+      summary: List searchable cities
+      description: >
+        The cities with at least one service, once each and in alphabetical
+        order, and the city a blank or unknown location searches.
+      tags: [Locations]
+      responses:
+        "200":
+          description: The known cities and the default.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locations"
+components:
+  schemas:
+    NutritionistSearch:
+      type: object
+      additionalProperties: false
+      required: [nutritionists, location, pagination]
+      properties:
+        nutritionists:
+          type: array
+          items:
+            $ref: "#/components/schemas/Nutritionist"
+        location:
+          $ref: "#/components/schemas/ResolvedLocation"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+    Nutritionist:
+      type: object
+      additionalProperties: false
+      required: [id, slug, name, title, license_number, address, offers_online, services]
+      properties:
+        id:
+          type: integer
+          example: 1
+        slug:
+          type: string
+          example: mary-jane
+        name:
+          type: string
+          example: Mary Jane
+        title:
+          type: string
+          enum: [Dietitian, Nutritionist]
+        license_number:
+          type: string
+          example: 2963N
+        address:
+          type: string
+          example: Rua do Souto 45
+        offers_online:
+          type: boolean
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/Service"
+    Service:
+      type: object
+      additionalProperties: false
+      required: [id, name, price, location, duration_minutes]
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: First appointment
+        price:
+          type: string
+          description: Decimal amount in euros, as a string to keep its precision.
+          pattern: '^\d+\.\d+$'
+          example: "25.0"
+        location:
+          type: string
+          example: Braga
+        duration_minutes:
+          type: integer
+          minimum: 1
+          example: 60
+    ResolvedLocation:
+      type: object
+      additionalProperties: false
+      required: [city, source]
+      properties:
+        city:
+          type: string
+          description: The city that was searched.
+          example: Braga
+        source:
+          type: string
+          description: >
+            `input` when the requested location was known, `default` when it was
+            blank, `fallback` when it was unknown.
+          enum: [input, default, fallback]
+    Pagination:
+      type: object
+      additionalProperties: false
+      required: [page, per_page, total_count, total_pages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          example: 5
+        total_count:
+          type: integer
+          minimum: 0
+        total_pages:
+          type: integer
+          minimum: 1
+    Locations:
+      type: object
+      additionalProperties: false
+      required: [locations, default]
+      properties:
+        locations:
+          type: array
+          items:
+            type: string
+          example: [Braga, Porto]
+        default:
+          type: string
+          example: Braga

@@ -138,6 +138,14 @@ for a nutritionist's request list.
 
 ## API
 
+Interactive docs run at <http://localhost:3001/docs>. Swagger UI reads the
+OpenAPI spec in `backend/public/openapi.yaml`, which is also served at
+<http://localhost:3001/openapi.yaml>. The controller tests call
+`assert_schema_conform(200)` from `committee-rails`. That call fails when a
+request or response differs from the spec, so the docs stay in step with the
+code. A new endpoint goes into the spec in the same change as its controller
+test.
+
 `GET /nutritionists` searches nutritionists. It takes three optional query
 parameters.
 
