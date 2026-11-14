@@ -1,6 +1,6 @@
 # NutriBook design reference
 
-NutriBook keeps the structure of the challenge's reference image and renders it in a bold, mostly monochrome style: ink-black actions, white cards with hairline borders, heavy display headings, and one green accent. This document is the source of truth for the frontend's look. The tokens live in `src/app/theme.css`, and `src/app/globals.css` maps them onto the shadcn/ui roles.
+NutriBook keeps the structure of the challenge's reference image and renders it in a bold, mostly monochrome style: ink-black actions, white cards with hairline borders, heavy display headings, and a green header band. This document is the source of truth for the frontend's look. The tokens live in `src/app/theme.css`, and `src/app/globals.css` maps them onto the shadcn/ui roles.
 
 ## Relation to the reference image
 
@@ -8,8 +8,8 @@ The layout and the content of each region follow the reference. The colours and 
 
 | Region | Reference image | NutriBook |
 |--------|-----------------|-----------|
-| Header and search band | Green gradient, white logo and link | Same structure on an ink band |
-| Search form | Two white inputs and an orange Search button | Two white inputs and a green Search button |
+| Header and search band | Green gradient, white logo and link | Same structure on a flat green band with ink logo and link |
+| Search form | Two white inputs and an orange Search button | Two white inputs and an ink Search button |
 | Result card | Avatar, tag, green name, title and licence, location, service and price, two stacked buttons on the right | Same regions; the name is ink, and every service is listed with its price instead of sitting behind a dropdown |
 | Card buttons | Peach "Schedule appointment", mint "Website" | Ink "Schedule appointment", outlined "Personal page" |
 | Pagination | Numbered, left-aligned, mint active page | Numbered, left-aligned, ink active page |
@@ -21,13 +21,13 @@ The reference puts white text on green and green text on white. Both are about 2
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `--color-ink` | `#111111` | Text, primary actions, the header band, the active page |
+| `--color-ink` | `#111111` | Text, primary actions, the logo mark, the active page |
 | `--color-graphite` | `#4b5563` | Supporting text |
 | `--color-line` | `#e5e7eb` | Card borders and dividers (decorative) |
 | `--color-line-strong` | `#8a8f98` | Input and outline-button borders |
 | `--color-wash` | `#f3f4f6` | Hover and muted surfaces |
 | `--color-canvas` | `#f9f9fa` | Page background, sampled from the reference |
-| `--color-brand` | `#1ab394` | The Search button, the logo mark, the success icon |
+| `--color-brand` | `#1ab394` | The header band, the success icon |
 | `--color-brand-hover` | `#47baac` | Hover on a brand fill |
 | `--color-brand-soft` | `#ddf9ef` | Tag background, sampled from the reference |
 | `--color-brand-ink` | `#0b5e4d` | Text on `brand-soft` |
@@ -53,11 +53,11 @@ The brand tokens have no shadcn role. Use `bg-brand`, `bg-brand-soft`, and `text
 
 Rules:
 
-- Green is an accent, used at most once or twice per screen. Ink owns the primary action.
+- Green is the header band and a few accents (tags, the success icon). Ink owns the primary action, including the Search button on the band.
 - Never set text in `brand` on a light surface (2.65:1). Text on a `brand` fill is ink (7.12:1). Text on `brand-soft` is `brand-ink` (6.93:1).
 - Supporting text is graphite (7.56:1 on white, 7.18:1 on the canvas). Do not go lighter for text.
 - `line` is decorative. A control whose edge must be visible uses `line-strong` (3.25:1 on white).
-- The focus ring reaches 5.17:1 on white and 3.65:1 on ink, so one colour serves both surfaces.
+- The focus ring reaches 5.17:1 on white and 3.65:1 on ink. On the green band it would drop to about 2.2:1, so the header sets `--ring` to ink (7.12:1) for everything inside it.
 - A state such as pending, accepted, or rejected always carries a text label or an icon. Colour alone does not carry it.
 - The palette is light only. `dark:` is bound to a `.dark` class that is never set, so the `dark:` classes in generated components stay inert.
 
@@ -88,8 +88,8 @@ The three custom sizes carry their line height and letter spacing, so they need 
 
 ## Search page
 
-- **Header band.** `bg-primary text-primary-foreground`. The first row holds the logo on the left and the "Are you a nutrition professional?" link on the right. The second row holds the search form.
-- **Search form.** Two 48px white inputs with visually hidden labels and placeholders, the location input with a pin icon at its end, then a `brand` Search button. The fields stack on mobile.
+- **Header band.** `bg-brand text-ink`, with `--ring` set to ink. The logo mark is ink. The first row holds the logo on the left and the "Are you a nutrition professional?" link on the right. The second row holds the search form.
+- **Search form.** Two 48px white inputs with visually hidden labels and placeholders, the location input with a pin icon at its end, then a primary (ink) Search button. The fields stack on mobile.
 - **Results title.** The `h1` states the count and the resolved city, for example "6 nutritionists in Braga". An unknown location shows an alert above it that names the fallback city.
 - **Result card.** Three regions in a row, stacked on mobile:
   1. A 64px avatar. Without a photo it is an ink circle with white initials.
