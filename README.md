@@ -262,11 +262,13 @@ pnpm exec tsc --noEmit
 
 ## Design
 
-`frontend/DESIGN.md` is the design reference. The UI keeps the layout of the
-challenge's reference image (search band, result card, numbered pagination) and
-deliberately changes its colours and type: ink-black actions, flat white cards,
-Cal Sans headings, and green as a single accent. The reference's white-on-green
-and green-on-white text is about 2.65:1, below the 4.5:1 that body text needs.
+`frontend/DESIGN.md` is the design reference. The UI follows the challenge's
+reference image, which is a Nutrium page, and takes its palette and shapes from
+nutrium.com: the Nutrium green, slate text, coral and mint action buttons, pill
+buttons, and flat white cards. Shades are darkened where the reference falls
+below the 4.5:1 that body text needs: white on the Nutrium green is 2.65:1, so
+the header band and green text use a darker green. Headings use Outfit in place
+of Nutrium's commercial Geomanist.
 
-Inter and Cal Sans load through `next/font/google`, so `pnpm build` needs
+Inter and Outfit load through `next/font/google`, so `pnpm build` needs
 network access to download them.
