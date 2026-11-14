@@ -9,7 +9,7 @@ import { CardSection } from "@/components/nutritionists/card-section"
 import { NutritionistLocation } from "@/components/nutritionists/nutritionist-location"
 import { ServicePriceList } from "@/components/nutritionists/service-price-list"
 import { initials } from "@/lib/format"
-import type { Nutritionist } from "@/lib/nutritionists"
+import type { Nutritionist } from "@/lib/api/nutritionists"
 
 export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist }) {
   return (

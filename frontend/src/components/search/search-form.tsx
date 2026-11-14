@@ -8,19 +8,25 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { CITIES, DEFAULT_CITY } from "@/lib/nutritionists"
+import type { Locations } from "@/lib/api/locations"
 
 const FIELD_ON_BAND = "h-12 border-transparent bg-card text-foreground"
 
 export function SearchForm({
   query = "",
   location = "",
+  locations,
 }: {
   query?: string
   location?: string
+  locations?: Locations
 }) {
   return (
     <Form
+      // The form survives client navigations, and inputs ignore a new
+      // defaultValue once mounted. A new key per search remounts them, so the
+      // logo, back, and "Clear search" show the URL's values.
+      key={`${query}|${location}`}
       action="/"
       role="search"
       className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
@@ -46,20 +52,22 @@ export function SearchForm({
           <InputGroupInput
             id="search-location"
             name="location"
-            list="known-cities"
+            list={locations && "known-cities"}
             autoComplete="address-level2"
             defaultValue={location}
-            placeholder={`Location (${DEFAULT_CITY} by default)`}
+            placeholder={locations ? `Location (${locations.default} by default)` : "Location"}
           />
           <InputGroupAddon align="inline-end">
             <MapPinIcon />
           </InputGroupAddon>
         </InputGroup>
-        <datalist id="known-cities">
-          {CITIES.map((city) => (
-            <option key={city} value={city} />
-          ))}
-        </datalist>
+        {locations && (
+          <datalist id="known-cities">
+            {locations.locations.map((city) => (
+              <option key={city} value={city} />
+            ))}
+          </datalist>
+        )}
       </Field>
       <Button type="submit" variant="brand" size="lg" className="sm:px-10">
         Search

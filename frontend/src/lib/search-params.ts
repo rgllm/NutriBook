@@ -17,11 +17,15 @@ export function parseSearchParams(params: SearchParams): SearchState {
   }
 }
 
-export function searchHref({ query, location, page }: SearchState): string {
+export function searchQuery({ query, location, page }: SearchState): URLSearchParams {
   const params = new URLSearchParams()
   if (query) params.set("q", query)
   if (location) params.set("location", location)
   if (page > 1) params.set("page", String(page))
-  const search = params.toString()
-  return search ? `/?${search}` : "/"
+  return params
+}
+
+export function searchHref(search: SearchState): string {
+  const query = searchQuery(search).toString()
+  return query ? `/?${query}` : "/"
 }

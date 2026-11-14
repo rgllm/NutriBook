@@ -5,7 +5,7 @@ import { CalendarPlusIcon } from "lucide-react"
 import { AppointmentFlow } from "@/components/appointment/appointment-flow"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import type { Nutritionist } from "@/lib/nutritionists"
+import type { Nutritionist } from "@/lib/api/nutritionists"
 
 export function ScheduleAppointmentDialog({
   nutritionist,

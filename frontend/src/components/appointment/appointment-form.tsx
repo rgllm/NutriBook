@@ -23,14 +23,16 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import type { Nutritionist } from "@/lib/api/nutritionists"
 import {
   isSlotInPast,
+  TIME_SLOTS,
   validateAppointment,
   type AppointmentDraft,
   type AppointmentErrors,
   type AppointmentRequest,
+  type TimeSlot,
 } from "@/lib/appointment-request"
-import { TIME_SLOTS, type Nutritionist, type TimeSlot } from "@/lib/nutritionists"
 
 export function AppointmentForm({
   nutritionist,
