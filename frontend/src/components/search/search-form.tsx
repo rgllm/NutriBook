@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react"
 import Form from "next/form"
 import { useRouter } from "next/navigation"
 import { MapPinIcon } from "lucide-react"
@@ -32,18 +32,48 @@ export function SearchForm({
   const pendingSearch = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [fields, setFields] = useState({ query, location })
   const [shownSearch, setShownSearch] = useState({ query, location })
-  const [typedHrefs, setTypedHrefs] = useState<string[]>([])
+  // Typed searches sent to the router that have not rendered yet, oldest first.
+  const [loadingHrefs, setLoadingHrefs] = useState<string[]>([])
 
-  useEffect(() => () => clearTimeout(pendingSearch.current), [])
+  function cancelPendingSearch() {
+    clearTimeout(pendingSearch.current)
+    pendingSearch.current = undefined
+  }
 
-  // The form outlives navigations. A URL our own typing produced leaves the
-  // fields alone, since the guest may have typed more since. Any other
-  // navigation (the logo, back, a link) resets them to the URL.
+  // A navigation the guest starts (a link such as the logo, back, forward)
+  // supersedes a typed search still waiting for its pause. The fields go back
+  // to the search on screen; the navigation then updates them if it changes it.
+  const abandonPendingSearch = useEffectEvent(() => {
+    if (pendingSearch.current === undefined) return
+    cancelPendingSearch()
+    setFields(shownSearch)
+  })
+
+  useEffect(() => {
+    const abandonOnLinkClick = (event: MouseEvent) => {
+      if (event.target instanceof Element && event.target.closest("a[href]")) abandonPendingSearch()
+    }
+    document.addEventListener("click", abandonOnLinkClick, { capture: true })
+    window.addEventListener("popstate", abandonPendingSearch)
+    return () => {
+      clearTimeout(pendingSearch.current)
+      document.removeEventListener("click", abandonOnLinkClick, { capture: true })
+      window.removeEventListener("popstate", abandonPendingSearch)
+    }
+  }, [])
+
+  // The form outlives navigations. When a typed search renders, the fields stay
+  // as they are, since the guest may have typed more since; it and any older
+  // search it superseded leave the queue. Any other navigation resets the
+  // fields to the URL.
   if (query !== shownSearch.query || location !== shownSearch.location) {
     setShownSearch({ query, location })
-    if (!typedHrefs.includes(searchHref({ query, location, page: 1 }))) {
+    const typed = loadingHrefs.indexOf(searchHref({ query, location, page: 1 }))
+    if (typed === -1) {
       setFields({ query, location })
-      setTypedHrefs([])
+      setLoadingHrefs([])
+    } else {
+      setLoadingHrefs(loadingHrefs.slice(typed + 1))
     }
   }
 
@@ -52,14 +82,16 @@ export function SearchForm({
   function updateField(field: keyof typeof fields, value: string) {
     const next = { ...fields, [field]: value }
     setFields(next)
-    clearTimeout(pendingSearch.current)
+    cancelPendingSearch()
     pendingSearch.current = setTimeout(() => {
+      pendingSearch.current = undefined
       const href = searchHref({
         query: next.query.trim(),
         location: next.location.trim(),
         page: 1,
       })
-      setTypedHrefs((hrefs) => [...hrefs, href])
+      if (href === window.location.pathname + window.location.search) return
+      setLoadingHrefs((hrefs) => [...hrefs, href])
       startTransition(() => router.replace(href, { scroll: false }))
     }, SEARCH_DELAY_MS)
   }
@@ -68,7 +100,7 @@ export function SearchForm({
     <Form
       action="/"
       role="search"
-      onSubmit={() => clearTimeout(pendingSearch.current)}
+      onSubmit={cancelPendingSearch}
       aria-busy={isSearching}
       className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
     >
