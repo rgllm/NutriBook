@@ -79,6 +79,25 @@ describe("searchNutritionists", () => {
     await expect(searchNutritionists(search)).rejects.toBeInstanceOf(ApiUnavailableError)
   })
 
+  it("reports the API as unavailable when the body fails after the headers", async () => {
+    const stalledBody = new ReadableStream({
+      start(controller) {
+        controller.error(new DOMException("The operation timed out.", "TimeoutError"))
+      },
+    })
+    respondWith(new Response(stalledBody))
+
+    await expect(searchNutritionists(search)).rejects.toBeInstanceOf(ApiUnavailableError)
+  })
+
+  it("treats malformed JSON as a bug, not an outage", async () => {
+    respondWith(new Response("{", { headers: { "Content-Type": "application/json" } }))
+
+    const error = await searchNutritionists(search).catch((error: unknown) => error)
+    expect(error).toBeInstanceOf(SyntaxError)
+    expect(error).not.toBeInstanceOf(ApiUnavailableError)
+  })
+
   it("treats a client error as a bug, not an outage", async () => {
     respondWith(new Response(null, { status: 404 }))
 

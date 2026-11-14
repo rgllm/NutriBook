@@ -20,9 +20,13 @@ export async function apiGet<T>(
   const url = new URL(path, API_URL)
   url.search = params.toString()
 
+  // fetch resolves once the headers arrive, so the body read belongs with the
+  // transport: a stalled or dropped body is an outage, not a bad payload.
   let response: Response
+  let body: string
   try {
     response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) })
+    body = await response.text()
   } catch (cause) {
     throw new ApiUnavailableError(`GET ${url.pathname} failed`, { cause })
   }
@@ -32,5 +36,5 @@ export async function apiGet<T>(
   }
   if (!response.ok) throw new Error(`GET ${url.pathname} returned ${response.status}`)
 
-  return schema.parse(await response.json())
+  return schema.parse(JSON.parse(body))
 }
