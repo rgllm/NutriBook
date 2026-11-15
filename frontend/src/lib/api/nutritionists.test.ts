@@ -11,7 +11,6 @@ const payload = {
   nutritionists: [
     {
       id: 9,
-      slug: "eduarda-macedo",
       name: "Eduarda Macedo",
       title: "Dietitian",
       license_number: "3496N",

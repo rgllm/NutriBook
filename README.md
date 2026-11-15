@@ -70,9 +70,8 @@ erDiagram
     nutritionists {
         bigint id PK
         string name
-        string slug UK
         string title "Dietitian or Nutritionist"
-        string license_number
+        string license_number UK
         boolean offers_online
     }
 
@@ -184,7 +183,6 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
   "nutritionists": [
     {
       "id": 1,
-      "slug": "mary-jane",
       "name": "Mary Jane",
       "title": "Dietitian",
       "license_number": "2963N",

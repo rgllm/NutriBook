@@ -10,7 +10,6 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [
       {
         "id" => mary.id,
-        "slug" => "mary-jane",
         "name" => "Mary Jane",
         "title" => "Dietitian",
         "license_number" => "2963N",

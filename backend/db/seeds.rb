@@ -44,7 +44,7 @@ end
 
 USED_NAMES = Set.new
 
-# Names double as slugs and email local parts, so they must not repeat.
+# Names double as email local parts, so they must not repeat.
 def unique_person_name
   loop do
     name = person_name
@@ -76,10 +76,9 @@ ActiveRecord::Base.transaction do
       address = street_address
       services = SERVICE_CATALOG.first(2) + SERVICE_CATALOG.drop(2).sample(Faker::Number.between(from: 1, to: 3), random: Faker::Config.random)
 
-      nutritionist = Nutritionist.find_or_create_by!(slug: name.parameterize) do |record|
+      nutritionist = Nutritionist.find_or_create_by!(license_number:) do |record|
         record.name = name
         record.title = title
-        record.license_number = license_number
         record.offers_online = offers_online
       end
       services.each { |entry| seed_service(nutritionist, entry, city:, street_address: address) }

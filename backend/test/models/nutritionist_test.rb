@@ -9,25 +9,25 @@ class NutritionistTest < ActiveSupport::TestCase
     assert @nutritionist.valid?
   end
 
-  test "requires name, slug and license number" do
+  test "requires name and license number" do
     nutritionist = Nutritionist.new
 
     assert_not nutritionist.valid?
     assert_includes nutritionist.errors[:name], "can't be blank"
-    assert_includes nutritionist.errors[:slug], "can't be blank"
     assert_includes nutritionist.errors[:license_number], "can't be blank"
   end
 
-  test "slug is unique" do
-    duplicate = @nutritionist.dup
+  test "two nutritionists cannot share a license number" do
+    duplicate = Nutritionist.new(name: "Other Person", title: "Nutritionist", license_number: @nutritionist.license_number)
 
     assert_not duplicate.valid?
-    assert_includes duplicate.errors[:slug], "has already been taken"
+    assert_includes duplicate.errors[:license_number], "has already been taken"
   end
 
-  test "slug uniqueness is enforced by the database" do
+  test "license number uniqueness is enforced by the database" do
     assert_raises(ActiveRecord::RecordNotUnique) do
-      @nutritionist.dup.save!(validate: false)
+      Nutritionist.new(name: "Other Person", title: "Nutritionist", license_number: @nutritionist.license_number)
+        .save!(validate: false)
     end
   end
 

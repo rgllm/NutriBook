@@ -113,14 +113,11 @@ components:
     Nutritionist:
       type: object
       additionalProperties: false
-      required: [id, slug, name, title, license_number, offers_online, services]
+      required: [id, name, title, license_number, offers_online, services]
       properties:
         id:
           type: integer
           example: 1
-        slug:
-          type: string
-          example: mary-jane
         name:
           type: string
           example: Mary Jane

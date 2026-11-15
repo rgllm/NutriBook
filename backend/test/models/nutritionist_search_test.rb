@@ -175,7 +175,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   def create_nutritionist(name, location:, services: [ "First appointment" ])
     nutritionist = Nutritionist.create!(
-      name:, slug: "#{name.parameterize}-#{SecureRandom.hex(3)}", title: "Nutritionist", license_number: "9999N"
+      name:, title: "Nutritionist", license_number: "#{SecureRandom.hex(3)}N"
     )
     services.each do |service|
       nutritionist.services.create!(name: service, price: 30, city: location, street_address: "Rua Nova 1", duration_minutes: 45)

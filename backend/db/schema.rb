@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_15_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_15_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -39,13 +39,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_120000) do
 
   create_table "nutritionists", force: :cascade do |t|
     t.string "name", null: false
-    t.string "slug", null: false
     t.string "title", null: false
     t.string "license_number", null: false
     t.boolean "offers_online", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["slug"], name: "index_nutritionists_on_slug", unique: true
+    t.index ["license_number"], name: "index_nutritionists_on_license_number", unique: true
     t.check_constraint "title::text = ANY (ARRAY['Dietitian'::character varying, 'Nutritionist'::character varying]::text[])", name: "nutritionists_title_allowed"
   end
 
