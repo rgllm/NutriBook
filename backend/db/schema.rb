@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_15_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_15_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -27,6 +27,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_110000) do
     t.datetime "answered_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "online", default: false, null: false
     t.index "lower((guest_email)::text)", name: "index_appointment_requests_one_pending_per_guest", unique: true, where: "((status)::text = 'pending'::text)"
     t.index ["nutritionist_id", "status", "starts_at"], name: "idx_on_nutritionist_id_status_starts_at_b75b60395a"
     t.index ["service_id"], name: "index_appointment_requests_on_service_id"

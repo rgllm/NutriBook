@@ -98,16 +98,14 @@ ActiveRecord::Base.transaction do
   seed_service(nutritionists.second, SERVICE_CATALOG.last, city: "Braga", street_address: street_address)
 
   # Pending requests for the first Braga nutritionist. The first two overlap,
-  # so accepting one rejects the other automatically. Times are Lisbon wall
-  # clock times, stored in UTC.
-  lisbon = Time.find_zone!("Europe/Lisbon")
-  day = lisbon.today.next_occurring(:monday)
+  # so accepting one rejects the other automatically.
+  day = BookingSchedule::TIME_ZONE.today.next_occurring(:monday)
   first_appointment = nutritionists.first.services.find_by!(name: "First appointment", city: "Braga")
   follow_up = nutritionists.first.services.find_by!(name: "Follow-up", city: "Braga")
 
   [
     [ first_appointment, day, "10:00" ],
-    [ follow_up, day, "10:30" ],
+    [ follow_up, day, "10:00" ],
     [ first_appointment, day, "14:00" ],
     [ follow_up, day + 1, "09:00" ]
   ].each do |service, date, time|
@@ -119,7 +117,7 @@ ActiveRecord::Base.transaction do
     AppointmentRequest.find_or_create_by!(guest_email: guest_email) do |request|
       request.service = service
       request.guest_name = guest_name
-      request.starts_at = lisbon.parse("#{date} #{time}")
+      request.starts_at = BookingSchedule.starts_at(date.iso8601, time)
     end
   end
 end
