@@ -39,6 +39,7 @@ import {
   TIME_SLOTS,
   toBookingDay,
   type AppointmentErrors,
+  type AppointmentField,
   type RequestAppointmentState,
   type TimeSlot,
 } from "@/lib/appointment-request"
@@ -72,6 +73,9 @@ export function AppointmentForm({
 
   const clearError = (key: keyof AppointmentErrors) =>
     setErrors((current) => ({ ...current, [key]: undefined }))
+
+  const errorId = (key: AppointmentField) => `${key}-error`
+  const describedBy = (key: AppointmentField) => (errors[key] ? errorId(key) : undefined)
 
   function selectService(next: number | null) {
     setServiceId(next ?? undefined)
@@ -121,8 +125,9 @@ export function AppointmentForm({
             defaultValue={state.values.name}
             onChange={() => clearError("name")}
             aria-invalid={Boolean(errors.name)}
+            aria-describedby={describedBy("name")}
           />
-          <FieldError>{errors.name}</FieldError>
+          <FieldError id={errorId("name")}>{errors.name}</FieldError>
         </Field>
         <Field data-invalid={Boolean(errors.email)}>
           <FieldLabel htmlFor="guest-email">Email</FieldLabel>
@@ -135,8 +140,9 @@ export function AppointmentForm({
             defaultValue={state.values.email}
             onChange={() => clearError("email")}
             aria-invalid={Boolean(errors.email)}
+            aria-describedby={describedBy("email")}
           />
-          <FieldError>{errors.email}</FieldError>
+          <FieldError id={errorId("email")}>{errors.email}</FieldError>
         </Field>
       </FieldGroup>
 
@@ -152,6 +158,7 @@ export function AppointmentForm({
               id="service"
               className="w-full"
               aria-invalid={Boolean(errors.service)}
+              aria-describedby={describedBy("service")}
             >
               <SelectValue placeholder="Choose a service" />
             </SelectTrigger>
@@ -163,13 +170,19 @@ export function AppointmentForm({
               ))}
             </SelectContent>
           </Select>
-          <FieldError>{errors.service}</FieldError>
+          <FieldError id={errorId("service")}>{errors.service}</FieldError>
         </Field>
         {nutritionist.offersOnline && (
           <Field orientation="horizontal" data-invalid={Boolean(errors.online)}>
-            <Checkbox id="online" checked={online} onCheckedChange={selectOnline} />
+            <Checkbox
+              id="online"
+              checked={online}
+              onCheckedChange={selectOnline}
+              aria-invalid={Boolean(errors.online)}
+              aria-describedby={describedBy("online")}
+            />
             <FieldLabel htmlFor="online">Online appointment</FieldLabel>
-            <FieldError>{errors.online}</FieldError>
+            <FieldError id={errorId("online")}>{errors.online}</FieldError>
           </Field>
         )}
       </FieldGroup>
@@ -192,6 +205,7 @@ export function AppointmentForm({
             </FieldLabel>
             <ToggleGroup
               aria-labelledby="time-label"
+              aria-describedby={describedBy("when")}
               variant="outline"
               value={time ? [time] : []}
               onValueChange={selectTime}
@@ -208,7 +222,7 @@ export function AppointmentForm({
               ))}
             </ToggleGroup>
             {errors.when ? (
-              <FieldError>{errors.when}</FieldError>
+              <FieldError id={errorId("when")}>{errors.when}</FieldError>
             ) : (
               !date && <FieldDescription>Pick a day to see available times.</FieldDescription>
             )}
