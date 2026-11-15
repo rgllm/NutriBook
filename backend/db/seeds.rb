@@ -4,8 +4,8 @@
 # and services. Records are looked up by their natural keys before creating
 # them, which keeps this file idempotent: running it twice changes nothing.
 #
-# Cities match CITIES in frontend/src/lib/nutritionists.ts. Braga, the default
-# search location, gets enough nutritionists to fill more than one results page.
+# Braga, the default search location, gets enough nutritionists to fill more
+# than one results page.
 
 Faker::Config.locale = "pt"
 Faker::Config.random = Random.new(2026)
@@ -56,11 +56,11 @@ def street_address
   "#{STREET_TYPES.sample(random: Faker::Config.random)} #{person_name}, #{Faker::Number.between(from: 1, to: 300)}"
 end
 
-def seed_service(nutritionist, catalog_entry, location:)
+def seed_service(nutritionist, catalog_entry, city:, street_address:)
   name, duration, price_range = catalog_entry
   price = Faker::Number.between(from: price_range.min, to: price_range.max)
 
-  nutritionist.services.find_or_create_by!(name: name, location: location) do |service|
+  nutritionist.services.find_or_create_by!(name:, city:, street_address:) do |service|
     service.duration_minutes = duration
     service.price = price
   end
@@ -81,9 +81,8 @@ ActiveRecord::Base.transaction do
         record.title = title
         record.license_number = license_number
         record.offers_online = offers_online
-        record.address = address
       end
-      services.each { |entry| seed_service(nutritionist, entry, location: city) }
+      services.each { |entry| seed_service(nutritionist, entry, city:, street_address: address) }
       nutritionist
     end
   end
@@ -91,16 +90,20 @@ ActiveRecord::Base.transaction do
   # A few Braga nutritionists also see patients in Porto, so one nutritionist
   # can match searches in two cities.
   nutritionists.first(3).each do |nutritionist|
-    seed_service(nutritionist, SERVICE_CATALOG.second, location: "Porto")
+    seed_service(nutritionist, SERVICE_CATALOG.second, city: "Porto", street_address: street_address)
   end
+
+  # One Braga nutritionist works from two practices in the city, so their card
+  # lists two addresses.
+  seed_service(nutritionists.second, SERVICE_CATALOG.last, city: "Braga", street_address: street_address)
 
   # Pending requests for the first Braga nutritionist. The first two overlap,
   # so accepting one rejects the other automatically. Times are Lisbon wall
   # clock times, stored in UTC.
   lisbon = Time.find_zone!("Europe/Lisbon")
   day = lisbon.today.next_occurring(:monday)
-  first_appointment = nutritionists.first.services.find_by!(name: "First appointment", location: "Braga")
-  follow_up = nutritionists.first.services.find_by!(name: "Follow-up", location: "Braga")
+  first_appointment = nutritionists.first.services.find_by!(name: "First appointment", city: "Braga")
+  follow_up = nutritionists.first.services.find_by!(name: "Follow-up", city: "Braga")
 
   [
     [ first_appointment, day, "10:00" ],

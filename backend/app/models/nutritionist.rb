@@ -4,7 +4,7 @@ class Nutritionist < ApplicationRecord
   has_many :services, dependent: :restrict_with_error
   has_many :appointment_requests, dependent: :restrict_with_error
 
-  validates :name, :license_number, :address, presence: true
+  validates :name, :license_number, presence: true
   validates :slug, presence: true, uniqueness: true
   validates :title, inclusion: { in: TITLES }
 end

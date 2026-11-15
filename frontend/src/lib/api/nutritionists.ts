@@ -8,8 +8,13 @@ const serviceSchema = z
     id: z.number(),
     name: z.string(),
     price: z.coerce.number(),
+    street_address: z.string(),
   })
-  .transform(({ price, ...service }) => ({ ...service, priceEur: price }))
+  .transform(({ price, street_address, ...service }) => ({
+    ...service,
+    priceEur: price,
+    streetAddress: street_address,
+  }))
 
 const nutritionistSchema = z
   .object({
@@ -17,7 +22,6 @@ const nutritionistSchema = z
     name: z.string(),
     title: z.enum(["Dietitian", "Nutritionist"]),
     license_number: z.string(),
-    address: z.string(),
     offers_online: z.boolean(),
     services: z.array(serviceSchema),
   })
@@ -25,6 +29,8 @@ const nutritionistSchema = z
     ...nutritionist,
     licenseNumber: license_number,
     offersOnline: offers_online,
+    // Services arrive grouped by street address, so this keeps the API's order.
+    addresses: [...new Set(nutritionist.services.map((service) => service.streetAddress))],
   }))
 
 const searchResponseSchema = z

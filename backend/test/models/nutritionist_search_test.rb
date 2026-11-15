@@ -88,7 +88,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   test "a nutritionist in two cities shows only the services at the searched location" do
     mary = nutritionists(:mary_jane)
-    mary.services.create!(name: "Weight loss", price: 30, location: "Porto", duration_minutes: 45)
+    mary.services.create!(name: "Weight loss", price: 30, city: "Porto", street_address: "Rua de Cedofeita 9", duration_minutes: 45)
 
     porto = search(location: "Porto").nutritionists
     assert_equal [ "Ana Ferreira", "Mary Jane" ], porto.map(&:name)
@@ -96,6 +96,16 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
     braga = search(location: "Braga").nutritionists
     assert_equal [ "First appointment", "Follow-up" ], braga.first.services.map(&:name)
+  end
+
+  test "services at the location are grouped by street address, then ordered by name" do
+    mary = nutritionists(:mary_jane)
+    mary.services.create!(name: "Body composition analysis", price: 20, city: "Braga", street_address: "Avenida da Liberdade 10", duration_minutes: 30)
+
+    services = search(location: "Braga").nutritionists.first.services
+
+    assert_equal [ "Avenida da Liberdade 10", "Rua do Souto 45", "Rua do Souto 45" ], services.map(&:street_address)
+    assert_equal [ "Body composition analysis", "First appointment", "Follow-up" ], services.map(&:name)
   end
 
   test "a nutritionist matching on several services appears once" do
@@ -165,11 +175,10 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   def create_nutritionist(name, location:, services: [ "First appointment" ])
     nutritionist = Nutritionist.create!(
-      name:, slug: "#{name.parameterize}-#{SecureRandom.hex(3)}", title: "Nutritionist", license_number: "9999N",
-      address: "Rua Nova 1"
+      name:, slug: "#{name.parameterize}-#{SecureRandom.hex(3)}", title: "Nutritionist", license_number: "9999N"
     )
     services.each do |service|
-      nutritionist.services.create!(name: service, price: 30, location:, duration_minutes: 45)
+      nutritionist.services.create!(name: service, price: 30, city: location, street_address: "Rua Nova 1", duration_minutes: 45)
     end
     nutritionist
   end

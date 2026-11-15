@@ -14,21 +14,22 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
         "name" => "Mary Jane",
         "title" => "Dietitian",
         "license_number" => "2963N",
-        "address" => "Rua do Souto 45",
         "offers_online" => true,
         "services" => [
           {
             "id" => services(:mary_first_appointment).id,
             "name" => "First appointment",
             "price" => "25.0",
-            "location" => "Braga",
+            "street_address" => "Rua do Souto 45",
+            "city" => "Braga",
             "duration_minutes" => 60
           },
           {
             "id" => services(:mary_follow_up).id,
             "name" => "Follow-up",
             "price" => "20.0",
-            "location" => "Braga",
+            "street_address" => "Rua do Souto 45",
+            "city" => "Braga",
             "duration_minutes" => 30
           }
         ]
