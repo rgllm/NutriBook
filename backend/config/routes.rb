@@ -6,6 +6,6 @@ Rails.application.routes.draw do
   resources :appointment_requests, only: :create
   resources :locations, only: :index
   resources :nutritionists, only: :index do
-    resources :appointment_requests, only: :index, constraints: { nutritionist_id: /[1-9]\d*/ }
+    resources :appointment_requests, only: %i[index update], constraints: { nutritionist_id: /[1-9]\d*/, id: /[1-9]\d*/ }
   end
 end

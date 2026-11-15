@@ -113,6 +113,69 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NotFound"
+  /nutritionists/{nutritionist_id}/appointment_requests/{id}:
+    patch:
+      operationId: answerAppointmentRequest
+      summary: Accept or reject a request
+      description: >
+        The nutritionist answers one of their pending requests. Accepting also
+        rejects every other pending request of the nutritionist that overlaps
+        it in time, and lists their ids in `rejected_ids`. Requests whose time
+        has passed can still be answered.
+      tags: [Appointment requests]
+      parameters:
+        - name: nutritionist_id
+          in: path
+          required: true
+          description: >
+            The nutritionist's id, digits only with no leading zero. Any other
+            value matches no route and returns 404 without a body schema.
+          schema:
+            type: string
+            pattern: "^[1-9][0-9]*$"
+          example: "1"
+        - name: id
+          in: path
+          required: true
+          description: The request's id, in the same format as the nutritionist's.
+          schema:
+            type: string
+            pattern: "^[1-9][0-9]*$"
+          example: "7"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentRequestAnswer"
+      responses:
+        "200":
+          description: The answered request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnsweredAppointmentRequest"
+        "404":
+          description: The nutritionist has no request with this id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFound"
+        "409":
+          description: >
+            The request cannot take this answer. It was already answered or
+            superseded, or accepting it would overlap an accepted appointment.
+            `status` is the request's current status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnswerConflict"
+        "422":
+          description: The status is not `accepted` or `rejected`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrors"
   /locations:
     get:
       operationId: listLocations
@@ -312,6 +375,52 @@ components:
             city:
               type: string
               example: Braga
+    AppointmentRequestAnswer:
+      type: object
+      additionalProperties: false
+      required: [appointment_request]
+      properties:
+        appointment_request:
+          type: object
+          additionalProperties: false
+          required: [status]
+          properties:
+            status:
+              type: string
+              example: accepted
+    AnsweredAppointmentRequest:
+      type: object
+      additionalProperties: false
+      required: [id, status, answered_at, rejected_ids]
+      properties:
+        id:
+          type: integer
+          example: 7
+        status:
+          type: string
+          enum: [accepted, rejected]
+        answered_at:
+          type: string
+          format: date-time
+          description: UTC.
+          example: "2026-11-20T12:00:00.000Z"
+        rejected_ids:
+          type: array
+          description: Overlapping requests rejected because this one was accepted. Empty on a rejection.
+          items:
+            type: integer
+          example: [9]
+    AnswerConflict:
+      type: object
+      additionalProperties: false
+      required: [error, status]
+      properties:
+        error:
+          type: string
+          example: This request was already accepted.
+        status:
+          type: string
+          enum: [pending, accepted, rejected, superseded]
     ValidationErrors:
       type: object
       additionalProperties: false
@@ -319,7 +428,7 @@ components:
       properties:
         errors:
           type: object
-          description: Messages per field. Fields are service, guest_name, guest_email, starts_at, and online.
+          description: Messages per field. Fields are service, guest_name, guest_email, starts_at, online, and status.
           additionalProperties:
             type: array
             items:

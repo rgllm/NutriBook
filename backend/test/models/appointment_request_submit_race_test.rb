@@ -51,19 +51,4 @@ class AppointmentRequestSubmitRaceTest < ActiveSupport::TestCase
       starts_at: BookingSchedule.starts_at(@day, time)
     }
   end
-
-  def wait_until_blocked_on_a_lock
-    50.times do
-      blocked = AppointmentRequest.uncached do
-        AppointmentRequest.connection.select_value(<<~SQL)
-          SELECT count(*) FROM pg_stat_activity
-          WHERE datname = current_database() AND wait_event_type = 'Lock'
-        SQL
-      end
-      return if blocked.positive?
-
-      sleep 0.05
-    end
-    flunk "the second submission never waited for the first"
-  end
 end

@@ -284,6 +284,46 @@ It runs two queries whatever the number of requests: the nutritionist, then
 the pending requests with their services preloaded, served by the
 `appointment_requests (nutritionist_id, status, starts_at)` index.
 
+`PATCH /nutritionists/:nutritionist_id/appointment_requests/:id` is how the
+nutritionist answers a request, with a status of `accepted` or `rejected`.
+Accepting also rejects every other pending request of the nutritionist that
+overlaps it in time, comparing start and end times, so the service's duration
+counts. Requests whose time has passed can still be answered.
+
+```sh
+curl -X PATCH 'http://localhost:3001/nutritionists/1/appointment_requests/7' \
+  -H 'Content-Type: application/json' \
+  -d '{"appointment_request": {"status": "accepted"}}'
+```
+
+```json
+{ "id": 7, "status": "accepted", "answered_at": "2026-11-20T12:00:00.000Z", "rejected_ids": [9] }
+```
+
+`rejected_ids` lists the requests rejected because they overlapped. Both ids
+follow the same route constraint as the list, so `7abc` never answers request
+7. A request that isn't this nutritionist's returns `404`, and any status other than
+`accepted` or `rejected` returns `422`. If the request was already answered or
+superseded, the API returns `409` with its current status. It does the same
+when accepting the request would overlap an accepted appointment, which can
+happen when the guest booked at the moment the nutritionist accepted another
+request:
+
+```json
+{ "error": "This request was already accepted.", "status": "accepted" }
+```
+
+`AppointmentRequest#answer!` runs in one transaction. It locks the
+nutritionist's row with `FOR NO KEY UPDATE`, so one nutritionist's answers run
+one after the other. Without that lock, two overlapping requests accepted at
+the same moment would each lock their own row and then wait for the other's,
+and PostgreSQL would abort one with a deadlock. `FOR NO KEY UPDATE` still lets
+guests insert requests that reference the nutritionist. The exclusion
+constraint on accepted requests stays as the last guard against a double
+booking. A race test pauses one accept after it takes its locks, starts a
+second accept, and checks that the second waits and then finds its request
+rejected. Emails to the guest are not sent yet.
+
 `AppointmentRequest.submit` creates the request in one transaction. It takes a
 transaction-scoped advisory lock on the guest's email, marks the guest's
 pending request `superseded`, and inserts the new one. The lock makes two
@@ -313,8 +353,9 @@ in `frontend/src/app/actions.ts`. The nutritionist's pending requests page, for 
 <http://localhost:3000/nutritionists/1/requests>, reads
 `GET /nutritionists/:id/appointment_requests`. It has no authentication, as
 the challenge allows. Requests whose time has passed carry an "Overdue" badge.
-The Accept and Reject buttons do nothing yet: the endpoint for answering
-requests, and the email notifications, are pending implementation.
+The Accept and Reject buttons do nothing yet: the API can answer requests,
+but the page does not call it yet, and the email notifications are pending
+implementation.
 
 An id that is not a nutritionist shows the 404 page. Cache Components sends a
 page's shell, with status `200`, before the page can call `notFound()`, so the

@@ -1,4 +1,10 @@
 class AppointmentRequest < ApplicationRecord
+  ANSWERS = %w[accepted rejected].freeze
+
+  # The request can no longer take the answer: it was answered or superseded,
+  # or accepting it would overlap an accepted appointment.
+  class NotAnswerable < StandardError; end
+
   belongs_to :service
   # Derived from the service, so a missing service reports only on :service.
   belongs_to :nutritionist, optional: true
@@ -9,6 +15,8 @@ class AppointmentRequest < ApplicationRecord
     rejected: "rejected",
     superseded: "superseded"
   }, validate: true
+
+  scope :overlapping, ->(starts_at, ends_at) { where("starts_at < ? AND ends_at > ?", ends_at, starts_at) }
 
   normalizes :guest_email, with: ->(email) { email.strip.downcase }
   normalizes :guest_name, with: ->(name) { name.squish }
@@ -33,6 +41,37 @@ class AppointmentRequest < ApplicationRecord
       raise ActiveRecord::Rollback unless request.save
     end
     request
+  end
+
+  # Accepts or rejects this request. Accepting also rejects the nutritionist's
+  # pending requests that overlap it, and returns their ids.
+  #
+  # The nutritionist's row lock makes their answers run one at a time. It is
+  # FOR NO KEY UPDATE so guests can still insert requests that reference the
+  # nutritionist, which FOR UPDATE would block.
+  def answer!(answer)
+    unless answer.in?(ANSWERS)
+      errors.add(:status, :not_an_answer)
+      raise ActiveRecord::RecordInvalid, self
+    end
+
+    transaction do
+      Nutritionist.lock("FOR NO KEY UPDATE").find(nutritionist_id)
+      lock!
+      raise NotAnswerable, I18n.t(status, scope: "appointment_request.not_answerable") unless pending?
+
+      accepting = answer == "accepted"
+      raise NotAnswerable, I18n.t("booked", scope: "appointment_request.not_answerable") if accepting && overlaps_accepted?
+
+      now = Time.current
+      update!(status: answer, answered_at: now)
+      next [] unless accepting
+
+      overlapping = AppointmentRequest.pending.where(nutritionist_id:).overlapping(starts_at, ends_at)
+      overlapping.lock.pluck(:id).tap do |ids|
+        AppointmentRequest.where(id: ids).update_all(status: "rejected", answered_at: now, updated_at: now)
+      end
+    end
   end
 
   private
@@ -69,9 +108,6 @@ class AppointmentRequest < ApplicationRecord
   end
 
   def overlaps_accepted?
-    AppointmentRequest.accepted
-      .where(nutritionist_id:)
-      .where("starts_at < ? AND ends_at > ?", ends_at, starts_at)
-      .exists?
+    AppointmentRequest.accepted.where(nutritionist_id:).overlapping(starts_at, ends_at).exists?
   end
 end

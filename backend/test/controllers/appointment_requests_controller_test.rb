@@ -139,7 +139,78 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_equal({ "starts_at" => [ "Pick a day and time." ] }, response.parsed_body["errors"])
   end
 
+  test "accepting a request rejects the overlapping ones" do
+    request = appointment_requests(:pending)
+    overlapping = submit(guest_email: "overlap@example.com", service_id: services(:mary_follow_up).id, date: "2026-12-01", time: "10:00")
+
+    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request), params: answer("accepted"), as: :json
+
+    assert_schema_conform(200)
+    assert_equal({
+      "id" => request.id,
+      "status" => "accepted",
+      "answered_at" => "2026-11-20T12:00:00.000Z",
+      "rejected_ids" => [ overlapping.id ]
+    }, response.parsed_body)
+    assert overlapping.reload.rejected?
+  end
+
+  test "rejecting a request" do
+    request = appointment_requests(:pending)
+
+    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request), params: answer("rejected"), as: :json
+
+    assert_schema_conform(200)
+    assert_equal [ "rejected", [] ], response.parsed_body.values_at("status", "rejected_ids")
+    assert request.reload.rejected?
+  end
+
+  test "a request is only found through its own nutritionist" do
+    request = appointment_requests(:pending)
+
+    [ [ nutritionists(:ana_ferreira), request ], [ nutritionists(:mary_jane), AppointmentRequest.maximum(:id) + 1 ] ].each do |nutritionist, id|
+      patch nutritionist_appointment_request_url(nutritionist, id), params: answer("accepted"), as: :json
+
+      assert_schema_conform(404)
+      assert_equal({ "error" => "AppointmentRequest not found" }, response.parsed_body)
+    end
+    assert request.reload.pending?
+  end
+
+  test "a malformed request id is not found instead of being cast to a number" do
+    request = appointment_requests(:pending)
+    mary = nutritionists(:mary_jane)
+
+    [ "#{request.id}abc", "0#{request.id}", "0" ].each do |id|
+      patch "/nutritionists/#{mary.id}/appointment_requests/#{id}", params: answer("accepted"), as: :json
+
+      assert_response :not_found, "#{id} should not reach request #{request.id}"
+    end
+    assert request.reload.pending?
+  end
+
+  test "an answered request is a conflict that reports its current status" do
+    request = appointment_requests(:accepted)
+
+    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request), params: answer("rejected"), as: :json
+
+    assert_schema_conform(409)
+    assert_equal({ "error" => "This request was already accepted.", "status" => "accepted" }, response.parsed_body)
+  end
+
+  test "a status other than accepted or rejected is reported on the status" do
+    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), appointment_requests(:pending)),
+      params: answer("superseded"), as: :json
+
+    assert_schema_conform(422)
+    assert_equal({ "status" => [ "Answer with accepted or rejected." ] }, response.parsed_body["errors"])
+  end
+
   private
+
+  def answer(status)
+    { appointment_request: { status: } }
+  end
 
   def submit(**overrides)
     AppointmentRequest.submit(

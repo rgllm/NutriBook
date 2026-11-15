@@ -118,10 +118,88 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert build_request(starts_at: Time.utc(2026, 12, 1, 15, 0)).valid?
   end
 
+  test "accepting rejects the nutritionist's overlapping pending requests" do
+    # The pending fixture runs from 10:00 to 11:00 UTC on 1 December.
+    request = appointment_requests(:pending)
+    overlapping = submit_request(guest_email: "overlap@example.com", service_id: services(:mary_follow_up).id, starts_at: Time.utc(2026, 12, 1, 10, 0))
+    adjacent = submit_request(guest_email: "adjacent@example.com", starts_at: Time.utc(2026, 12, 1, 11, 0))
+    other_nutritionist = submit_request(guest_email: "ana.guest@example.com", service_id: services(:ana_sports_nutrition).id, starts_at: Time.utc(2026, 12, 1, 10, 0))
+
+    assert_equal [ overlapping.id ], request.answer!("accepted")
+
+    assert request.reload.accepted?
+    assert_equal Time.current, request.answered_at
+    assert overlapping.reload.rejected?
+    assert_equal Time.current, overlapping.answered_at
+    assert adjacent.reload.pending?
+    assert other_nutritionist.reload.pending?
+  end
+
+  test "rejecting leaves overlapping requests pending" do
+    request = appointment_requests(:pending)
+    overlapping = submit_request(guest_email: "overlap@example.com", starts_at: Time.utc(2026, 12, 1, 10, 0))
+
+    assert_empty request.answer!("rejected")
+
+    assert request.reload.rejected?
+    assert_equal Time.current, request.answered_at
+    assert overlapping.reload.pending?
+  end
+
   test "a request can still be answered after its time has passed" do
     travel_to Time.utc(2026, 12, 2, 12, 0)
+    request = appointment_requests(:pending)
 
-    assert appointment_requests(:pending).update(status: "rejected", answered_at: Time.current)
+    request.answer!("accepted")
+
+    assert request.reload.accepted?
+  end
+
+  test "only accepted and rejected are answers" do
+    [ "pending", "superseded", "cancelled", nil ].each do |answer|
+      request = AppointmentRequest.find(appointment_requests(:pending).id)
+
+      error = assert_raises(ActiveRecord::RecordInvalid) { request.answer!(answer) }
+
+      assert_equal [ "Answer with accepted or rejected." ], error.record.errors[:status], answer.inspect
+      assert request.reload.pending?
+    end
+  end
+
+  test "an answered or superseded request cannot be answered again" do
+    {
+      accepted: "This request was already accepted.",
+      rejected: "This request was already rejected.",
+      superseded: "The guest replaced this request with a newer one."
+    }.each do |fixture, message|
+      request = appointment_requests(fixture)
+
+      error = assert_raises(AppointmentRequest::NotAnswerable) { request.answer!("accepted") }
+
+      assert_equal message, error.message
+      assert_equal fixture.to_s, request.reload.status
+    end
+  end
+
+  test "a request is checked against its latest status, not the loaded one" do
+    request = appointment_requests(:pending)
+    AppointmentRequest.find(request.id).answer!("rejected")
+
+    assert_raises(AppointmentRequest::NotAnswerable) { request.answer!("accepted") }
+    assert request.rejected?
+  end
+
+  test "a request that overlaps an accepted appointment can be rejected but not accepted" do
+    # Booked before the 14:00 fixture was accepted, so it got past the create check.
+    request = build_request(starts_at: Time.utc(2026, 12, 1, 14, 0))
+    save_past_validations(request)
+
+    error = assert_raises(AppointmentRequest::NotAnswerable) { request.answer!("accepted") }
+
+    assert_equal "This time overlaps an accepted appointment. Reject the request instead.", error.message
+    assert request.reload.pending?
+    request.answer!("rejected")
+    assert request.reload.rejected?
   end
 
   test "submit supersedes the guest's pending request" do
@@ -244,6 +322,10 @@ class AppointmentRequestTest < ActiveSupport::TestCase
       starts_at: Time.utc(2026, 12, 3, 10, 0),
       **attributes
     }
+  end
+
+  def submit_request(**attributes)
+    AppointmentRequest.submit(request_attributes(**attributes)).tap { |request| assert request.persisted?, request.errors.full_messages.to_sentence }
   end
 
   def accepted_request(**attributes)
