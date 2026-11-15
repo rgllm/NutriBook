@@ -28,9 +28,6 @@ Rails.application.configure do
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
-  # Store uploaded files on the local file system in a temporary directory.
-  config.active_storage.service = :test
-
   # Tests record jobs instead of running them. Tests that need the real queue,
   # such as the transaction checks, swap in Solid Queue themselves.
   config.active_job.queue_adapter = :test
