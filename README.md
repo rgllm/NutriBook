@@ -11,10 +11,11 @@ Install Docker with Docker Compose, then run from the project root.
 docker compose up --build -d --wait
 ```
 
-This starts two development containers, Rails at <http://localhost:3001> and
-PostgreSQL on the Compose network. Rails prepares its databases before starting
-the server. Check <http://localhost:3001/up> for the Rails health response.
-Set `BACKEND_PORT` to choose another host port.
+This starts three development containers: Rails at <http://localhost:3001>,
+PostgreSQL on the Compose network, and Mailpit, which catches every email the
+backend sends, at <http://localhost:8025>. Rails prepares its databases before
+starting the server. Check <http://localhost:3001/up> for the Rails health
+response. Set `BACKEND_PORT` or `MAILPIT_PORT` to choose other host ports.
 
 The database uses a named Docker volume that survives container restarts.
 The `nutribook` database username and password in `compose.yaml` are local
@@ -32,6 +33,32 @@ docker compose down
 
 Backend source changes reload through the bind mount. Rebuild the image after
 changing the Gemfile or Gemfile.lock.
+
+### Background jobs and email
+
+Active Job runs on [Solid Queue](https://github.com/rails/solid_queue), and
+its tables live in the main PostgreSQL database instead of a separate queue
+database. A job enqueued inside a transaction is therefore inserted in that
+same transaction. It is stored only if the transaction commits, and it
+disappears if the transaction rolls back. Emails depend on this: answering a
+request and queueing the guest's email happen in one commit, so an answer
+never goes without its email and a rolled-back answer never sends one.
+`config.active_job.enqueue_after_transaction_commit` is `false` on purpose;
+deferring the enqueue to after the commit would reopen the gap a crash could
+fall into. `test/jobs/transactional_enqueue_test.rb` checks both outcomes
+against the real adapter.
+
+Sidekiq was left out for the same reason. Its jobs live in Redis, outside the
+PostgreSQL transaction, so the app would need its own outbox table to get this
+guarantee, plus a Redis service to run.
+
+In development the Solid Queue supervisor runs inside Puma
+(`SOLID_QUEUE_IN_PUMA=1` in `compose.yaml`), so there is no separate jobs
+container. In production either set the same variable or run `bin/jobs` as
+its own process. Mail goes out over SMTP: to Mailpit in development, and to the
+server in `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, and `SMTP_PASSWORD` in
+production. `MAIL_FROM` sets the sender. Tests use Action Mailer's `:test`
+delivery method and Active Job's test adapter.
 
 ### Shortcuts
 
