@@ -118,6 +118,39 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     }, response.parsed_body["errors"])
   end
 
+  test "an email whose domain has no dot is reported on the email" do
+    assert_no_difference -> { AppointmentRequest.count } do
+      post appointment_requests_url, params: request_params(guest_email: "user@com"), as: :json
+    end
+
+    assert_schema_conform(422)
+    assert_equal({ "guest_email" => [ "Enter a valid email, like name@example.com." ] }, response.parsed_body["errors"])
+  end
+
+  test "an overlong name and email are reported on their fields" do
+    assert_no_difference -> { AppointmentRequest.count } do
+      post appointment_requests_url,
+        params: request_params(guest_name: "a" * 10_000, guest_email: "#{"a" * 10_000}@example.com"),
+        as: :json
+    end
+
+    assert_schema_conform(422)
+    assert_equal({
+      "guest_name" => [ "Use at most 100 characters." ],
+      "guest_email" => [ "Use at most 254 characters." ]
+    }, response.parsed_body["errors"])
+  end
+
+  test "a name and email at the length limits are accepted" do
+    guest_name = "a" * AppointmentRequest::GUEST_NAME_MAX_LENGTH
+    guest_email = "#{"a" * (AppointmentRequest::GUEST_EMAIL_MAX_LENGTH - "@example.com".length)}@example.com"
+
+    post appointment_requests_url, params: request_params(guest_name:, guest_email:), as: :json
+
+    assert_schema_conform(201)
+    assert_equal [ guest_name, guest_email ], response.parsed_body.values_at("guest_name", "guest_email")
+  end
+
   test "an unknown service is reported on the service" do
     post appointment_requests_url, params: request_params(service_id: 0), as: :json
 

@@ -315,11 +315,11 @@ components:
               example: 1
             guest_name:
               type: string
-              maxLength: 100
+              description: At most 100 characters; a longer name is a 422.
               example: Joana Silva
             guest_email:
               type: string
-              maxLength: 254
+              description: At most 254 characters, with a dot in the domain; anything else is a 422.
               example: joana.silva@example.com
             date:
               type: string
