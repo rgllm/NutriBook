@@ -15,6 +15,11 @@ class MoveAddressToServices < ActiveRecord::Migration[8.1]
   end
 
   def down
+    # Their address was dropped by up, and no service holds a copy to restore.
+    if select_value("SELECT EXISTS (SELECT 1 FROM nutritionists WHERE id NOT IN (SELECT nutritionist_id FROM services))")
+      raise ActiveRecord::IrreversibleMigration, "Some nutritionists have no services, so their address cannot be restored."
+    end
+
     add_column :nutritionists, :address, :string
 
     execute <<~SQL
