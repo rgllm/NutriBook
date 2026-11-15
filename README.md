@@ -357,9 +357,11 @@ Accept and Reject call
 `PATCH /nutritionists/:id/appointment_requests/:id` through the `answerRequest`
 Server Action, bound to the request on the server. On success the action calls
 `refresh()`, so the answered request and any overlapping requests the API
-rejected with it leave the list. If the API refuses, for example because the
-request was answered in another tab, the card stays and shows the API's
-message. The email notifications are pending implementation.
+rejected with it leave the list, and a Sonner toast says how many overlapping
+requests were rejected. A request that was already answered, for example in
+another tab, also leaves the list, with the API's reason in an error toast.
+When the API is unavailable the card stays and shows a message to try again.
+The email notifications are pending implementation.
 
 An id that is not a nutritionist shows the 404 page. Cache Components sends a
 page's shell, with status `200`, before the page can call `notFound()`, so the
