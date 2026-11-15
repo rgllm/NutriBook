@@ -95,6 +95,7 @@ erDiagram
         datetime starts_at "UTC"
         datetime ends_at "starts_at + service duration"
         string status "pending, accepted, rejected, superseded"
+        boolean online "only if the nutritionist offers it"
         datetime answered_at "set only when accepted or rejected"
     }
 ```
@@ -222,6 +223,42 @@ curl 'http://localhost:3001/locations'
 `NutritionistSearch` in `backend/app/models/` owns location resolution,
 matching, and paging. It runs a fixed number of queries whatever the page
 size, because the page's services are preloaded in one query.
+
+`POST /appointment_requests` books a pending request. The guest sends a name,
+an email, a service, a day and a time, and whether the appointment is online.
+
+```sh
+curl -X POST 'http://localhost:3001/appointment_requests' \
+  -H 'Content-Type: application/json' \
+  -d '{"appointment_request": {"service_id": 1, "guest_name": "Joana Silva",
+       "guest_email": "joana.silva@example.com", "date": "2026-12-07",
+       "time": "10:00", "online": false}}'
+```
+
+It returns `201` with the request, or `422` with messages per field, written
+for the guest so the frontend shows them as they are:
+
+```json
+{ "errors": { "starts_at": ["Pick one of the available times."] } }
+```
+
+All times are Portuguese wall-clock time. The API takes the day and the time
+as they were picked, and `BookingSchedule` reads them in `Europe/Lisbon` and
+stores UTC, so a 10:00 booking stays 10:00 across daylight saving changes.
+`BookingSchedule` also owns the opening hours: Monday to Saturday, on the
+hour, from 09:00 to 18:00 except 13:00. A new request must start on one of
+those slots, in the future, and must not overlap an appointment the
+nutritionist already accepted, because that request could never be accepted.
+Online is only allowed when the nutritionist offers it. The frontend renders
+the same slots in its time picker; the API is the one that enforces them.
+
+`AppointmentRequest.submit` creates the request in one transaction. It takes a
+transaction-scoped advisory lock on the guest's email, marks the guest's
+pending request `superseded`, and inserts the new one. The lock makes two
+submissions from the same guest run one after the other, so the newer one
+always wins instead of failing on the one-pending-per-guest index. Different
+guests never wait for each other. A test holds one submission open, starts a
+second, and checks that it waits and then supersedes the first.
 
 ## Frontend
 

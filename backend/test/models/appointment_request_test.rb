@@ -2,6 +2,7 @@ require "test_helper"
 
 class AppointmentRequestTest < ActiveSupport::TestCase
   setup do
+    travel_to Time.utc(2026, 11, 20, 12, 0)
     @service = services(:mary_first_appointment)
   end
 
@@ -59,9 +60,93 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     request = AppointmentRequest.new(service: @service, guest_email: "not-an-email")
 
     assert_not request.valid?
-    assert_includes request.errors[:guest_name], "can't be blank"
-    assert_includes request.errors[:guest_email], "is invalid"
-    assert_includes request.errors[:starts_at], "can't be blank"
+    assert_equal [ "Enter your name." ], request.errors[:guest_name]
+    assert_equal [ "Enter a valid email, like name@example.com." ], request.errors[:guest_email]
+    assert_equal [ "Pick a day and time." ], request.errors[:starts_at]
+  end
+
+  test "a blank email asks for one instead of calling it invalid" do
+    request = build_request(guest_email: " ")
+
+    assert_not request.valid?
+    assert_equal [ "Enter your email." ], request.errors[:guest_email]
+  end
+
+  test "a missing service is reported once, on the service" do
+    request = build_request(service: nil)
+
+    assert_not request.valid?
+    assert_equal [ "Choose a service." ], request.errors[:service]
+    assert_empty request.errors[:nutritionist]
+  end
+
+  test "online only when the nutritionist offers it" do
+    assert build_request(online: true).valid?
+
+    request = build_request(service: services(:ana_sports_nutrition), online: true)
+    assert_not request.valid?
+    assert_equal [ "This nutritionist does not offer online appointments." ], request.errors[:online]
+  end
+
+  test "a new request must start in the future" do
+    request = build_request(starts_at: Time.utc(2026, 11, 20, 11, 0))
+
+    assert_not request.valid?
+    assert_equal [ "Pick a time that has not passed yet." ], request.errors[:starts_at]
+  end
+
+  test "a new request must start on a bookable slot" do
+    {
+      "off the hour" => Time.utc(2026, 12, 3, 10, 30),
+      "lunch hour" => Time.utc(2026, 12, 3, 13, 0),
+      "before opening" => Time.utc(2026, 12, 3, 8, 0),
+      "Sunday" => Time.utc(2026, 12, 6, 10, 0)
+    }.each do |label, starts_at|
+      request = build_request(starts_at:)
+
+      assert_not request.valid?, label
+      assert_equal [ "Pick one of the available times." ], request.errors[:starts_at], label
+    end
+  end
+
+  test "a new request cannot overlap the nutritionist's accepted appointments" do
+    # The accepted fixture runs from 14:00 to 14:30 UTC on 1 December.
+    request = build_request(starts_at: Time.utc(2026, 12, 1, 14, 0))
+
+    assert_not request.valid?
+    assert_equal [ "This time is no longer available. Pick another." ], request.errors[:starts_at]
+    assert build_request(starts_at: Time.utc(2026, 12, 1, 15, 0)).valid?
+  end
+
+  test "a request can still be answered after its time has passed" do
+    travel_to Time.utc(2026, 12, 2, 12, 0)
+
+    assert appointment_requests(:pending).update(status: "rejected", answered_at: Time.current)
+  end
+
+  test "submit supersedes the guest's pending request" do
+    previous = appointment_requests(:pending)
+
+    request = AppointmentRequest.submit(request_attributes(guest_email: "Rita.Gomes@example.com"))
+
+    assert request.persisted?
+    assert request.pending?
+    assert previous.reload.superseded?
+  end
+
+  test "submit leaves other guests' pending requests alone" do
+    request = AppointmentRequest.submit(request_attributes)
+
+    assert request.persisted?
+    assert appointment_requests(:pending).reload.pending?
+  end
+
+  test "a rejected submission keeps the guest's pending request" do
+    request = AppointmentRequest.submit(request_attributes(guest_email: "rita.gomes@example.com", starts_at: nil))
+
+    assert_not request.persisted?
+    assert_equal [ "Pick a day and time." ], request.errors[:starts_at]
+    assert appointment_requests(:pending).reload.pending?
   end
 
   test "rejects an unknown status" do
@@ -89,13 +174,13 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     # The accepted fixture runs from 14:00 to 14:30 UTC on 1 December.
     overlapping = accepted_request(starts_at: Time.utc(2026, 12, 1, 14, 15))
 
-    assert_raises(ActiveRecord::ExclusionViolation) { overlapping.save! }
+    assert_raises(ActiveRecord::ExclusionViolation) { save_past_validations(overlapping) }
   end
 
   test "back-to-back accepted requests do not overlap" do
     adjacent = accepted_request(starts_at: Time.utc(2026, 12, 1, 14, 30))
 
-    assert adjacent.save!
+    assert save_past_validations(adjacent)
   end
 
   test "overlap only matters for the same nutritionist" do
@@ -105,7 +190,8 @@ class AppointmentRequestTest < ActiveSupport::TestCase
   end
 
   test "overlapping pending requests are allowed" do
-    request = build_request(starts_at: Time.utc(2026, 12, 1, 14, 0))
+    # The pending fixture runs from 10:00 to 11:00 UTC on 1 December.
+    request = build_request(starts_at: Time.utc(2026, 12, 1, 10, 0))
 
     assert request.save!
   end
@@ -150,8 +236,24 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     )
   end
 
+  def request_attributes(**attributes)
+    {
+      service_id: @service.id,
+      guest_name: "Joana Silva",
+      guest_email: "joana.silva@example.com",
+      starts_at: Time.utc(2026, 12, 3, 10, 0),
+      **attributes
+    }
+  end
+
   def accepted_request(**attributes)
     build_request(status: "accepted", answered_at: Time.current, **attributes)
+  end
+
+  # Reaches the database constraints with times the model would refuse.
+  def save_past_validations(request)
+    request.validate
+    request.save!(validate: false)
   end
 
   def insert_raw(guest_email:)

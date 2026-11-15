@@ -49,6 +49,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NutritionistSearch"
+  /appointment_requests:
+    post:
+      operationId: createAppointmentRequest
+      summary: Request an appointment
+      description: >
+        Books a pending request with the nutritionist who offers the service.
+        The day and time are Portuguese wall-clock time and must be a future
+        slot: Monday to Saturday, on the hour, from 09:00 to 18:00 except
+        13:00, and not overlapping the nutritionist's accepted appointments.
+        A guest, identified by email, has at most one pending request, so this
+        supersedes the guest's previous pending request.
+      tags: [Appointment requests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentRequestInput"
+      responses:
+        "201":
+          description: The pending request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentRequest"
+        "422":
+          description: The request was not created. Messages are keyed by field and written for the guest.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrors"
   /locations:
     get:
       operationId: listLocations
@@ -177,3 +208,91 @@ components:
         default:
           type: string
           example: Braga
+    AppointmentRequestInput:
+      type: object
+      additionalProperties: false
+      required: [appointment_request]
+      properties:
+        appointment_request:
+          type: object
+          additionalProperties: false
+          properties:
+            service_id:
+              type: integer
+              example: 1
+            guest_name:
+              type: string
+              example: Joana Silva
+            guest_email:
+              type: string
+              example: joana.silva@example.com
+            date:
+              type: string
+              description: Day in Portugal, as YYYY-MM-DD.
+              example: "2026-12-07"
+            time:
+              type: string
+              description: Slot start in Portugal, as HH:MM.
+              example: "10:00"
+            online:
+              type: boolean
+              description: Only allowed when the nutritionist offers online appointments.
+    AppointmentRequest:
+      type: object
+      additionalProperties: false
+      required: [id, status, guest_name, guest_email, starts_at, ends_at, online, service]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [pending]
+        guest_name:
+          type: string
+          example: Joana Silva
+        guest_email:
+          type: string
+          description: Stored lowercase.
+          example: joana.silva@example.com
+        starts_at:
+          type: string
+          format: date-time
+          description: UTC.
+          example: "2026-12-07T10:00:00.000Z"
+        ends_at:
+          type: string
+          format: date-time
+          description: The start plus the service's duration, in UTC.
+          example: "2026-12-07T11:00:00.000Z"
+        online:
+          type: boolean
+        service:
+          type: object
+          additionalProperties: false
+          required: [id, name, street_address, city]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+              example: First appointment
+            street_address:
+              type: string
+              example: Rua do Souto 45
+            city:
+              type: string
+              example: Braga
+    ValidationErrors:
+      type: object
+      additionalProperties: false
+      required: [errors]
+      properties:
+        errors:
+          type: object
+          description: Messages per field. Fields are service, guest_name, guest_email, starts_at, and online.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            starts_at: [Pick one of the available times.]
