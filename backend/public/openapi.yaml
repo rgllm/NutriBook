@@ -80,6 +80,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ValidationErrors"
+  /nutritionists/{id}/appointment_requests:
+    get:
+      operationId: listPendingAppointmentRequests
+      summary: List a nutritionist's pending requests
+      description: >
+        The nutritionist and every request still waiting for their answer,
+        soonest first. Requests whose time has passed stay in the list until
+        the nutritionist answers them.
+      tags: [Appointment requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The nutritionist's id.
+          schema:
+            type: string
+          example: "1"
+      responses:
+        "200":
+          description: The nutritionist and their pending requests.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingAppointmentRequests"
+        "404":
+          description: No nutritionist has this id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFound"
   /locations:
     get:
       operationId: listLocations
@@ -296,3 +326,66 @@ components:
               type: string
           example:
             starts_at: [Pick one of the available times.]
+    PendingAppointmentRequests:
+      type: object
+      additionalProperties: false
+      required: [nutritionist, appointment_requests]
+      properties:
+        nutritionist:
+          type: object
+          additionalProperties: false
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Mary Jane
+        appointment_requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/PendingAppointmentRequest"
+    PendingAppointmentRequest:
+      type: object
+      additionalProperties: false
+      required: [id, guest_name, guest_email, starts_at, ends_at, online, service]
+      properties:
+        id:
+          type: integer
+        guest_name:
+          type: string
+          example: Rita Gomes
+        guest_email:
+          type: string
+          example: rita.gomes@example.com
+        starts_at:
+          type: string
+          format: date-time
+          description: UTC.
+          example: "2026-12-01T10:00:00.000Z"
+        ends_at:
+          type: string
+          format: date-time
+          description: UTC.
+          example: "2026-12-01T11:00:00.000Z"
+        online:
+          type: boolean
+        service:
+          type: object
+          additionalProperties: false
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+              example: First appointment
+    NotFound:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Nutritionist not found

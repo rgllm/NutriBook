@@ -252,6 +252,38 @@ nutritionist already accepted, because that request could never be accepted.
 Online is only allowed when the nutritionist offers it. The frontend renders
 the same slots in its time picker; the API is the one that enforces them.
 
+`GET /nutritionists/:id/appointment_requests` returns the nutritionist and
+every request still waiting for their answer, soonest first. Requests whose
+time has passed stay in the list until the nutritionist answers them, so every
+guest gets an answer. An unknown id returns `404 { "error": "Nutritionist not
+found" }`; `ApplicationController` turns any missing record into that JSON
+response.
+
+```sh
+curl 'http://localhost:3001/nutritionists/1/appointment_requests'
+```
+
+```json
+{
+  "nutritionist": { "id": 1, "name": "Mary Jane" },
+  "appointment_requests": [
+    {
+      "id": 7,
+      "guest_name": "Rita Gomes",
+      "guest_email": "rita.gomes@example.com",
+      "starts_at": "2026-12-01T10:00:00.000Z",
+      "ends_at": "2026-12-01T11:00:00.000Z",
+      "online": false,
+      "service": { "id": 1, "name": "First appointment" }
+    }
+  ]
+}
+```
+
+It runs two queries whatever the number of requests: the nutritionist, then
+the pending requests with their services preloaded, served by the
+`appointment_requests (nutritionist_id, status, starts_at)` index.
+
 `AppointmentRequest.submit` creates the request in one transaction. It takes a
 transaction-scoped advisory lock on the guest's email, marks the guest's
 pending request `superseded`, and inserts the new one. The lock makes two

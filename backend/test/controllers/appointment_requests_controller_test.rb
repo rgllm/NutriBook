@@ -3,6 +3,60 @@ require "test_helper"
 class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
   setup { travel_to Time.utc(2026, 11, 20, 12, 0) }
 
+  test "lists the nutritionist's pending requests, soonest first" do
+    mary = nutritionists(:mary_jane)
+    overdue = travel_to(Time.utc(2026, 11, 10, 12, 0)) do
+      submit(guest_email: "overdue@example.com", date: "2026-11-18", time: "09:00")
+    end
+    later = submit(guest_email: "later@example.com", date: "2026-12-07", time: "15:00")
+    submit(guest_email: "ana.guest@example.com", service_id: services(:ana_sports_nutrition).id)
+
+    get nutritionist_appointment_requests_url(mary)
+
+    assert_schema_conform(200)
+    assert_equal({ "id" => mary.id, "name" => "Mary Jane" }, response.parsed_body["nutritionist"])
+    assert_equal [ overdue.id, appointment_requests(:pending).id, later.id ],
+      response.parsed_body["appointment_requests"].pluck("id")
+    assert_equal({
+      "id" => appointment_requests(:pending).id,
+      "guest_name" => "Rita Gomes",
+      "guest_email" => "rita.gomes@example.com",
+      "starts_at" => "2026-12-01T10:00:00.000Z",
+      "ends_at" => "2026-12-01T11:00:00.000Z",
+      "online" => false,
+      "service" => { "id" => services(:mary_first_appointment).id, "name" => "First appointment" }
+    }, response.parsed_body["appointment_requests"].second)
+  end
+
+  test "a nutritionist with no pending requests gets an empty list" do
+    get nutritionist_appointment_requests_url(nutritionists(:ana_ferreira))
+
+    assert_schema_conform(200)
+    assert_empty response.parsed_body["appointment_requests"]
+  end
+
+  test "an unknown nutritionist is not found" do
+    [ 0, "abc" ].each do |id|
+      get nutritionist_appointment_requests_url(id)
+
+      assert_schema_conform(404)
+      assert_equal({ "error" => "Nutritionist not found" }, response.parsed_body)
+    end
+  end
+
+  test "the query count does not grow with the number of requests" do
+    mary = nutritionists(:mary_jane)
+    one = count_queries { get nutritionist_appointment_requests_url(mary) }
+
+    [ "11:00", "12:00", "14:00" ].each_with_index do |time, i|
+      submit(guest_email: "guest#{i}@example.com", service_id: services(:mary_follow_up).id, time:)
+    end
+    many = count_queries { get nutritionist_appointment_requests_url(mary) }
+
+    assert_equal 4, response.parsed_body["appointment_requests"].size
+    assert_equal one, many
+  end
+
   test "creates a pending request at the chosen time in Portugal" do
     service = services(:mary_first_appointment)
 
@@ -72,6 +126,14 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def submit(**overrides)
+    AppointmentRequest.submit(
+      service_id: services(:mary_first_appointment).id, guest_name: "Guest", guest_email: "guest@example.com",
+      starts_at: BookingSchedule.starts_at(overrides.delete(:date) || "2026-12-07", overrides.delete(:time) || "10:00"),
+      **overrides
+    ).tap { |request| assert request.persisted?, request.errors.full_messages.to_sentence }
+  end
 
   def request_params(**overrides)
     {

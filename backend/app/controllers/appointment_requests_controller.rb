@@ -1,4 +1,18 @@
 class AppointmentRequestsController < ApplicationController
+  # A nutritionist's pending requests, overdue ones included, soonest first.
+  def index
+    nutritionist = Nutritionist.find(params[:nutritionist_id])
+    requests = nutritionist.appointment_requests.pending.includes(:service).order(:starts_at, :id)
+
+    render json: {
+      nutritionist: nutritionist.as_json(only: %i[id name]),
+      appointment_requests: requests.as_json(
+        only: %i[id guest_name guest_email starts_at ends_at online],
+        include: { service: { only: %i[id name] } }
+      )
+    }
+  end
+
   def create
     request = AppointmentRequest.submit(appointment_request_params)
 

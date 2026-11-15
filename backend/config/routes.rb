@@ -5,5 +5,7 @@ Rails.application.routes.draw do
 
   resources :appointment_requests, only: :create
   resources :locations, only: :index
-  resources :nutritionists, only: :index
+  resources :nutritionists, only: :index do
+    resources :appointment_requests, only: :index
+  end
 end
