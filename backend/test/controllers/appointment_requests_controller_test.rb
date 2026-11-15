@@ -118,6 +118,56 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     }, response.parsed_body["errors"])
   end
 
+  test "rejects dotless email domains through the API" do
+    [ "user@com", "user@localhost" ].each do |guest_email|
+      assert_no_difference -> { AppointmentRequest.count } do
+        post appointment_requests_url, params: request_params(guest_email:), as: :json
+      end
+
+      assert_schema_conform(422)
+      assert_equal({ "guest_email" => [ "Enter a valid email, like name@example.com." ] }, response.parsed_body["errors"])
+    end
+  end
+
+  test "rejects guest names over the length limit through the API" do
+    [ AppointmentRequest::GUEST_NAME_MAX_LENGTH + 1, 10_000 ].each do |length|
+      assert_no_difference -> { AppointmentRequest.count } do
+        post appointment_requests_url, params: request_params(guest_name: "a" * length), as: :json
+      end
+
+      assert_response_schema_confirm(422)
+      assert_equal({ "guest_name" => [ "Use at most 100 characters." ] }, response.parsed_body["errors"])
+    end
+  end
+
+  test "rejects guest emails over the length limit through the API" do
+    [ AppointmentRequest::GUEST_EMAIL_MAX_LENGTH + 1, 10_000 ].each do |length|
+      guest_email = "#{"a" * (length - "@example.com".length)}@example.com"
+
+      assert_no_difference -> { AppointmentRequest.count } do
+        post appointment_requests_url, params: request_params(guest_email:), as: :json
+      end
+
+      assert_response_schema_confirm(422)
+      assert_equal({ "guest_email" => [ "Use at most 254 characters." ] }, response.parsed_body["errors"])
+    end
+  end
+
+  test "accepts guest fields at their length limits through the API" do
+    guest_name = "a" * AppointmentRequest::GUEST_NAME_MAX_LENGTH
+    guest_email = "#{"a" * (AppointmentRequest::GUEST_EMAIL_MAX_LENGTH - "@example.com".length)}@example.com"
+
+    assert_difference -> { AppointmentRequest.count }, 1 do
+      post appointment_requests_url, params: request_params(guest_name:, guest_email:), as: :json
+    end
+
+    assert_schema_conform(201)
+    request = AppointmentRequest.find(response.parsed_body["id"])
+    assert request.pending?
+    assert_equal [ guest_name, guest_email ], request.attributes.values_at("guest_name", "guest_email")
+    assert_equal [ guest_name, guest_email ], response.parsed_body.values_at("guest_name", "guest_email")
+  end
+
   test "an unknown service is reported on the service" do
     post appointment_requests_url, params: request_params(service_id: 0), as: :json
 
