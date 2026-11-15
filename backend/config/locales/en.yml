@@ -1,8 +1,4 @@
 en:
-#       "yes": yup
-#       enabled: "ON"
-
-en:
   activerecord:
     errors:
       models:

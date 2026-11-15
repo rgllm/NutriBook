@@ -55,7 +55,9 @@ guarantee, plus a Redis service to run.
 In development the Solid Queue supervisor runs inside Puma
 (`SOLID_QUEUE_IN_PUMA=1` in `compose.yaml`), so there is no separate jobs
 container. In production either set the same variable or run `bin/jobs` as
-its own process. Mail goes out over SMTP: to Mailpit in development, and to the
+its own process. The worker inside Puma picks up changes to existing code and
+templates, but not a newly added job class; restart the backend after adding
+one (`docker compose restart backend`). Mail goes out over SMTP: to Mailpit in development, and to the
 server in `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, and `SMTP_PASSWORD` in
 production. `MAIL_FROM` sets the sender. Tests use Action Mailer's `:test`
 delivery method and Active Job's test adapter.
@@ -123,12 +125,15 @@ erDiagram
         string status "pending, accepted, rejected, superseded"
         boolean online "only if the nutritionist offers it"
         datetime answered_at "set only when accepted or rejected"
+        string rejection_reason "declined or overlap, set only when rejected"
+        datetime answer_notified_at "when the guest was emailed the answer"
     }
 ```
 
 A guest is identified by email and has no table of their own; their name and
-email live on each request. Every column is `NOT NULL` except `answered_at`, and
-every table has `created_at` and `updated_at`.
+email live on each request. Every column is `NOT NULL` except `answered_at`,
+`rejection_reason`, and `answer_notified_at`, and every table has `created_at`
+and `updated_at`.
 
 The business rules that PostgreSQL can express are database constraints, so
 they hold even if application code has a bug or two requests race:
@@ -139,7 +144,9 @@ they hold even if application code has a bug or two requests race:
 | A nutritionist never has two accepted appointments that overlap | Exclusion constraint on `nutritionist_id` and `tsrange(starts_at, ends_at)` where `status = 'accepted'` (`btree_gist`). Ranges are half-open, so 10:00–11:00 and 11:00–12:00 do not overlap |
 | A request's service belongs to the request's nutritionist | Composite foreign key `(nutritionist_id, service_id)` → `services (nutritionist_id, id)` |
 | `answered_at` is set exactly when a nutritionist answered | Check that `answered_at IS NOT NULL` equals `status IN ('accepted', 'rejected')` |
-| Valid values | Checks on `title`, `status`, `price >= 0`, `duration_minutes > 0`, and `ends_at > starts_at` |
+| A rejected request says why, and only a rejected request does | Check that `rejection_reason IS NOT NULL` equals `status = 'rejected'` |
+| Only an answered request can have been emailed | Check that `answer_notified_at` is null or `answered_at` is set |
+| Valid values | Checks on `title`, `status`, `rejection_reason`, `price >= 0`, `duration_minutes > 0`, and `ends_at > starts_at` |
 
 A request copies its end time from the service's duration when it is created,
 so editing a service later does not move existing appointments. `superseded`
@@ -349,7 +356,31 @@ guests insert requests that reference the nutritionist. The exclusion
 constraint on accepted requests stays as the last guard against a double
 booking. A race test pauses one accept after it takes its locks, starts a
 second accept, and checks that the second waits and then finds its request
-rejected. Emails to the guest are not sent yet.
+rejected.
+
+### Answer emails
+
+Every request answered by `answer!` gets one email, including the ones
+rejected because they overlapped. `answer!` enqueues one
+`AppointmentAnswerEmailJob` per answered request inside its transaction, so the
+jobs exist exactly when the answers do (see [Background jobs and
+email](#background-jobs-and-email)). A rejected request records why in
+`rejection_reason`: `declined` when the nutritionist rejected it, `overlap`
+when accepting another request rejected it. The email says which.
+
+The job sends `AppointmentRequestMailer#accepted` or `#rejected`, then sets
+`answer_notified_at` while holding the request's row lock. Solid Queue runs a
+job at least once, so a retry after a successful send finds the column set and
+sends nothing. The one case left is a crash after the SMTP server accepted the
+email and before the column was written; the guest would get the email twice.
+Closing that gap needs a provider that deduplicates on an idempotency key.
+Network and SMTP-busy errors retry with growing waits, up to ten attempts.
+
+Emails show the appointment in Lisbon time, the zone the guest booked in, with
+the nutritionist, service, and address or "Online". They are in English, like
+the UI. A request replaced by the same guest's newer one (`superseded`) gets
+no email: the guest replaced it themselves, and the challenge asks for emails
+on answers only.
 
 `AppointmentRequest.submit` creates the request in one transaction. It takes a
 transaction-scoped advisory lock on the guest's email, marks the guest's
@@ -388,7 +419,8 @@ rejected with it leave the list, and a Sonner toast says how many overlapping
 requests were rejected. A request that was already answered, for example in
 another tab, also leaves the list, with the API's reason in an error toast.
 When the API is unavailable the card stays and shows a message to try again.
-The email notifications are pending implementation.
+Answering a request emails the guest; open Mailpit at <http://localhost:8025>
+to read it.
 
 An id that is not a nutritionist shows the 404 page. Cache Components sends a
 page's shell, with status `200`, before the page can call `notFound()`, so the

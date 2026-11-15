@@ -129,7 +129,9 @@ class AppointmentRequestTest < ActiveSupport::TestCase
 
     assert request.reload.accepted?
     assert_equal Time.current, request.answered_at
+    assert_nil request.rejection_reason
     assert overlapping.reload.rejected?
+    assert overlapping.rejection_overlap?
     assert_equal Time.current, overlapping.answered_at
     assert adjacent.reload.pending?
     assert other_nutritionist.reload.pending?
@@ -142,8 +144,37 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert_empty request.answer!("rejected")
 
     assert request.reload.rejected?
+    assert request.rejection_declined?
     assert_equal Time.current, request.answered_at
     assert overlapping.reload.pending?
+  end
+
+  test "answering emails the guest of every request it answers, once each" do
+    request = appointment_requests(:pending)
+    overlapping = submit_request(guest_email: "overlap@example.com", starts_at: Time.utc(2026, 12, 1, 10, 0))
+
+    assert_enqueued_jobs 2, only: AppointmentAnswerEmailJob do
+      request.answer!("accepted")
+    end
+    assert_enqueued_with job: AppointmentAnswerEmailJob, args: [ request.id ]
+    assert_enqueued_with job: AppointmentAnswerEmailJob, args: [ overlapping.id ]
+  end
+
+  test "rejecting emails only that request's guest" do
+    request = appointment_requests(:pending)
+    submit_request(guest_email: "overlap@example.com", starts_at: Time.utc(2026, 12, 1, 10, 0))
+
+    assert_enqueued_jobs 1, only: AppointmentAnswerEmailJob do
+      request.answer!("rejected")
+    end
+    assert_enqueued_with job: AppointmentAnswerEmailJob, args: [ request.id ]
+  end
+
+  test "an answer that is refused emails no one" do
+    assert_no_enqueued_jobs only: AppointmentAnswerEmailJob do
+      assert_raises(AppointmentRequest::NotAnswerable) { appointment_requests(:accepted).answer!("rejected") }
+      assert_raises(ActiveRecord::RecordInvalid) { appointment_requests(:pending).answer!("pending") }
+    end
   end
 
   test "a request can still be answered after its time has passed" do
@@ -219,6 +250,13 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert appointment_requests(:pending).reload.pending?
   end
 
+  test "superseding a pending request emails no one" do
+    assert_no_enqueued_jobs only: AppointmentAnswerEmailJob do
+      submit_request(guest_email: appointment_requests(:pending).guest_email)
+    end
+    assert appointment_requests(:pending).reload.superseded?
+  end
+
   test "a rejected submission keeps the guest's pending request" do
     request = AppointmentRequest.submit(request_attributes(guest_email: "rita.gomes@example.com", starts_at: nil))
 
@@ -244,7 +282,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
   test "a guest may keep answered and superseded requests next to a pending one" do
     assert_difference -> { AppointmentRequest.count }, 2 do
       build_request(guest_email: "rita.gomes@example.com", status: "superseded").save!
-      build_request(guest_email: "rita.gomes@example.com", status: "rejected", answered_at: Time.current).save!
+      build_request(guest_email: "rita.gomes@example.com", status: "rejected", rejection_reason: "declined", answered_at: Time.current).save!
     end
   end
 
@@ -291,6 +329,30 @@ class AppointmentRequestTest < ActiveSupport::TestCase
   test "an accepted request must have answered_at" do
     assert_raises(ActiveRecord::CheckViolation) do
       appointment_requests(:accepted).update_column(:answered_at, nil)
+    end
+  end
+
+  test "a rejected request must say why it was rejected" do
+    assert_raises(ActiveRecord::CheckViolation) do
+      appointment_requests(:rejected).update_column(:rejection_reason, nil)
+    end
+  end
+
+  test "only a rejected request has a rejection reason" do
+    assert_raises(ActiveRecord::CheckViolation) do
+      appointment_requests(:accepted).update_column(:rejection_reason, "declined")
+    end
+  end
+
+  test "rejection reasons are declined or overlap" do
+    assert_raises(ActiveRecord::CheckViolation) do
+      appointment_requests(:rejected).update_column(:rejection_reason, "busy")
+    end
+  end
+
+  test "only an answered request can be marked as notified" do
+    assert_raises(ActiveRecord::CheckViolation) do
+      appointment_requests(:pending).update_column(:answer_notified_at, Time.current)
     end
   end
 

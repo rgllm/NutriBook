@@ -1,0 +1,11 @@
+Hi <%= appointment_request.guest_name %>,
+
+<% if appointment_request.rejection_overlap? -%>
+<%= nutritionist_name %> accepted another appointment at the same time, so this time is no longer available.
+<% else -%>
+<%= nutritionist_name %> can't take this appointment request.
+<% end -%>
+
+<%= render "details" -%>
+
+You can request another time on NutriBook.
