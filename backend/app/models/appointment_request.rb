@@ -1,5 +1,11 @@
 class AppointmentRequest < ApplicationRecord
   ANSWERS = %w[accepted rejected].freeze
+  GUEST_NAME_MAX_LENGTH = 100
+  # The longest address SMTP can deliver to (RFC 5321).
+  GUEST_EMAIL_MAX_LENGTH = 254
+  # URI::MailTo::EMAIL_REGEXP accepts a domain without a dot, like user@com,
+  # which no guest can receive mail at. The lookahead requires one.
+  GUEST_EMAIL_FORMAT = /(?=[^@]*@[^@]+\.)#{URI::MailTo::EMAIL_REGEXP}/
 
   # The request can no longer take the answer: it was answered or superseded,
   # or accepting it would overlap an accepted appointment.
@@ -27,9 +33,9 @@ class AppointmentRequest < ApplicationRecord
 
   before_validation :derive_from_service, if: :booking_changed?
 
-  validates :guest_name, presence: true
-  validates :guest_email, presence: true
-  validates :guest_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :guest_name, presence: true, length: { maximum: GUEST_NAME_MAX_LENGTH }
+  validates :guest_email, presence: true, length: { maximum: GUEST_EMAIL_MAX_LENGTH }
+  validates :guest_email, format: { with: GUEST_EMAIL_FORMAT }, allow_blank: true
   validates :starts_at, presence: true
   validate :online_offered
   validate :bookable_time, on: :create
