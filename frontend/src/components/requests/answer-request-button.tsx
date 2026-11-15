@@ -4,29 +4,29 @@ import { useFormStatus } from "react-dom"
 import { CheckIcon, LoaderCircleIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import type { RequestDecision } from "@/lib/pending-requests"
+import type { RequestAnswer } from "@/lib/pending-requests"
 
-const DECISIONS = {
-  accept: { label: "Accept", pendingLabel: "Accepting…", variant: "default", Icon: CheckIcon },
-  reject: { label: "Reject", pendingLabel: "Rejecting…", variant: "outline", Icon: XIcon },
+const ANSWERS = {
+  accepted: { label: "Accept", pendingLabel: "Accepting…", variant: "default", Icon: CheckIcon },
+  rejected: { label: "Reject", pendingLabel: "Rejecting…", variant: "outline", Icon: XIcon },
 } as const
 
 export function AnswerRequestButton({
-  decision,
+  answer,
   guestName,
 }: {
-  decision: RequestDecision
+  answer: RequestAnswer
   guestName: string
 }) {
   const { pending, data } = useFormStatus()
-  const { label, pendingLabel, variant, Icon } = DECISIONS[decision]
-  const isRunning = pending && data?.get("decision") === decision
+  const { label, pendingLabel, variant, Icon } = ANSWERS[answer]
+  const isRunning = pending && data?.get("status") === answer
 
   return (
     <Button
       type="submit"
-      name="decision"
-      value={decision}
+      name="status"
+      value={answer}
       variant={variant}
       disabled={pending}
       aria-label={`${label} the request from ${guestName}`}
