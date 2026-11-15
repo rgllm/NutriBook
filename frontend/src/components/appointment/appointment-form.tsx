@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { format, startOfToday } from "date-fns"
+import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -35,7 +35,9 @@ import { RequestAppointmentButton } from "@/components/appointment/request-appoi
 import type { Nutritionist } from "@/lib/api/nutritionists"
 import {
   isSlotInPast,
+  practiceToday,
   TIME_SLOTS,
+  toBookingDay,
   type AppointmentErrors,
   type RequestAppointmentState,
   type TimeSlot,
@@ -95,7 +97,7 @@ export function AppointmentForm({
   return (
     <form noValidate action={action} className="flex flex-col gap-6">
       <input type="hidden" name="service_id" value={serviceId ?? ""} />
-      <input type="hidden" name="date" value={date ? format(date, "yyyy-MM-dd") : ""} />
+      <input type="hidden" name="date" value={date ? toBookingDay(date) : ""} />
       <input type="hidden" name="time" value={time ?? ""} />
       <input type="hidden" name="online" value={String(online)} />
 
@@ -180,7 +182,7 @@ export function AppointmentForm({
               mode="single"
               selected={date}
               onSelect={selectDate}
-              disabled={[{ before: startOfToday() }, { dayOfWeek: [0] }]}
+              disabled={[{ before: practiceToday() }, { dayOfWeek: [0] }]}
               className="rounded-lg border p-0 sm:p-2"
             />
           </Field>
