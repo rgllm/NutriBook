@@ -1,6 +1,7 @@
 import { z } from "zod"
 
-import { ApiNotFoundError, apiGet, apiPost } from "@/lib/api/http"
+import { ApiNotFoundError, apiGet, apiWrite } from "@/lib/api/http"
+import { REQUEST_ANSWERS } from "@/lib/pending-requests"
 
 const appointmentRequestSchema = z
   .object({
@@ -34,7 +35,8 @@ export type AppointmentRequestInput = {
 }
 
 export function createAppointmentRequest(input: AppointmentRequestInput) {
-  return apiPost(
+  return apiWrite(
+    "POST",
     "/appointment_requests",
     {
       appointment_request: {
@@ -97,4 +99,20 @@ export async function getPendingRequests(nutritionistId: string) {
     if (error instanceof ApiNotFoundError) return null
     throw error
   }
+}
+
+const answeredRequestSchema = z
+  .object({ id: z.number(), status: z.enum(REQUEST_ANSWERS), rejected_ids: z.array(z.number()) })
+  .transform(({ id, status, rejected_ids }) => ({ id, status, rejectedIds: rejected_ids }))
+
+// The status is the API's: "accepted" or "rejected". Anything else comes back
+// as a validation error on status. A request that was already answered throws
+// ApiConflictError; one that is not this nutritionist's throws ApiNotFoundError.
+export function answerAppointmentRequest(nutritionistId: string, requestId: number, status: string) {
+  return apiWrite(
+    "PATCH",
+    `/nutritionists/${encodeURIComponent(nutritionistId)}/appointment_requests/${requestId}`,
+    { appointment_request: { status } },
+    answeredRequestSchema,
+  )
 }

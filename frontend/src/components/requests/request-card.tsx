@@ -3,11 +3,18 @@ import { CalendarIcon, ClockIcon, MailIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { answerRequest } from "@/app/nutritionists/[id]/requests/actions"
 import { AnswerRequestForm } from "@/components/requests/answer-request-form"
 import { formatRequestDate, formatRequestTimeRange, initials } from "@/lib/format"
 import type { PendingRequest } from "@/lib/api/appointment-requests"
 
-export function RequestCard({ request }: { request: PendingRequest }) {
+export function RequestCard({
+  nutritionistId,
+  request,
+}: {
+  nutritionistId: string
+  request: PendingRequest
+}) {
   return (
     <Card className="w-full">
       <CardContent className="flex flex-1 flex-col gap-5">
@@ -67,7 +74,10 @@ export function RequestCard({ request }: { request: PendingRequest }) {
       </CardContent>
 
       <CardFooter>
-        <AnswerRequestForm requestId={request.id} guestName={request.guestName} />
+        <AnswerRequestForm
+          action={answerRequest.bind(null, nutritionistId, request.id)}
+          guestName={request.guestName}
+        />
       </CardFooter>
     </Card>
   )

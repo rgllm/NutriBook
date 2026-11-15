@@ -15,13 +15,19 @@ export class ApiUnavailableError extends Error {}
 // The record the path names does not exist. Pages turn this into notFound().
 export class ApiNotFoundError extends Error {}
 
+// The record can no longer change as asked, for example because it was already
+// answered. The message is written for the person who acted.
+export class ApiConflictError extends Error {}
+
 // The API refused the input. Its messages are keyed by field and written for
 // the person who filled in the form.
 export type ValidationErrors = Record<string, string[]>
 
 const validationErrorsSchema = z.object({ errors: z.record(z.string(), z.array(z.string())) })
 
-async function send(method: "GET" | "POST", url: URL, payload?: unknown) {
+const conflictSchema = z.object({ error: z.string() })
+
+async function send(method: "GET" | "POST" | "PATCH", url: URL, payload?: unknown) {
   // fetch resolves once the headers arrive, so the body read belongs with the
   // transport: a stalled or dropped body is an outage, not a bad payload.
   try {
@@ -60,18 +66,20 @@ export async function apiGet<T>(
   return schema.parse(JSON.parse(body))
 }
 
-export async function apiPost<T>(
+export async function apiWrite<T>(
+  method: "POST" | "PATCH",
   path: string,
   payload: unknown,
   schema: z.ZodType<T>,
 ): Promise<{ ok: true; data: T } | { ok: false; errors: ValidationErrors }> {
   const url = new URL(path, API_URL)
 
-  const { status, body } = await send("POST", url, payload)
+  const { status, body } = await send(method, url, payload)
   if (status === 422) {
     return { ok: false, errors: validationErrorsSchema.parse(JSON.parse(body)).errors }
   }
-  if (status < 200 || status >= 300) throw failure("POST", url, status)
+  if (status === 409) throw new ApiConflictError(conflictSchema.parse(JSON.parse(body)).error)
+  if (status < 200 || status >= 300) throw failure(method, url, status)
 
   return { ok: true, data: schema.parse(JSON.parse(body)) }
 }

@@ -19,7 +19,7 @@ export async function PendingRequests({ params }: { params: Promise<{ id: string
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pending.requests.map((request) => (
             <li key={request.id} className="flex">
-              <RequestCard request={request} />
+              <RequestCard nutritionistId={id} request={request} />
             </li>
           ))}
         </ul>

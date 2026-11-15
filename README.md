@@ -353,9 +353,15 @@ in `frontend/src/app/actions.ts`. The nutritionist's pending requests page, for 
 <http://localhost:3000/nutritionists/1/requests>, reads
 `GET /nutritionists/:id/appointment_requests`. It has no authentication, as
 the challenge allows. Requests whose time has passed carry an "Overdue" badge.
-The Accept and Reject buttons do nothing yet: the API can answer requests,
-but the page does not call it yet, and the email notifications are pending
-implementation.
+Accept and Reject call
+`PATCH /nutritionists/:id/appointment_requests/:id` through the `answerRequest`
+Server Action, bound to the request on the server. On success the action calls
+`refresh()`, so the answered request and any overlapping requests the API
+rejected with it leave the list, and a Sonner toast says how many overlapping
+requests were rejected. A request that was already answered, for example in
+another tab, also leaves the list, with the API's reason in an error toast.
+When the API is unavailable the card stays and shows a message to try again.
+The email notifications are pending implementation.
 
 An id that is not a nutritionist shows the 404 page. Cache Components sends a
 page's shell, with status `200`, before the page can call `notFound()`, so the
