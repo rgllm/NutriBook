@@ -28,5 +28,12 @@ module Nutribook
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # Solid Queue keeps jobs in the primary database (no connects_to), so a job
+    # enqueued inside a transaction is inserted in that transaction: it commits
+    # with the change that caused it, or rolls back with it. Deferring the
+    # enqueue until after commit would reopen the gap between the two.
+    config.active_job.queue_adapter = :solid_queue
+    config.active_job.enqueue_after_transaction_commit = false
   end
 end
