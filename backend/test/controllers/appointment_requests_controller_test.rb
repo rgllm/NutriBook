@@ -143,7 +143,9 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     request = appointment_requests(:pending)
     overlapping = submit(guest_email: "overlap@example.com", service_id: services(:mary_follow_up).id, date: "2026-12-01", time: "10:00")
 
-    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request), params: answer("accepted"), as: :json
+    assert_enqueued_jobs 2, only: AppointmentAnswerEmailJob do
+      patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request), params: answer("accepted"), as: :json
+    end
 
     assert_schema_conform(200)
     assert_equal({

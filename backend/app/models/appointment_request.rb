@@ -16,6 +16,10 @@ class AppointmentRequest < ApplicationRecord
     superseded: "superseded"
   }, validate: true
 
+  # Why a rejected request was rejected: the nutritionist declined it, or it
+  # overlapped a request they accepted. Set only on rejected requests.
+  enum :rejection_reason, { declined: "declined", overlap: "overlap" }, prefix: :rejection
+
   scope :overlapping, ->(starts_at, ends_at) { where("starts_at < ? AND ends_at > ?", ends_at, starts_at) }
 
   normalizes :guest_email, with: ->(email) { email.strip.downcase }
@@ -49,6 +53,10 @@ class AppointmentRequest < ApplicationRecord
   # The nutritionist's row lock makes their answers run one at a time. It is
   # FOR NO KEY UPDATE so guests can still insert requests that reference the
   # nutritionist, which FOR UPDATE would block.
+  #
+  # Every request answered here gets one email job, enqueued inside this
+  # transaction on purpose: Solid Queue shares the database, so the jobs commit
+  # or roll back with the answers they announce.
   def answer!(answer)
     unless answer.in?(ANSWERS)
       errors.add(:status, :not_an_answer)
@@ -64,17 +72,22 @@ class AppointmentRequest < ApplicationRecord
       raise NotAnswerable, I18n.t("booked", scope: "appointment_request.not_answerable") if accepting && overlaps_accepted?
 
       now = Time.current
-      update!(status: answer, answered_at: now)
-      next [] unless accepting
+      update!(status: answer, answered_at: now, rejection_reason: ("declined" unless accepting))
+      rejected_ids = accepting ? reject_overlapping(now) : []
 
-      overlapping = AppointmentRequest.pending.where(nutritionist_id:).overlapping(starts_at, ends_at)
-      overlapping.lock.pluck(:id).tap do |ids|
-        AppointmentRequest.where(id: ids).update_all(status: "rejected", answered_at: now, updated_at: now)
-      end
+      ActiveJob.perform_all_later([ id, *rejected_ids ].map { |answered_id| AppointmentAnswerEmailJob.new(answered_id) })
+      rejected_ids
     end
   end
 
   private
+
+  def reject_overlapping(now)
+    overlapping = AppointmentRequest.pending.where(nutritionist_id:).overlapping(starts_at, ends_at)
+    overlapping.lock.pluck(:id).tap do |ids|
+      AppointmentRequest.where(id: ids).update_all(status: "rejected", rejection_reason: "overlap", answered_at: now, updated_at: now)
+    end
+  end
 
   # Derive only when the booking itself is new or changes. A saved request keeps
   # the interval it was booked with, even if the service's duration is edited
