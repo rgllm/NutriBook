@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
 import { format, startOfToday } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -31,23 +31,26 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { RequestAppointmentButton } from "@/components/appointment/request-appointment-button"
 import type { Nutritionist } from "@/lib/api/nutritionists"
 import {
   isSlotInPast,
   TIME_SLOTS,
-  validateAppointment,
-  type AppointmentDraft,
   type AppointmentErrors,
-  type AppointmentRequest,
+  type RequestAppointmentState,
   type TimeSlot,
 } from "@/lib/appointment-request"
 
+type EditingState = Extract<RequestAppointmentState, { status: "editing" }>
+
 export function AppointmentForm({
   nutritionist,
-  onSubmit,
+  state,
+  action,
 }: {
   nutritionist: Nutritionist
-  onSubmit: (request: AppointmentRequest) => void
+  state: EditingState
+  action: (formData: FormData) => void
 }) {
   const { services } = nutritionist
   const [serviceId, setServiceId] = useState(
@@ -56,24 +59,13 @@ export function AppointmentForm({
   const [online, setOnline] = useState(false)
   const [date, setDate] = useState<Date>()
   const [time, setTime] = useState<TimeSlot>()
-  const [errors, setErrors] = useState<AppointmentErrors>({})
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget)
-    const draft: AppointmentDraft = {
-      name: String(form.get("name") ?? ""),
-      email: String(form.get("email") ?? ""),
-      serviceId,
-      online,
-      date,
-      time,
-    }
-    const nextErrors = validateAppointment(draft)
-    setErrors(nextErrors)
-    if (Object.keys(nextErrors).length === 0) {
-      onSubmit(draft as AppointmentRequest)
-    }
+  // The API's errors for the last submission, minus those the guest has since
+  // addressed by changing the field.
+  const [errors, setErrors] = useState(state.errors)
+  const [answeredState, setAnsweredState] = useState(state)
+  if (state !== answeredState) {
+    setAnsweredState(state)
+    setErrors(state.errors)
   }
 
   const clearError = (key: keyof AppointmentErrors) =>
@@ -81,22 +73,32 @@ export function AppointmentForm({
 
   function selectService(next: number | null) {
     setServiceId(next ?? undefined)
-    clearError("serviceId")
+    clearError("service")
+  }
+
+  function selectOnline(next: boolean) {
+    setOnline(next)
+    clearError("online")
   }
 
   function selectDate(next: Date | undefined) {
     setDate(next)
     if (time && isSlotInPast(next, time)) setTime(undefined)
-    clearError("date")
+    clearError("when")
   }
 
   function selectTime(values: string[]) {
     setTime(values[0] as TimeSlot | undefined)
-    clearError("time")
+    clearError("when")
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form noValidate action={action} className="flex flex-col gap-6">
+      <input type="hidden" name="service_id" value={serviceId ?? ""} />
+      <input type="hidden" name="date" value={date ? format(date, "yyyy-MM-dd") : ""} />
+      <input type="hidden" name="time" value={time ?? ""} />
+      <input type="hidden" name="online" value={String(online)} />
+
       <DialogHeader>
         <DialogTitle className="text-subheading">
           Schedule an appointment
@@ -114,6 +116,8 @@ export function AppointmentForm({
             id="guest-name"
             name="name"
             autoComplete="name"
+            defaultValue={state.values.name}
+            onChange={() => clearError("name")}
             aria-invalid={Boolean(errors.name)}
           />
           <FieldError>{errors.name}</FieldError>
@@ -126,6 +130,8 @@ export function AppointmentForm({
             type="email"
             autoComplete="email"
             inputMode="email"
+            defaultValue={state.values.email}
+            onChange={() => clearError("email")}
             aria-invalid={Boolean(errors.email)}
           />
           <FieldError>{errors.email}</FieldError>
@@ -133,7 +139,7 @@ export function AppointmentForm({
       </FieldGroup>
 
       <FieldGroup>
-        <Field data-invalid={Boolean(errors.serviceId)}>
+        <Field data-invalid={Boolean(errors.service)}>
           <FieldLabel htmlFor="service">Service</FieldLabel>
           <Select
             items={services.map((service) => ({ value: service.id, label: service.name }))}
@@ -143,7 +149,7 @@ export function AppointmentForm({
             <SelectTrigger
               id="service"
               className="w-full"
-              aria-invalid={Boolean(errors.serviceId)}
+              aria-invalid={Boolean(errors.service)}
             >
               <SelectValue placeholder="Choose a service" />
             </SelectTrigger>
@@ -155,12 +161,13 @@ export function AppointmentForm({
               ))}
             </SelectContent>
           </Select>
-          <FieldError>{errors.serviceId}</FieldError>
+          <FieldError>{errors.service}</FieldError>
         </Field>
         {nutritionist.offersOnline && (
-          <Field orientation="horizontal">
-            <Checkbox id="online" checked={online} onCheckedChange={setOnline} />
+          <Field orientation="horizontal" data-invalid={Boolean(errors.online)}>
+            <Checkbox id="online" checked={online} onCheckedChange={selectOnline} />
             <FieldLabel htmlFor="online">Online appointment</FieldLabel>
+            <FieldError>{errors.online}</FieldError>
           </Field>
         )}
       </FieldGroup>
@@ -176,9 +183,8 @@ export function AppointmentForm({
               disabled={[{ before: startOfToday() }, { dayOfWeek: [0] }]}
               className="rounded-lg border p-0 sm:p-2"
             />
-            <FieldError>{errors.date}</FieldError>
           </Field>
-          <Field className="flex-1">
+          <Field className="flex-1" data-invalid={Boolean(errors.when)}>
             <FieldLabel id="time-label">
               {date ? format(date, "EEEE, d MMMM") : "Time"}
             </FieldLabel>
@@ -199,18 +205,24 @@ export function AppointmentForm({
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
-            {date ? (
-              <FieldError>{errors.time}</FieldError>
+            {errors.when ? (
+              <FieldError>{errors.when}</FieldError>
             ) : (
-              <FieldDescription>Pick a day to see available times.</FieldDescription>
+              !date && <FieldDescription>Pick a day to see available times.</FieldDescription>
             )}
           </Field>
         </div>
       </FieldSet>
 
+      {errors.form && (
+        <p role="alert" className="text-sm text-destructive">
+          {errors.form}
+        </p>
+      )}
+
       <DialogFooter className="-mx-4 -mb-4 sm:-mx-6 sm:-mb-6 sm:px-6">
         <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-        <Button type="submit">Request appointment</Button>
+        <RequestAppointmentButton />
       </DialogFooter>
     </form>
   )

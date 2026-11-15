@@ -1,5 +1,9 @@
 import { isToday } from "date-fns"
 
+import type { CreatedAppointmentRequest } from "@/lib/api/appointment-requests"
+import type { ValidationErrors } from "@/lib/api/http"
+
+// Mirrors BookingSchedule::SLOT_HOURS in the backend, which enforces them.
 export const TIME_SLOTS = [
   "09:00",
   "10:00",
@@ -14,30 +18,30 @@ export const TIME_SLOTS = [
 
 export type TimeSlot = (typeof TIME_SLOTS)[number]
 
-export type AppointmentRequest = {
-  name: string
-  email: string
-  serviceId: number
-  online: boolean
-  date: Date
-  time: TimeSlot
+export type AppointmentField = "name" | "email" | "service" | "when" | "online"
+
+// One message per field, plus "form" for a problem that belongs to no field.
+export type AppointmentErrors = Partial<Record<AppointmentField | "form", string>>
+
+export type RequestAppointmentState =
+  | { status: "editing"; errors: AppointmentErrors; values: { name: string; email: string } }
+  | { status: "sent"; request: CreatedAppointmentRequest }
+
+const FIELDS_BY_API_KEY: Record<string, AppointmentField> = {
+  guest_name: "name",
+  guest_email: "email",
+  service: "service",
+  starts_at: "when",
+  online: "online",
 }
 
-export type AppointmentDraft = Partial<AppointmentRequest>
-export type AppointmentErrors = Partial<Record<keyof AppointmentRequest, string>>
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-export function validateAppointment(draft: AppointmentDraft): AppointmentErrors {
-  const errors: AppointmentErrors = {}
-  if (!draft.name?.trim()) errors.name = "Enter your name."
-  if (!draft.email?.trim()) errors.email = "Enter your email."
-  else if (!EMAIL_PATTERN.test(draft.email.trim()))
-    errors.email = "Enter a valid email, like name@example.com."
-  if (draft.serviceId === undefined) errors.serviceId = "Choose a service."
-  if (!draft.date) errors.date = "Pick a day."
-  if (!draft.time) errors.time = "Pick a time."
-  return errors
+export function toAppointmentErrors(errors: ValidationErrors): AppointmentErrors {
+  const formErrors: AppointmentErrors = {}
+  for (const [key, messages] of Object.entries(errors)) {
+    const field = FIELDS_BY_API_KEY[key] ?? "form"
+    formErrors[field] ??= messages[0]
+  }
+  return formErrors
 }
 
 export function isSlotInPast(date: Date | undefined, slot: TimeSlot) {

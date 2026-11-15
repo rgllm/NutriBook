@@ -1,4 +1,3 @@
-import { format } from "date-fns"
 import { CircleCheckIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -9,17 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { AppointmentRequest } from "@/lib/appointment-request"
+import type { CreatedAppointmentRequest } from "@/lib/api/appointment-requests"
 import type { Nutritionist } from "@/lib/api/nutritionists"
+import { formatAppointmentStart } from "@/lib/format"
 
 export function AppointmentRequestSent({
   nutritionist,
   request,
 }: {
   nutritionist: Nutritionist
-  request: AppointmentRequest
+  request: CreatedAppointmentRequest
 }) {
-  const service = nutritionist.services.find(({ id }) => id === request.serviceId)
   return (
     <>
       <DialogHeader className="items-center text-center">
@@ -30,11 +29,10 @@ export function AppointmentRequestSent({
         <DialogDescription className="max-w-[28rem] text-balance">
           You asked {nutritionist.name} for{" "}
           <strong className="text-foreground">
-            {service?.name}
-            {request.online && " (online)"} on{" "}
-            {format(request.date, "EEEE, d MMMM")} at {request.time}
+            {request.serviceName}
+            {request.online && " (online)"} on {formatAppointmentStart(request.startsAt)}
           </strong>
-          . This is not confirmed yet. We will email {request.email} once{" "}
+          . This is not confirmed yet. We will email {request.guestEmail} once{" "}
           {nutritionist.name} accepts it.
         </DialogDescription>
       </DialogHeader>

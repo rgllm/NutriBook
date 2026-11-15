@@ -12,6 +12,36 @@ const TIMEOUT_MS = 5_000
 // anything else is a bug and goes to the nearest error.tsx.
 export class ApiUnavailableError extends Error {}
 
+// The API refused the input. Its messages are keyed by field and written for
+// the person who filled in the form.
+export type ValidationErrors = Record<string, string[]>
+
+const validationErrorsSchema = z.object({ errors: z.record(z.string(), z.array(z.string())) })
+
+async function send(method: "GET" | "POST", url: URL, payload?: unknown) {
+  // fetch resolves once the headers arrive, so the body read belongs with the
+  // transport: a stalled or dropped body is an outage, not a bad payload.
+  try {
+    const response = await fetch(url, {
+      method,
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      ...(payload !== undefined && {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+    })
+    return { status: response.status, body: await response.text() }
+  } catch (cause) {
+    throw new ApiUnavailableError(`${method} ${url.pathname} failed`, { cause })
+  }
+}
+
+function failure(method: string, url: URL, status: number) {
+  const message = `${method} ${url.pathname} returned ${status}`
+  return status >= 500 ? new ApiUnavailableError(message) : new Error(message)
+}
+
 export async function apiGet<T>(
   path: string,
   schema: z.ZodType<T>,
@@ -20,21 +50,24 @@ export async function apiGet<T>(
   const url = new URL(path, API_URL)
   url.search = params.toString()
 
-  // fetch resolves once the headers arrive, so the body read belongs with the
-  // transport: a stalled or dropped body is an outage, not a bad payload.
-  let response: Response
-  let body: string
-  try {
-    response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) })
-    body = await response.text()
-  } catch (cause) {
-    throw new ApiUnavailableError(`GET ${url.pathname} failed`, { cause })
-  }
-
-  if (response.status >= 500) {
-    throw new ApiUnavailableError(`GET ${url.pathname} returned ${response.status}`)
-  }
-  if (!response.ok) throw new Error(`GET ${url.pathname} returned ${response.status}`)
+  const { status, body } = await send("GET", url)
+  if (status < 200 || status >= 300) throw failure("GET", url, status)
 
   return schema.parse(JSON.parse(body))
+}
+
+export async function apiPost<T>(
+  path: string,
+  payload: unknown,
+  schema: z.ZodType<T>,
+): Promise<{ ok: true; data: T } | { ok: false; errors: ValidationErrors }> {
+  const url = new URL(path, API_URL)
+
+  const { status, body } = await send("POST", url, payload)
+  if (status === 422) {
+    return { ok: false, errors: validationErrorsSchema.parse(JSON.parse(body)).errors }
+  }
+  if (status < 200 || status >= 300) throw failure("POST", url, status)
+
+  return { ok: true, data: schema.parse(JSON.parse(body)) }
 }
