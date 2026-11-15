@@ -17,6 +17,20 @@ class NutritionistTest < ActiveSupport::TestCase
     assert_includes nutritionist.errors[:license_number], "can't be blank"
   end
 
+  test "two nutritionists cannot share a license number" do
+    duplicate = Nutritionist.new(name: "Other Person", title: "Nutritionist", license_number: @nutritionist.license_number)
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:license_number], "has already been taken"
+  end
+
+  test "license number uniqueness is enforced by the database" do
+    assert_raises(ActiveRecord::RecordNotUnique) do
+      Nutritionist.new(name: "Other Person", title: "Nutritionist", license_number: @nutritionist.license_number)
+        .save!(validate: false)
+    end
+  end
+
   test "title is one of the allowed values" do
     @nutritionist.title = "Doctor"
 
