@@ -1,5 +1,4 @@
-export const REQUEST_DECISIONS = ["accept", "reject"] as const
-
-export type RequestDecision = (typeof REQUEST_DECISIONS)[number]
+// The API's names for the two answers, sent as they are.
+export type RequestAnswer = "accepted" | "rejected"
 
 export type AnswerRequestState = { error: string | null }
