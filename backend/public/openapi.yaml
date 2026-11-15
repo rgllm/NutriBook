@@ -20,7 +20,8 @@ paths:
         location searches Braga, and `location.source` says which case applied.
         Results are ordered by name, five per page. A page past the end returns
         the last page, and a missing or invalid page returns the first. Each
-        nutritionist lists only the services offered at the searched location.
+        nutritionist lists only the services offered at the searched location,
+        ordered by street address and then by name.
       tags: [Nutritionists]
       parameters:
         - name: q
@@ -81,7 +82,7 @@ components:
     Nutritionist:
       type: object
       additionalProperties: false
-      required: [id, slug, name, title, license_number, address, offers_online, services]
+      required: [id, slug, name, title, license_number, offers_online, services]
       properties:
         id:
           type: integer
@@ -98,9 +99,6 @@ components:
         license_number:
           type: string
           example: 2963N
-        address:
-          type: string
-          example: Rua do Souto 45
         offers_online:
           type: boolean
         services:
@@ -110,7 +108,7 @@ components:
     Service:
       type: object
       additionalProperties: false
-      required: [id, name, price, location, duration_minutes]
+      required: [id, name, price, street_address, city, duration_minutes]
       properties:
         id:
           type: integer
@@ -123,7 +121,11 @@ components:
           description: Decimal amount in euros, as a string to keep its precision.
           pattern: '^\d+\.\d+$'
           example: "25.0"
-        location:
+        street_address:
+          type: string
+          description: Where the service is given. One nutritionist can work at several addresses in the same city.
+          example: Rua do Souto 45
+        city:
           type: string
           example: Braga
         duration_minutes:

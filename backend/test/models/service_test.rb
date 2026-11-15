@@ -9,12 +9,17 @@ class ServiceTest < ActiveSupport::TestCase
     assert @service.valid?
   end
 
-  test "requires name and location" do
+  test "requires name, city and street address" do
     service = Service.new(nutritionist: nutritionists(:mary_jane))
 
     assert_not service.valid?
     assert_includes service.errors[:name], "can't be blank"
-    assert_includes service.errors[:location], "can't be blank"
+    assert_includes service.errors[:city], "can't be blank"
+    assert_includes service.errors[:street_address], "can't be blank"
+  end
+
+  test "a missing street address is rejected by the database" do
+    assert_raises(ActiveRecord::NotNullViolation) { @service.update_column(:street_address, nil) }
   end
 
   test "price may be zero but not negative" do

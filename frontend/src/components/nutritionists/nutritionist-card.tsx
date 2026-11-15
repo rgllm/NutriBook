@@ -39,7 +39,7 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
 
           <div className="grid gap-6 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <CardSection title="Location">
-              <NutritionistLocation address={nutritionist.address} city={nutritionist.city} />
+              <NutritionistLocation addresses={nutritionist.addresses} city={nutritionist.city} />
             </CardSection>
             <CardSection title="Services">
               <ServicePriceList services={nutritionist.services} />

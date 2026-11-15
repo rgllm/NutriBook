@@ -30,7 +30,7 @@ class NutritionistSearch
   def nutritionists
     @nutritionists ||= matching.order(:name, :id).limit(PER_PAGE).offset((page - 1) * PER_PAGE).to_a.tap do |records|
       ActiveRecord::Associations::Preloader.new(
-        records:, associations: :services, scope: Service.where(location:).order(:name, :id)
+        records:, associations: :services, scope: Service.where(city: location).order(:street_address, :name, :id)
       ).call
     end
   end
@@ -46,7 +46,7 @@ class NutritionistSearch
   end
 
   def known_locations
-    Service.locations.index_by { |city| location_key(city) }
+    Service.cities.index_by { |city| location_key(city) }
   end
 
   def location_key(value)
@@ -59,7 +59,7 @@ class NutritionistSearch
   end
 
   def matching_services
-    services = Service.where(location:)
+    services = Service.where(city: location)
     return services if @query.empty?
 
     services.joins(:nutritionist).where(

@@ -9,14 +9,13 @@ class NutritionistTest < ActiveSupport::TestCase
     assert @nutritionist.valid?
   end
 
-  test "requires name, slug, license number and address" do
+  test "requires name, slug and license number" do
     nutritionist = Nutritionist.new
 
     assert_not nutritionist.valid?
     assert_includes nutritionist.errors[:name], "can't be blank"
     assert_includes nutritionist.errors[:slug], "can't be blank"
     assert_includes nutritionist.errors[:license_number], "can't be blank"
-    assert_includes nutritionist.errors[:address], "can't be blank"
   end
 
   test "slug is unique" do

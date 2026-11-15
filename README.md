@@ -73,7 +73,6 @@ erDiagram
         string slug UK
         string title "Dietitian or Nutritionist"
         string license_number
-        string address "practice street address"
         boolean offers_online
     }
 
@@ -82,7 +81,8 @@ erDiagram
         bigint nutritionist_id FK
         string name
         decimal price ">= 0"
-        string location "city, used by search"
+        string street_address "where the service is given"
+        string city "used by search"
         integer duration_minutes "> 0"
     }
 
@@ -119,19 +119,26 @@ so editing a service later does not move existing appointments. `superseded`
 marks a pending request replaced by the same guest's newer one, so it stays
 distinct from a request the nutritionist rejected. Nutritionists and services
 use `restrict_with_error`, so records that requests point to cannot be deleted.
-The street address belongs to the nutritionist, while each service names the
-city it is offered in, so one nutritionist can see patients in several cities.
+The address belongs to the service, not the nutritionist: each service has the
+street address and city where it is given. One nutritionist can work in several
+cities, and at several addresses in the same city, so a nutritionist-level
+address could not say where a listed service happens. The search card lists the
+distinct addresses of the services it shows. (An earlier
+version kept one address per nutritionist; it showed a Braga street on Porto
+results.) A request reads the address from its service instead of copying it,
+because services cannot be edited in the app. If editing is added, copy the
+address and price onto the request when it is created.
 
 `docker compose exec backend bin/rails db:seed` (or `pnpm db:seed`) creates 30
-nutritionists across the eight cities the frontend offers, with services at
-different prices and durations. Braga, the default location, has enough for
-more than one results page, and three of its nutritionists also see patients in
-Porto. The first Braga nutritionist has four pending requests, two of which
-overlap, to try the automatic rejection. Names come from Faker with a fixed
+nutritionists across eight cities, with services at different prices and
+durations. Braga, the default location, has enough for more than one results
+page, three of its nutritionists also see patients in Porto, and one works from
+two addresses in Braga. The first Braga nutritionist has four pending requests,
+two of which overlap, to try the automatic rejection. Names come from Faker with a fixed
 random seed, so every run produces the same data, and the file is idempotent.
 Use `bin/rails db:seed:replant` to start over.
 
-Indexes follow the queries: `services (location, nutritionist_id)` for search
+Indexes follow the queries: `services (city, nutritionist_id)` for search
 by city, `services (nutritionist_id, id)` for the composite key and lookups by
 nutritionist, and `appointment_requests (nutritionist_id, status, starts_at)`
 for a nutritionist's request list.
@@ -164,7 +171,8 @@ one. The response says which case applied in `location.source`: `input`,
 missing or invalid page returns the first.
 
 Results are ordered by name. Each nutritionist lists only the services they
-offer at the searched location. Prices are decimal strings.
+offer at the searched location, ordered by street address and then by name.
+Prices are decimal strings.
 
 ```sh
 curl 'http://localhost:3001/nutritionists?q=first&location=braga'
@@ -179,14 +187,14 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
       "name": "Mary Jane",
       "title": "Dietitian",
       "license_number": "2963N",
-      "address": "Rua do Souto 45",
       "offers_online": true,
       "services": [
         {
           "id": 1,
           "name": "First appointment",
           "price": "25.0",
-          "location": "Braga",
+          "street_address": "Rua do Souto 45",
+          "city": "Braga",
           "duration_minutes": 60
         }
       ]
@@ -200,7 +208,7 @@ curl 'http://localhost:3001/nutritionists?q=first&location=braga'
 `GET /locations` lists the cities that have at least one service, once each and
 in alphabetical order, for the search form's location input. These are the
 same cities `GET /nutritionists` accepts as known locations; both read
-`Service.locations`. `default` is the city a blank or unknown location
+`Service.cities`. `default` is the city a blank or unknown location
 searches.
 
 ```sh
