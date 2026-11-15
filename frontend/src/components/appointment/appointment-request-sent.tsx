@@ -33,7 +33,7 @@ export function AppointmentRequestSent({
             {request.online && " (online)"} on {formatAppointmentStart(request.startsAt)}
           </strong>
           . This is not confirmed yet. We will email {request.guestEmail} once{" "}
-          {nutritionist.name} accepts it.
+          {nutritionist.name} answers your request.
         </DialogDescription>
       </DialogHeader>
       <DialogFooter className="-mx-4 -mb-4 sm:-mx-6 sm:-mb-6 sm:px-6">
