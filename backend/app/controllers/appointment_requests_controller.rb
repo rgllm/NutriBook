@@ -26,6 +26,18 @@ class AppointmentRequestsController < ApplicationController
     end
   end
 
+  # The nutritionist accepts or rejects one of their requests.
+  def update
+    appointment_request = AppointmentRequest.find_by!(id: params[:id], nutritionist_id: params[:nutritionist_id])
+    rejected_ids = appointment_request.answer!(params.expect(appointment_request: [ :status ])[:status])
+
+    render json: appointment_request.as_json(only: %i[id status answered_at]).merge(rejected_ids:)
+  rescue AppointmentRequest::NotAnswerable => error
+    render json: { error: error.message, status: appointment_request.status }, status: :conflict
+  rescue ActiveRecord::RecordInvalid => error
+    render json: { errors: error.record.errors.to_hash }, status: :unprocessable_content
+  end
+
   private
 
   # The guest picks a day and a time in Portugal; the model only sees starts_at.

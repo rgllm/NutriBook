@@ -22,3 +22,11 @@ en:
               taken: This time is no longer available. Pick another.
             online:
               not_offered: This nutritionist does not offer online appointments.
+            status:
+              not_an_answer: Answer with accepted or rejected.
+  appointment_request:
+    not_answerable:
+      accepted: This request was already accepted.
+      rejected: This request was already rejected.
+      superseded: The guest replaced this request with a newer one.
+      booked: This time overlaps an accepted appointment. Reject the request instead.
