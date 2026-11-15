@@ -33,7 +33,17 @@ const requestTime = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 })
 
+const appointmentDay = new Intl.DateTimeFormat("en-GB", {
+  timeZone: PRACTICE_TIME_ZONE,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+})
+
 export const formatRequestDate = (startsAt: Date) => requestDate.format(startsAt)
+
+export const formatAppointmentStart = (startsAt: Date) =>
+  `${appointmentDay.format(startsAt)} at ${requestTime.format(startsAt)}`
 
 export const formatRequestTimeRange = (startsAt: Date, durationMinutes: number) =>
   requestTime.formatRange(startsAt, new Date(startsAt.getTime() + durationMinutes * 60_000))

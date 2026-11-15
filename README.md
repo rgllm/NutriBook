@@ -275,10 +275,13 @@ The frontend runs at <http://localhost:3000>. `API_URL` is required; the app
 stops with a message pointing at `.env.example` if it is missing.
 
 The search page reads `GET /nutritionists` and `GET /locations` from Server
-Components. The nutritionist's pending requests page is at
-<http://localhost:3000/nutritionists/123/requests>; it has no authentication,
-as the challenge allows. The request endpoints and email notifications are
-pending implementation. Until then the requests page reads a mock list in
+Components. "Schedule appointment" sends the request to
+`POST /appointment_requests` through the `requestAppointment` Server Action
+in `frontend/src/app/actions.ts`. The nutritionist's pending requests page is
+at <http://localhost:3000/nutritionists/123/requests>; it has no
+authentication, as the challenge allows. The endpoints for listing and
+answering requests, and the email notifications, are pending implementation.
+Until then the requests page reads a mock list in
 `frontend/src/lib/pending-requests.ts`; accepting or rejecting a request
 removes it from an in-memory list that resets when the server restarts.
 
@@ -293,6 +296,14 @@ pnpm exec tsc --noEmit
 - **The backend owns every rule.** Matching, the Braga default and fallback,
   paging, and the list of known cities come from the API. The frontend renders
   what it gets and keeps no copy of those rules.
+- **The booking form does not validate.** It posts through a Server Action
+  with `useActionState`, and Rails answers with messages per field, already
+  written for the guest. `toAppointmentErrors` puts each message under its
+  field, and changing a field clears its message. The day and time travel as
+  the guest picked them (`2026-12-07`, `10:00`), so no time zone conversion
+  happens in the browser or in Node. The time picker shows the same slots as
+  `BookingSchedule`; that list is the one rule kept in both places, because
+  the picker has to render it, and the API still rejects anything else.
 - **Responses are parsed at the boundary.** `frontend/src/lib/api/` is the only
   code that calls Rails. A small Zod schema per endpoint checks the payload,
   renames snake_case to camelCase, and turns decimal price strings into
@@ -309,7 +320,8 @@ pnpm exec tsc --noEmit
   every navigation, so they always show the URL's values.
 - **Two kinds of failure.** When Rails is unreachable, times out after five
   seconds, or answers 5xx, the results area shows an inline "Search is
-  unavailable" message and the search form keeps working. Anything else, such
+  unavailable" message and the search form keeps working, and the booking
+  form says the request could not be sent and keeps what the guest typed. Anything else, such
   as a 4xx or a payload that fails parsing, is a bug and reaches
   `app/error.tsx`.
 
