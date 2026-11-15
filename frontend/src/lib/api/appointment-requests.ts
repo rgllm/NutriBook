@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { ApiNotFoundError, apiGet, apiWrite } from "@/lib/api/http"
+import { REQUEST_ANSWERS } from "@/lib/pending-requests"
 
 const appointmentRequestSchema = z
   .object({
@@ -101,7 +102,7 @@ export async function getPendingRequests(nutritionistId: string) {
 }
 
 const answeredRequestSchema = z
-  .object({ id: z.number(), status: z.string(), rejected_ids: z.array(z.number()) })
+  .object({ id: z.number(), status: z.enum(REQUEST_ANSWERS), rejected_ids: z.array(z.number()) })
   .transform(({ id, status, rejected_ids }) => ({ id, status, rejectedIds: rejected_ids }))
 
 // The status is the API's: "accepted" or "rejected". Anything else comes back

@@ -120,12 +120,13 @@ The three custom sizes carry their line height, letter spacing, and weight (600)
 
 ## Pending requests page
 
-Lives at `/nutritionists/[id]/requests`. It reads mock data from `src/lib/pending-requests.ts` until the API serves it.
+Lives at `/nutritionists/[id]/requests` and reads the nutritionist's pending requests from the API.
 
 - A page title "Pending requests" in `text-heading`, with a one-line graphite description under it.
 - A grid of cards: one column on mobile, two from `sm`, three from `lg`.
 - Each card shows the guest's avatar, name, and the requested service, then the email, date, and time range, each with an icon. Dates and times show in the practice's time zone, Europe/Lisbon.
-- The card footer holds "Accept" (primary) and "Reject" (outline) at equal width. Each shows its pending state while the action runs.
+- The card footer holds "Accept" (primary) and "Reject" (outline) at equal width. Each shows its pending state while the action runs. One click answers: there is no confirmation, and the card stays until the API answers.
+- After an answer the list refreshes and a toast, bottom centre, says what happened: "Accepted Rita Gomes's request." and, when accepting rejected overlapping requests, how many. A request that was already answered elsewhere leaves the list with an error toast giving the reason. When the answer could not be sent, the card stays and shows the error under its buttons.
 - With no requests, show the empty state in place of the grid.
 
 ## Component library (shadcn/ui)
