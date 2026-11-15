@@ -5,5 +5,6 @@ export default defineConfig({
   test: {
     // Run outside Portugal so code that leans on the machine's zone fails here.
     env: { API_URL: "http://api.test", TZ: "America/Los_Angeles" },
+    unstubGlobals: true,
   },
 })
