@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { createAppointmentRequest, getPendingRequests } from "@/lib/api/appointment-requests"
-import { ApiUnavailableError } from "@/lib/api/http"
+import {
+  answerAppointmentRequest,
+  createAppointmentRequest,
+  getPendingRequests,
+} from "@/lib/api/appointment-requests"
+import { ApiConflictError, ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
 
 vi.mock("server-only", () => ({}))
 
@@ -170,5 +174,56 @@ describe("getPendingRequests", () => {
 
     respondWith(new Response(null, { status: 500 }))
     await expect(getPendingRequests("1")).rejects.toBeInstanceOf(ApiUnavailableError)
+  })
+})
+
+describe("answerAppointmentRequest", () => {
+  it("sends the answer to the nutritionist's request and maps the rejected ids", async () => {
+    const fetch = respondWith(
+      Response.json({
+        id: 7,
+        status: "accepted",
+        answered_at: "2026-11-20T12:00:00.000Z",
+        rejected_ids: [9],
+      }),
+    )
+
+    const result = await answerAppointmentRequest("1", 7, "accepted")
+
+    const [url, init] = fetch.mock.calls[0]
+    expect(String(url)).toBe("http://api.test/nutritionists/1/appointment_requests/7")
+    expect(init.method).toBe("PATCH")
+    expect(JSON.parse(String(init.body))).toEqual({ appointment_request: { status: "accepted" } })
+    expect(result).toEqual({ ok: true, data: { id: 7, status: "accepted", rejectedIds: [9] } })
+  })
+
+  it("returns the API's message for a status it does not accept", async () => {
+    respondWith(
+      Response.json({ errors: { status: ["Answer with accepted or rejected."] } }, { status: 422 }),
+    )
+
+    expect(await answerAppointmentRequest("1", 7, "maybe")).toEqual({
+      ok: false,
+      errors: { status: ["Answer with accepted or rejected."] },
+    })
+  })
+
+  it("carries the API's message when the request was already answered", async () => {
+    respondWith(
+      Response.json(
+        { error: "This request was already accepted.", status: "accepted" },
+        { status: 409 },
+      ),
+    )
+
+    const error = await answerAppointmentRequest("1", 7, "rejected").catch((error: unknown) => error)
+    expect(error).toBeInstanceOf(ApiConflictError)
+    expect((error as Error).message).toBe("This request was already accepted.")
+  })
+
+  it("reports a request that is not the nutritionist's as not found", async () => {
+    respondWith(Response.json({ error: "AppointmentRequest not found" }, { status: 404 }))
+
+    await expect(answerAppointmentRequest("2", 7, "accepted")).rejects.toBeInstanceOf(ApiNotFoundError)
   })
 })
