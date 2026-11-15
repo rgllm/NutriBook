@@ -12,7 +12,7 @@ export function AnswerRequestForm({
   requestId,
   guestName,
 }: {
-  requestId: string
+  requestId: number
   guestName: string
 }) {
   const [state, formAction] = useActionState(

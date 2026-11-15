@@ -36,12 +36,26 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "an unknown nutritionist is not found" do
-    [ 0, "abc" ].each do |id|
-      get nutritionist_appointment_requests_url(id)
+    get nutritionist_appointment_requests_url(Nutritionist.maximum(:id) + 1)
 
-      assert_schema_conform(404)
-      assert_equal({ "error" => "Nutritionist not found" }, response.parsed_body)
+    assert_schema_conform(404)
+    assert_equal({ "error" => "Nutritionist not found" }, response.parsed_body)
+  end
+
+  test "a malformed id is not found instead of being cast to a number" do
+    mary = nutritionists(:mary_jane)
+
+    [ "#{mary.id}abc", "0#{mary.id}", "-#{mary.id}", "0", "abc" ].each do |id|
+      get "/nutritionists/#{id}/appointment_requests"
+
+      assert_response :not_found, "#{id} should not reach #{mary.name}"
     end
+  end
+
+  test "an id past the database's integer range is not found" do
+    get nutritionist_appointment_requests_url("9" * 20)
+
+    assert_schema_conform(404)
   end
 
   test "the query count does not grow with the number of requests" do

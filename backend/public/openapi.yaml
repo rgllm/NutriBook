@@ -93,9 +93,12 @@ paths:
         - name: id
           in: path
           required: true
-          description: The nutritionist's id.
+          description: >
+            The nutritionist's id, digits only with no leading zero. Any other
+            value matches no route and returns 404 without a body schema.
           schema:
             type: string
+            pattern: "^[1-9][0-9]*$"
           example: "1"
       responses:
         "200":

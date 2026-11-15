@@ -45,5 +45,5 @@ export const formatRequestDate = (startsAt: Date) => requestDate.format(startsAt
 export const formatAppointmentStart = (startsAt: Date) =>
   `${appointmentDay.format(startsAt)} at ${requestTime.format(startsAt)}`
 
-export const formatRequestTimeRange = (startsAt: Date, durationMinutes: number) =>
-  requestTime.formatRange(startsAt, new Date(startsAt.getTime() + durationMinutes * 60_000))
+export const formatRequestTimeRange = (startsAt: Date, endsAt: Date) =>
+  requestTime.formatRange(startsAt, endsAt)

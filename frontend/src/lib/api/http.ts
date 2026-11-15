@@ -12,6 +12,9 @@ const TIMEOUT_MS = 5_000
 // anything else is a bug and goes to the nearest error.tsx.
 export class ApiUnavailableError extends Error {}
 
+// The record the path names does not exist. Pages turn this into notFound().
+export class ApiNotFoundError extends Error {}
+
 // The API refused the input. Its messages are keyed by field and written for
 // the person who filled in the form.
 export type ValidationErrors = Record<string, string[]>
@@ -39,6 +42,7 @@ async function send(method: "GET" | "POST", url: URL, payload?: unknown) {
 
 function failure(method: string, url: URL, status: number) {
   const message = `${method} ${url.pathname} returned ${status}`
+  if (status === 404) return new ApiNotFoundError(message)
   return status >= 500 ? new ApiUnavailableError(message) : new Error(message)
 }
 

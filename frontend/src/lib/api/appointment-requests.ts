@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { apiPost } from "@/lib/api/http"
+import { ApiNotFoundError, apiGet, apiPost } from "@/lib/api/http"
 
 const appointmentRequestSchema = z
   .object({
@@ -48,4 +48,53 @@ export function createAppointmentRequest(input: AppointmentRequestInput) {
     },
     appointmentRequestSchema,
   )
+}
+
+const pendingRequestsSchema = z
+  .object({
+    nutritionist: z.object({ id: z.number(), name: z.string() }),
+    appointment_requests: z.array(
+      z
+        .object({
+          id: z.number(),
+          guest_name: z.string(),
+          guest_email: z.string(),
+          starts_at: z.iso.datetime(),
+          ends_at: z.iso.datetime(),
+          online: z.boolean(),
+          service: z.object({ name: z.string() }),
+        })
+        .transform(({ id, guest_name, guest_email, starts_at, ends_at, online, service }) => ({
+          id,
+          guestName: guest_name,
+          guestEmail: guest_email,
+          startsAt: new Date(starts_at),
+          endsAt: new Date(ends_at),
+          online,
+          serviceName: service.name,
+          // The API keeps requests whose time has passed until they are answered.
+          overdue: new Date(starts_at) <= new Date(),
+        })),
+    ),
+  })
+  .transform(({ nutritionist, appointment_requests }) => ({
+    nutritionist,
+    requests: appointment_requests,
+  }))
+
+export type PendingRequests = z.infer<typeof pendingRequestsSchema>
+
+export type PendingRequest = PendingRequests["requests"][number]
+
+// Resolves to null when no nutritionist has this id.
+export async function getPendingRequests(nutritionistId: string) {
+  try {
+    return await apiGet(
+      `/nutritionists/${encodeURIComponent(nutritionistId)}/appointment_requests`,
+      pendingRequestsSchema,
+    )
+  } catch (error) {
+    if (error instanceof ApiNotFoundError) return null
+    throw error
+  }
 }

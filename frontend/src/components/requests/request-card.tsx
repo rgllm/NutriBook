@@ -1,14 +1,13 @@
 import { CalendarIcon, ClockIcon, MailIcon } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { AnswerRequestForm } from "@/components/requests/answer-request-form"
 import { formatRequestDate, formatRequestTimeRange, initials } from "@/lib/format"
-import type { PendingRequest } from "@/lib/pending-requests"
+import type { PendingRequest } from "@/lib/api/appointment-requests"
 
 export function RequestCard({ request }: { request: PendingRequest }) {
-  const startsAt = new Date(request.startsAt)
-
   return (
     <Card className="w-full">
       <CardContent className="flex flex-1 flex-col gap-5">
@@ -22,6 +21,11 @@ export function RequestCard({ request }: { request: PendingRequest }) {
             <h2 className="font-heading text-subheading">{request.guestName}</h2>
             <p className="text-muted-foreground">{request.serviceName}</p>
           </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="brand">{request.online ? "Online" : "In person"}</Badge>
+          {request.overdue && <Badge variant="destructive">Overdue</Badge>}
         </div>
 
         <dl className="flex flex-col gap-2">
@@ -45,7 +49,9 @@ export function RequestCard({ request }: { request: PendingRequest }) {
               <span className="sr-only">Date</span>
             </dt>
             <dd>
-              <time dateTime={request.startsAt}>{formatRequestDate(startsAt)}</time>
+              <time dateTime={request.startsAt.toISOString()}>
+                {formatRequestDate(request.startsAt)}
+              </time>
             </dd>
           </div>
           <div className="flex items-center gap-2">
@@ -54,7 +60,7 @@ export function RequestCard({ request }: { request: PendingRequest }) {
               <span className="sr-only">Time</span>
             </dt>
             <dd className="tabular-nums">
-              {formatRequestTimeRange(startsAt, request.durationMinutes)}
+              {formatRequestTimeRange(request.startsAt, request.endsAt)}
             </dd>
           </div>
         </dl>
