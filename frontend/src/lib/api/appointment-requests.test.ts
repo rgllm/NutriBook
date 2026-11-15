@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { createAppointmentRequest } from "@/lib/api/appointment-requests"
+import { createAppointmentRequest, getPendingRequests } from "@/lib/api/appointment-requests"
 import { ApiUnavailableError } from "@/lib/api/http"
 
 vi.mock("server-only", () => ({}))
@@ -25,6 +25,7 @@ function respondWith(response: Response | Error) {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe("createAppointmentRequest", () => {
@@ -101,5 +102,73 @@ describe("createAppointmentRequest", () => {
     const error = await createAppointmentRequest(input).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)
     expect(error).not.toBeInstanceOf(ApiUnavailableError)
+  })
+})
+
+describe("getPendingRequests", () => {
+  const pendingRequest = (id: number, startsAt: string, endsAt: string) => ({
+    id,
+    guest_name: "Rita Gomes",
+    guest_email: "rita.gomes@example.com",
+    starts_at: startsAt,
+    ends_at: endsAt,
+    online: false,
+    service: { id: 1, name: "First appointment" },
+  })
+
+  it("reads the nutritionist's requests and marks the ones whose time has passed", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-20T12:00:00Z"), toFake: ["Date"] })
+    const fetch = respondWith(
+      Response.json({
+        nutritionist: { id: 1, name: "Mary Jane" },
+        appointment_requests: [
+          pendingRequest(6, "2026-11-18T09:00:00.000Z", "2026-11-18T10:00:00.000Z"),
+          pendingRequest(7, "2026-12-01T10:00:00.000Z", "2026-12-01T11:00:00.000Z"),
+        ],
+      }),
+    )
+
+    const pending = await getPendingRequests("1")
+
+    expect(String(fetch.mock.calls[0][0])).toBe("http://api.test/nutritionists/1/appointment_requests")
+    expect(pending).toEqual({
+      nutritionist: { id: 1, name: "Mary Jane" },
+      requests: [
+        {
+          id: 6,
+          guestName: "Rita Gomes",
+          guestEmail: "rita.gomes@example.com",
+          startsAt: new Date("2026-11-18T09:00:00Z"),
+          endsAt: new Date("2026-11-18T10:00:00Z"),
+          online: false,
+          serviceName: "First appointment",
+          overdue: true,
+        },
+        {
+          id: 7,
+          guestName: "Rita Gomes",
+          guestEmail: "rita.gomes@example.com",
+          startsAt: new Date("2026-12-01T10:00:00Z"),
+          endsAt: new Date("2026-12-01T11:00:00Z"),
+          online: false,
+          serviceName: "First appointment",
+          overdue: false,
+        },
+      ],
+    })
+  })
+
+  it("returns null when no nutritionist has the id", async () => {
+    respondWith(Response.json({ error: "Nutritionist not found" }, { status: 404 }))
+
+    expect(await getPendingRequests("999")).toBeNull()
+  })
+
+  it("reports the API as unavailable when it cannot be reached or fails", async () => {
+    respondWith(new TypeError("fetch failed"))
+    await expect(getPendingRequests("1")).rejects.toBeInstanceOf(ApiUnavailableError)
+
+    respondWith(new Response(null, { status: 500 }))
+    await expect(getPendingRequests("1")).rejects.toBeInstanceOf(ApiUnavailableError)
   })
 })

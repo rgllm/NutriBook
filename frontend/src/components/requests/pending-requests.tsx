@@ -1,25 +1,29 @@
+import { notFound } from "next/navigation"
+
 import { NoPendingRequests } from "@/components/requests/no-pending-requests"
 import { RequestCard } from "@/components/requests/request-card"
-import { listPendingRequests } from "@/lib/pending-requests"
+import { RequestsHeading } from "@/components/requests/requests-heading"
+import { getPendingRequests } from "@/lib/api/appointment-requests"
 
-export async function PendingRequests({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  // Awaiting the params keeps the list request-time, so it is never cached.
-  await params
-  const requests = listPendingRequests()
-
-  if (requests.length === 0) return <NoPendingRequests />
+export async function PendingRequests({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const pending = await getPendingRequests(id)
+  if (!pending) notFound()
 
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {requests.map((request) => (
-        <li key={request.id} className="flex">
-          <RequestCard request={request} />
-        </li>
-      ))}
-    </ul>
+    <>
+      <RequestsHeading nutritionistName={pending.nutritionist.name} />
+      {pending.requests.length === 0 ? (
+        <NoPendingRequests />
+      ) : (
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {pending.requests.map((request) => (
+            <li key={request.id} className="flex">
+              <RequestCard request={request} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   )
 }

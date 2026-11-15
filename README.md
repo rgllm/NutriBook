@@ -255,7 +255,9 @@ every request still waiting for their answer, soonest first. Requests whose
 time has passed stay in the list until the nutritionist answers them, so every
 guest gets an answer. An unknown id returns `404 { "error": "Nutritionist not
 found" }`; `ApplicationController` turns any missing record into that JSON
-response.
+response. The route only matches ids made of digits with no leading zero.
+Without that constraint, Rails would cast `1abc` or `01` to `1` and serve
+nutritionist 1's requests under a URL that names no one.
 
 ```sh
 curl 'http://localhost:3001/nutritionists/1/appointment_requests'
@@ -307,13 +309,24 @@ stops with a message pointing at `.env.example` if it is missing.
 The search page reads `GET /nutritionists` and `GET /locations` from Server
 Components. "Schedule appointment" sends the request to
 `POST /appointment_requests` through the `requestAppointment` Server Action
-in `frontend/src/app/actions.ts`. The nutritionist's pending requests page is
-at <http://localhost:3000/nutritionists/123/requests>; it has no
-authentication, as the challenge allows. The endpoints for listing and
-answering requests, and the email notifications, are pending implementation.
-Until then the requests page reads a mock list in
-`frontend/src/lib/pending-requests.ts`; accepting or rejecting a request
-removes it from an in-memory list that resets when the server restarts.
+in `frontend/src/app/actions.ts`. The nutritionist's pending requests page, for example
+<http://localhost:3000/nutritionists/1/requests>, reads
+`GET /nutritionists/:id/appointment_requests`. It has no authentication, as
+the challenge allows. Requests whose time has passed carry an "Overdue" badge.
+The Accept and Reject buttons do nothing yet: the endpoint for answering
+requests, and the email notifications, are pending implementation.
+
+An id that is not a nutritionist shows the 404 page. Cache Components sends a
+page's shell, with status `200`, before the page can call `notFound()`, so the
+status depends on the id:
+
+- A malformed id (`1abc`, `01`, `0`) gets a real `404` from
+  `frontend/src/proxy.ts`, which checks the id's format before rendering. This
+  repeats the API's route constraint on purpose; the API still guards anyone
+  calling it directly.
+- A well-formed id that no nutritionist has gets the 404 page with status
+  `200` and `noindex`. Checking it in the proxy would cost an extra API call on
+  every page view.
 
 ```sh
 pnpm test                    # Vitest
