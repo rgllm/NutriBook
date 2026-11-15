@@ -10,7 +10,14 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    # Counts the SQL statements a block runs, leaving out schema lookups and
+    # transaction bookkeeping.
+    def count_queries(&block)
+      count = 0
+      counter = ->(*, payload) { count += 1 unless payload[:name].in?([ "SCHEMA", "TRANSACTION" ]) }
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &block)
+      count
+    end
   end
 end
 
