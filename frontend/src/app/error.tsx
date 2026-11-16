@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/empty"
 
 export default function Error({ retry }: { error: unknown; retry: () => void }) {
-  const t = useTranslations("ErrorPage")
+  const t = useTranslations("errorPage")
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 sm:px-8 sm:py-10">

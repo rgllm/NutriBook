@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 
 export function RequestAppointmentButton() {
   const { pending } = useFormStatus()
-  const t = useTranslations("Appointment")
+  const t = useTranslations("appointment")
 
   return (
     <Button type="submit" disabled={pending}>

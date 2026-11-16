@@ -1,15 +1,15 @@
 {
-  "Metadata": {
+  "metadata": {
     "title": "NutriBook · Find a nutritionist",
     "description": "Search nutritionists by name, service, and location, and request an appointment.",
     "requestsTitle": "NutriBook · Pending requests"
   },
-  "SiteHeader": {
+  "siteHeader": {
     "forProfessionals": "Are you a nutrition professional? Get to know our software",
     "forProfessionalsShort": "For nutritionists",
     "language": "Language"
   },
-  "Search": {
+  "search": {
     "queryLabel": "Nutritionist or service",
     "queryPlaceholder": "Search for a nutritionist or service",
     "locationLabel": "Location",
@@ -35,7 +35,7 @@
     "previousPage": "Go to previous page",
     "nextPage": "Go to next page"
   },
-  "Nutritionist": {
+  "nutritionist": {
     "title": "{title, select, Dietitian {Dietitian} other {Nutritionist}}",
     "online": "Online",
     "location": "Location",
@@ -44,7 +44,7 @@
     "scheduleAppointment": "Schedule appointment",
     "close": "Close"
   },
-  "Appointment": {
+  "appointment": {
     "title": "Schedule an appointment",
     "description": "With {name}, {title, select, Dietitian {dietitian} other {nutritionist}} in {city}. They will confirm your request by email.",
     "name": "Your name",
@@ -64,31 +64,31 @@
     "sentDescription": "You asked {nutritionist} for <strong>{service}{online, select, true { (online)} other {}} on {start, date, appointmentDay} at {start, time, time}</strong>. This is not confirmed yet. We will email {email} once {nutritionist} answers your request.",
     "done": "Done"
   },
-  "AppointmentErrors": {
-    "guest_name": {
+  "appointmentErrors": {
+    "guestName": {
       "blank": "Enter your name.",
-      "too_long": "Use at most 100 characters."
+      "tooLong": "Use at most 100 characters."
     },
-    "guest_email": {
+    "guestEmail": {
       "blank": "Enter your email.",
-      "too_long": "Use at most 254 characters.",
+      "tooLong": "Use at most 254 characters.",
       "invalid": "Enter a valid email, like name@example.com."
     },
     "service": {
       "blank": "Choose a service."
     },
-    "starts_at": {
+    "startsAt": {
       "blank": "Pick a day and time.",
       "past": "Pick a time that has not passed yet.",
-      "not_a_slot": "Pick one of the available times.",
+      "notASlot": "Pick one of the available times.",
       "taken": "This time is no longer available. Pick another."
     },
     "online": {
-      "not_offered": "This nutritionist does not offer online appointments."
+      "notOffered": "This nutritionist does not offer online appointments."
     },
     "unknown": "Check this request and try again."
   },
-  "Requests": {
+  "requests": {
     "title": "Pending requests",
     "description": "Requests sent to {name}. Accept or reject each one.",
     "online": "Online",
@@ -110,18 +110,18 @@
     "failed": "We could not answer this request.",
     "unavailable": "We could not answer this request. Try again in a moment."
   },
-  "RequestConflicts": {
-    "already_accepted": "This request was already accepted.",
-    "already_rejected": "This request was already rejected.",
+  "requestConflicts": {
+    "alreadyAccepted": "This request was already accepted.",
+    "alreadyRejected": "This request was already rejected.",
     "superseded": "The guest replaced this request with a newer one.",
-    "overlaps_accepted": "This time overlaps an accepted appointment. Reject the request instead."
+    "overlapsAccepted": "This time overlaps an accepted appointment. Reject the request instead."
   },
-  "ErrorPage": {
+  "errorPage": {
     "title": "Something went wrong",
     "description": "This page failed to load. Try again in a moment.",
     "retry": "Try again"
   },
-  "NotFoundPage": {
+  "notFoundPage": {
     "title": "Page not found",
     "description": "This page does not exist. Check the address, or find a nutritionist from search.",
     "back": "Back to search"

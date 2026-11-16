@@ -594,10 +594,11 @@ language.
   the cookie, and the page re-renders in the new language. It sits outside
   the green band so the header keeps to the reference design: logo on the
   left, professionals link on the right.
-- **Messages.** `frontend/messages/en-GB.json` and `pt-PT.json` hold every
+- **Messages.** `frontend/languages/en-GB.json` and `pt-PT.json` hold every
   string, with ICU plurals and selects. `frontend/src/i18n/messages.ts` types
   the Portuguese file against the English one, so a missing message fails
-  `tsc`.
+  `tsc`. Every key is camelCase. The API's snake_case error codes, such as
+  `not_a_slot`, go through `toMessageKey` before they look up a message.
 - **Formatting.** Prices, dates, and times use next-intl's formatter with the
   named formats in `frontend/src/i18n/formats.ts`, always in `Europe/Lisbon`.
   Prices follow each language: `€35` in English, `35 €` in Portuguese.
@@ -674,7 +675,6 @@ failed test keeps its trace and a screenshot in `e2e/test-results/`, and
 - **Accessible selectors.** Tests find elements by role, label, and text, as
   a screen reader would, and the app has no test ids.
 
-## Design
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on every push to
@@ -695,6 +695,7 @@ since the frontend tests check their fixtures against that contract. A change
 to the workflow runs both. The end-to-end job always runs, and a push to
 `trunk` runs every job.
 
+## Design
 
 `frontend/DESIGN.md` is the design reference. The UI follows the challenge's
 reference image, which is a Nutrium page, and takes its palette and shapes from

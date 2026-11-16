@@ -2,6 +2,7 @@
 
 import { getTranslations } from "next-intl/server"
 
+import { toMessageKey } from "@/i18n/message-key"
 import { createAppointmentRequest } from "@/lib/api/appointment-requests"
 import { ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
 import { fetchNearestCity } from "@/lib/api/locations"
@@ -16,11 +17,11 @@ export async function requestAppointment(
   const values = { name: text(formData, "name"), email: text(formData, "email") }
   const serviceId = text(formData, "service_id")
   const [t, tErrors] = await Promise.all([
-    getTranslations("Appointment"),
-    getTranslations("AppointmentErrors"),
+    getTranslations("appointment"),
+    getTranslations("appointmentErrors"),
   ])
   const describe = (key: string, code: string) => {
-    const id = `${key}.${code}` as Parameters<typeof tErrors>[0]
+    const id = `${toMessageKey(key)}.${toMessageKey(code)}` as Parameters<typeof tErrors>[0]
     return tErrors.has(id) ? tErrors(id) : tErrors("unknown")
   }
 

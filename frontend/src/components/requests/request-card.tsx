@@ -16,7 +16,7 @@ export function RequestCard({
   nutritionistId: string
   request: PendingRequest
 }) {
-  const t = useTranslations("Requests")
+  const t = useTranslations("requests")
   const format = useFormatter()
 
   return (

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function SearchUnavailable({ retryHref }: { retryHref: string }) {
-  const t = useTranslations("Search")
+  const t = useTranslations("search")
 
   return (
     <Alert variant="destructive">

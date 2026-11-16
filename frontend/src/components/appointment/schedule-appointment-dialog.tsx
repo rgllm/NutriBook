@@ -13,7 +13,7 @@ export function ScheduleAppointmentDialog({
 }: {
   nutritionist: Nutritionist
 }) {
-  const t = useTranslations("Nutritionist")
+  const t = useTranslations("nutritionist")
 
   return (
     <Dialog>

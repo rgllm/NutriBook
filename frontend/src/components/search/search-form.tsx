@@ -22,7 +22,7 @@ export function SearchForm({
   location?: string
   locations?: Locations
 }) {
-  const t = useTranslations("Search")
+  const t = useTranslations("search")
 
   return (
     <Form

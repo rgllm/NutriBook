@@ -60,7 +60,7 @@ export function AppointmentForm({
   state: EditingState
   action: (formData: FormData) => void
 }) {
-  const t = useTranslations("Appointment")
+  const t = useTranslations("appointment")
   const format = useFormatter()
   const locale = useLocale()
   const { services } = nutritionist

@@ -6,7 +6,7 @@ import { getTranslations } from "next-intl/server"
 import { LocaleSwitcher } from "@/components/locale-switcher"
 
 export async function SiteHeader({ children }: { children?: ReactNode }) {
-  const t = await getTranslations("SiteHeader")
+  const t = await getTranslations("siteHeader")
 
   return (
     <>

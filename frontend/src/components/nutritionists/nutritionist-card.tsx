@@ -13,7 +13,7 @@ import { initials } from "@/lib/format"
 import type { Nutritionist } from "@/lib/api/nutritionists"
 
 export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist }) {
-  const t = useTranslations("Nutritionist")
+  const t = useTranslations("nutritionist")
 
   return (
     <Card>

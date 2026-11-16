@@ -3,6 +3,7 @@
 import { refresh } from "next/cache"
 import { getTranslations } from "next-intl/server"
 
+import { toMessageKey } from "@/i18n/message-key"
 import { answerAppointmentRequest } from "@/lib/api/appointment-requests"
 import { ApiConflictError, ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
 import type { AnswerRequestState } from "@/lib/pending-requests"
@@ -17,8 +18,8 @@ export async function answerRequest(
   formData: FormData,
 ): Promise<AnswerRequestState> {
   const [t, tConflicts] = await Promise.all([
-    getTranslations("Requests"),
-    getTranslations("RequestConflicts"),
+    getTranslations("requests"),
+    getTranslations("requestConflicts"),
   ])
 
   try {
@@ -38,7 +39,7 @@ export async function answerRequest(
   } catch (error) {
     if (error instanceof ApiConflictError) {
       refresh()
-      const reason = error.message as Parameters<typeof tConflicts>[0]
+      const reason = toMessageKey(error.message) as Parameters<typeof tConflicts>[0]
       return { status: "gone", message: tConflicts.has(reason) ? tConflicts(reason) : t("gone") }
     }
     if (error instanceof ApiNotFoundError) {

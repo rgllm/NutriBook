@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/empty"
 
 export function NoPendingRequests() {
-  const t = useTranslations("Requests")
+  const t = useTranslations("requests")
 
   return (
     <Empty className="border bg-card">

@@ -19,7 +19,7 @@ const ITEMS = LOCALES.map((locale) => ({ value: locale, label: LANGUAGES[locale]
 
 export function LocaleSwitcher() {
   const current = useLocale()
-  const t = useTranslations("SiteHeader")
+  const t = useTranslations("siteHeader")
   const [isPending, startTransition] = useTransition()
 
   const choose = (locale: string | null) => {
