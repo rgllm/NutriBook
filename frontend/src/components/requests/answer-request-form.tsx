@@ -1,10 +1,11 @@
 "use client"
 
 import { useActionState } from "react"
+import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { AnswerRequestButton } from "@/components/requests/answer-request-button"
-import { answeredMessage, type AnswerRequestState } from "@/lib/pending-requests"
+import type { AnswerRequestState } from "@/lib/pending-requests"
 
 const initialState: AnswerRequestState = { status: "idle" }
 
@@ -15,13 +16,16 @@ export function AnswerRequestForm({
   action: (previous: AnswerRequestState, formData: FormData) => Promise<AnswerRequestState>
   guestName: string
 }) {
+  const t = useTranslations("Requests")
   // The toast is raised here, as the result arrives, because a refreshed list
   // unmounts this card before it could render anything.
   const [state, formAction] = useActionState(
     async (previous: AnswerRequestState, formData: FormData) => {
       const next = await action(previous, formData)
       if (next.status === "answered") {
-        toast.success(answeredMessage(next.answer, guestName, next.rejectedCount))
+        toast.success(
+          t("answered", { answer: next.answer, guest: guestName, rejected: next.rejectedCount }),
+        )
       } else if (next.status === "gone") {
         toast.error(next.message)
       }

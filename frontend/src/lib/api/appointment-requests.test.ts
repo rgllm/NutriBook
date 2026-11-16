@@ -81,14 +81,14 @@ describe("createAppointmentRequest", () => {
   it("returns the API's messages when it refuses the request", async () => {
     respondWith(
       Response.json(
-        { errors: { starts_at: ["Pick one of the available times."] } },
+        { errors: { starts_at: ["not_a_slot"] } },
         { status: 422 },
       ),
     )
 
     expect(await createAppointmentRequest(input)).toEqual({
       ok: false,
-      errors: { starts_at: ["Pick one of the available times."] },
+      errors: { starts_at: ["not_a_slot"] },
     })
   })
 
@@ -199,26 +199,26 @@ describe("answerAppointmentRequest", () => {
 
   it("returns the API's message for a status it does not accept", async () => {
     respondWith(
-      Response.json({ errors: { status: ["Answer with accepted or rejected."] } }, { status: 422 }),
+      Response.json({ errors: { status: ["not_an_answer"] } }, { status: 422 }),
     )
 
     expect(await answerAppointmentRequest("1", 7, "maybe")).toEqual({
       ok: false,
-      errors: { status: ["Answer with accepted or rejected."] },
+      errors: { status: ["not_an_answer"] },
     })
   })
 
-  it("carries the API's message when the request was already answered", async () => {
+  it("carries the API's reason code when the request was already answered", async () => {
     respondWith(
       Response.json(
-        { error: "This request was already accepted.", status: "accepted" },
+        { error: "already_accepted", status: "accepted" },
         { status: 409 },
       ),
     )
 
     const error = await answerAppointmentRequest("1", 7, "rejected").catch((error: unknown) => error)
     expect(error).toBeInstanceOf(ApiConflictError)
-    expect((error as Error).message).toBe("This request was already accepted.")
+    expect((error as Error).message).toBe("already_accepted")
   })
 
   it("reports a request that is not the nutritionist's as not found", async () => {

@@ -1,4 +1,5 @@
 import { CircleCheckIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -10,7 +11,6 @@ import {
 } from "@/components/ui/dialog"
 import type { CreatedAppointmentRequest } from "@/lib/api/appointment-requests"
 import type { Nutritionist } from "@/lib/api/nutritionists"
-import { formatAppointmentStart } from "@/lib/format"
 
 export function AppointmentRequestSent({
   nutritionist,
@@ -19,25 +19,28 @@ export function AppointmentRequestSent({
   nutritionist: Nutritionist
   request: CreatedAppointmentRequest
 }) {
+  const t = useTranslations("Appointment")
+
   return (
     <>
       <DialogHeader className="items-center text-center">
         <CircleCheckIcon aria-hidden className="size-12 text-brand" />
         <DialogTitle className="text-subheading">
-          Appointment requested
+          {t("sentTitle")}
         </DialogTitle>
         <DialogDescription className="max-w-[28rem] text-balance">
-          You asked {nutritionist.name} for{" "}
-          <strong className="text-foreground">
-            {request.serviceName}
-            {request.online && " (online)"} on {formatAppointmentStart(request.startsAt)}
-          </strong>
-          . This is not confirmed yet. We will email {request.guestEmail} once{" "}
-          {nutritionist.name} answers your request.
+          {t.rich("sentDescription", {
+            nutritionist: nutritionist.name,
+            service: request.serviceName,
+            online: String(request.online),
+            start: request.startsAt,
+            email: request.guestEmail,
+            strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
+          })}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter className="-mx-4 -mb-4 sm:-mx-6 sm:-mb-6 sm:px-6">
-        <DialogClose render={<Button />}>Done</DialogClose>
+        <DialogClose render={<Button />}>{t("done")}</DialogClose>
       </DialogFooter>
     </>
   )

@@ -1,0 +1,124 @@
+{
+  "Metadata": {
+    "title": "NutriBook · Find a nutritionist",
+    "description": "Search nutritionists by name, service, and location, and request an appointment.",
+    "requestsTitle": "NutriBook · Pending requests"
+  },
+  "SiteHeader": {
+    "forProfessionals": "Are you a nutrition professional? Get to know our software",
+    "forProfessionalsShort": "For nutritionists",
+    "language": "Language"
+  },
+  "Search": {
+    "queryLabel": "Nutritionist or service",
+    "queryPlaceholder": "Search for a nutritionist or service",
+    "locationLabel": "Location",
+    "locationPlaceholder": "Location",
+    "locationHint": "If no location is provided we default to {city}.",
+    "submit": "Search",
+    "heading": "{count, plural, one {# nutritionist} other {# nutritionists}} in {city}",
+    "matching": "Matching “{query}”",
+    "unknownLocationTitle": "We don't know “{input}” yet",
+    "unknownLocationDescription": "Showing nutritionists in {city} instead. Pick a city from the location suggestions.",
+    "noResultsTitle": "No nutritionists found",
+    "noMatch": "Nobody in {city} matches “{query}”. Try another name or service.",
+    "noneInCity": "There are no nutritionists in {city} yet. Try a nearby city.",
+    "clearSearch": "Clear search",
+    "unavailableTitle": "Search is unavailable right now",
+    "unavailableDescription": "We couldn't reach the nutritionist directory. <retry>Try again</retry>.",
+    "pagination": "Pagination",
+    "previousPage": "Go to previous page",
+    "nextPage": "Go to next page"
+  },
+  "Nutritionist": {
+    "title": "{title, select, Dietitian {Dietitian} other {Nutritionist}}",
+    "online": "Online",
+    "location": "Location",
+    "services": "Services",
+    "personalPage": "Personal page",
+    "scheduleAppointment": "Schedule appointment",
+    "close": "Close"
+  },
+  "Appointment": {
+    "title": "Schedule an appointment",
+    "description": "With {name}, {title, select, Dietitian {dietitian} other {nutritionist}} in {city}. They will confirm your request by email.",
+    "name": "Your name",
+    "email": "Email",
+    "service": "Service",
+    "servicePlaceholder": "Choose a service",
+    "serviceOption": "{name} · {price, number, price} · {minutes} min",
+    "online": "Online appointment",
+    "dateAndTime": "Date and time",
+    "time": "Time",
+    "pickDay": "Pick a day to see available times.",
+    "cancel": "Cancel",
+    "submit": "Request appointment",
+    "submitting": "Requesting…",
+    "unavailable": "We could not send your request. Try again in a moment.",
+    "sentTitle": "Appointment requested",
+    "sentDescription": "You asked {nutritionist} for <strong>{service}{online, select, true { (online)} other {}} on {start, date, appointmentDay} at {start, time, time}</strong>. This is not confirmed yet. We will email {email} once {nutritionist} answers your request.",
+    "done": "Done"
+  },
+  "AppointmentErrors": {
+    "guest_name": {
+      "blank": "Enter your name.",
+      "too_long": "Use at most 100 characters."
+    },
+    "guest_email": {
+      "blank": "Enter your email.",
+      "too_long": "Use at most 254 characters.",
+      "invalid": "Enter a valid email, like name@example.com."
+    },
+    "service": {
+      "blank": "Choose a service."
+    },
+    "starts_at": {
+      "blank": "Pick a day and time.",
+      "past": "Pick a time that has not passed yet.",
+      "not_a_slot": "Pick one of the available times.",
+      "taken": "This time is no longer available. Pick another."
+    },
+    "online": {
+      "not_offered": "This nutritionist does not offer online appointments."
+    },
+    "unknown": "Check this request and try again."
+  },
+  "Requests": {
+    "title": "Pending requests",
+    "description": "Requests sent to {name}. Accept or reject each one.",
+    "online": "Online",
+    "inPerson": "In person",
+    "overdue": "Overdue",
+    "email": "Email",
+    "date": "Date",
+    "time": "Time",
+    "emptyTitle": "No pending requests",
+    "emptyDescription": "New appointment requests from guests will show up here.",
+    "accept": "Accept",
+    "accepting": "Accepting…",
+    "acceptLabel": "Accept the request from {guest}",
+    "reject": "Reject",
+    "rejecting": "Rejecting…",
+    "rejectLabel": "Reject the request from {guest}",
+    "answered": "{answer, select, accepted {Accepted} other {Rejected}} {guest}'s request.{rejected, plural, =0 {} one { 1 overlapping request was rejected.} other { # overlapping requests were rejected.}}",
+    "gone": "This request no longer exists.",
+    "failed": "We could not answer this request.",
+    "unavailable": "We could not answer this request. Try again in a moment."
+  },
+  "RequestConflicts": {
+    "already_accepted": "This request was already accepted.",
+    "already_rejected": "This request was already rejected.",
+    "superseded": "The guest replaced this request with a newer one.",
+    "overlaps_accepted": "This time overlaps an accepted appointment. Reject the request instead."
+  },
+  "ErrorPage": {
+    "title": "Something went wrong",
+    "description": "This page failed to load. Try again in a moment.",
+    "retry": "Try again"
+  },
+  "NotFoundPage": {
+    "title": "Page not found",
+    "description": "This page does not exist. Check the address, or find a nutritionist from search.",
+    "back": "Back to search"
+  }
+}

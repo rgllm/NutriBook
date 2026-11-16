@@ -111,10 +111,10 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
 
     assert_schema_conform(422)
     assert_equal({
-      "service" => [ "Choose a service." ],
-      "guest_name" => [ "Enter your name." ],
-      "guest_email" => [ "Enter a valid email, like name@example.com." ],
-      "starts_at" => [ "Pick one of the available times." ]
+      "service" => [ "blank" ],
+      "guest_name" => [ "blank" ],
+      "guest_email" => [ "invalid" ],
+      "starts_at" => [ "not_a_slot" ]
     }, response.parsed_body["errors"])
   end
 
@@ -125,7 +125,7 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_schema_conform(422)
-      assert_equal({ "guest_email" => [ "Enter a valid email, like name@example.com." ] }, response.parsed_body["errors"])
+      assert_equal({ "guest_email" => [ "invalid" ] }, response.parsed_body["errors"])
     end
   end
 
@@ -136,7 +136,7 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_schema_conform(422)
-      assert_equal({ "guest_name" => [ "Use at most 100 characters." ] }, response.parsed_body["errors"])
+      assert_equal({ "guest_name" => [ "too_long" ] }, response.parsed_body["errors"])
     end
   end
 
@@ -149,7 +149,7 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_schema_conform(422)
-      assert_equal({ "guest_email" => [ "Use at most 254 characters." ] }, response.parsed_body["errors"])
+      assert_equal({ "guest_email" => [ "too_long" ] }, response.parsed_body["errors"])
     end
   end
 
@@ -172,21 +172,21 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     post appointment_requests_url, params: request_params(service_id: 0), as: :json
 
     assert_schema_conform(422)
-    assert_equal({ "service" => [ "Choose a service." ] }, response.parsed_body["errors"])
+    assert_equal({ "service" => [ "blank" ] }, response.parsed_body["errors"])
   end
 
   test "a time outside the schedule is reported on the start time" do
     post appointment_requests_url, params: request_params(date: "2026-12-06"), as: :json
 
     assert_schema_conform(422)
-    assert_equal({ "starts_at" => [ "Pick one of the available times." ] }, response.parsed_body["errors"])
+    assert_equal({ "starts_at" => [ "not_a_slot" ] }, response.parsed_body["errors"])
   end
 
   test "a malformed date asks for a day and time" do
     post appointment_requests_url, params: request_params(date: "next monday"), as: :json
 
     assert_schema_conform(422)
-    assert_equal({ "starts_at" => [ "Pick a day and time." ] }, response.parsed_body["errors"])
+    assert_equal({ "starts_at" => [ "blank" ] }, response.parsed_body["errors"])
   end
 
   test "accepting a request rejects the overlapping ones" do
@@ -247,7 +247,7 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request), params: answer("rejected"), as: :json
 
     assert_schema_conform(409)
-    assert_equal({ "error" => "This request was already accepted.", "status" => "accepted" }, response.parsed_body)
+    assert_equal({ "error" => "already_accepted", "status" => "accepted" }, response.parsed_body)
   end
 
   test "a status other than accepted or rejected is reported on the status" do
@@ -255,7 +255,7 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
       params: answer("superseded"), as: :json
 
     assert_schema_conform(422)
-    assert_equal({ "status" => [ "Answer with accepted or rejected." ] }, response.parsed_body["errors"])
+    assert_equal({ "status" => [ "not_an_answer" ] }, response.parsed_body["errors"])
   end
 
   private

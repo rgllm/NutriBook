@@ -7,8 +7,9 @@ class AppointmentRequest < ApplicationRecord
   # which no guest can receive mail at. The lookahead requires one.
   GUEST_EMAIL_FORMAT = /(?=[^@]*@[^@]+\.)#{URI::MailTo::EMAIL_REGEXP}/
 
-  # The request can no longer take the answer: it was answered or superseded,
-  # or accepting it would overlap an accepted appointment.
+  # The request can no longer take the answer. The message is a code for why:
+  # it was already_accepted, already_rejected, or superseded, or accepting it
+  # overlaps_accepted an appointment.
   class NotAnswerable < StandardError; end
 
   belongs_to :service
@@ -72,10 +73,10 @@ class AppointmentRequest < ApplicationRecord
     transaction do
       Nutritionist.lock("FOR NO KEY UPDATE").find(nutritionist_id)
       lock!
-      raise NotAnswerable, I18n.t(status, scope: "appointment_request.not_answerable") unless pending?
+      raise NotAnswerable, (superseded? ? "superseded" : "already_#{status}") unless pending?
 
       accepting = answer == "accepted"
-      raise NotAnswerable, I18n.t("booked", scope: "appointment_request.not_answerable") if accepting && overlaps_accepted?
+      raise NotAnswerable, "overlaps_accepted" if accepting && overlaps_accepted?
 
       now = Time.current
       update!(status: answer, answered_at: now, rejection_reason: ("declined" unless accepting))

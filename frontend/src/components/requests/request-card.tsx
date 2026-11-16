@@ -1,11 +1,12 @@
 import { CalendarIcon, ClockIcon, MailIcon } from "lucide-react"
+import { useFormatter, useTranslations } from "next-intl"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { answerRequest } from "@/app/nutritionists/[id]/requests/actions"
 import { AnswerRequestForm } from "@/components/requests/answer-request-form"
-import { formatRequestDate, formatRequestTimeRange, initials } from "@/lib/format"
+import { initials } from "@/lib/format"
 import type { PendingRequest } from "@/lib/api/appointment-requests"
 
 export function RequestCard({
@@ -15,6 +16,9 @@ export function RequestCard({
   nutritionistId: string
   request: PendingRequest
 }) {
+  const t = useTranslations("Requests")
+  const format = useFormatter()
+
   return (
     <Card className="w-full">
       <CardContent className="flex flex-1 flex-col gap-5">
@@ -31,15 +35,15 @@ export function RequestCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Badge variant="brand">{request.online ? "Online" : "In person"}</Badge>
-          {request.overdue && <Badge variant="destructive">Overdue</Badge>}
+          <Badge variant="brand">{request.online ? t("online") : t("inPerson")}</Badge>
+          {request.overdue && <Badge variant="destructive">{t("overdue")}</Badge>}
         </div>
 
         <dl className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <dt>
               <MailIcon aria-hidden className="size-4 text-muted-foreground" />
-              <span className="sr-only">Email</span>
+              <span className="sr-only">{t("email")}</span>
             </dt>
             <dd className="min-w-0 truncate">
               <a
@@ -53,21 +57,21 @@ export function RequestCard({
           <div className="flex items-center gap-2">
             <dt>
               <CalendarIcon aria-hidden className="size-4 text-muted-foreground" />
-              <span className="sr-only">Date</span>
+              <span className="sr-only">{t("date")}</span>
             </dt>
             <dd>
               <time dateTime={request.startsAt.toISOString()}>
-                {formatRequestDate(request.startsAt)}
+                {format.dateTime(request.startsAt, "requestDay")}
               </time>
             </dd>
           </div>
           <div className="flex items-center gap-2">
             <dt>
               <ClockIcon aria-hidden className="size-4 text-muted-foreground" />
-              <span className="sr-only">Time</span>
+              <span className="sr-only">{t("time")}</span>
             </dt>
             <dd className="tabular-nums">
-              {formatRequestTimeRange(request.startsAt, request.endsAt)}
+              {format.dateTimeRange(request.startsAt, request.endsAt, "time")}
             </dd>
           </div>
         </dl>

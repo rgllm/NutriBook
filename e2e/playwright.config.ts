@@ -17,6 +17,8 @@ export default defineConfig({
     // Outside Portugal, so a time shown in the browser's zone instead of
     // Lisbon's fails the suite.
     timezoneId: "America/Los_Angeles",
+    // The browser asks for British English, the app's default language.
+    locale: "en-GB",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

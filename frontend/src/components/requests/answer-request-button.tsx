@@ -2,13 +2,14 @@
 
 import { useFormStatus } from "react-dom"
 import { CheckIcon, LoaderCircleIcon, XIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import type { RequestAnswer } from "@/lib/pending-requests"
 
 const ANSWERS = {
-  accepted: { label: "Accept", pendingLabel: "Accepting…", variant: "default", Icon: CheckIcon },
-  rejected: { label: "Reject", pendingLabel: "Rejecting…", variant: "outline", Icon: XIcon },
+  accepted: { label: "accept", pendingLabel: "accepting", ariaLabel: "acceptLabel", variant: "default", Icon: CheckIcon },
+  rejected: { label: "reject", pendingLabel: "rejecting", ariaLabel: "rejectLabel", variant: "outline", Icon: XIcon },
 } as const
 
 export function AnswerRequestButton({
@@ -19,7 +20,8 @@ export function AnswerRequestButton({
   guestName: string
 }) {
   const { pending, data } = useFormStatus()
-  const { label, pendingLabel, variant, Icon } = ANSWERS[answer]
+  const t = useTranslations("Requests")
+  const { label, pendingLabel, ariaLabel, variant, Icon } = ANSWERS[answer]
   const isRunning = pending && data?.get("status") === answer
 
   return (
@@ -29,7 +31,7 @@ export function AnswerRequestButton({
       value={answer}
       variant={variant}
       disabled={pending}
-      aria-label={`${label} the request from ${guestName}`}
+      aria-label={t(ariaLabel, { guest: guestName })}
       className="w-full"
     >
       {isRunning ? (
@@ -37,7 +39,7 @@ export function AnswerRequestButton({
       ) : (
         <Icon data-icon="inline-start" />
       )}
-      {isRunning ? pendingLabel : label}
+      {t(isRunning ? pendingLabel : label)}
     </Button>
   )
 }

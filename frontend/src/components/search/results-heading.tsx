@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl"
+
 export function ResultsHeading({
   count,
   city,
@@ -7,12 +9,14 @@ export function ResultsHeading({
   city: string
   query: string
 }) {
+  const t = useTranslations("Search")
+
   return (
     <div className="flex flex-col gap-1">
       <h1 className="font-heading text-heading text-balance">
-        {count === 1 ? "1 nutritionist" : `${count} nutritionists`} in {city}
+        {t("heading", { count, city })}
       </h1>
-      {query && <p className="text-muted-foreground">Matching &ldquo;{query}&rdquo;</p>}
+      {query && <p className="text-muted-foreground">{t("matching", { query })}</p>}
     </div>
   )
 }
