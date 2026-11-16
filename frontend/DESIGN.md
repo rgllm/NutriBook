@@ -99,6 +99,7 @@ The three custom sizes carry their line height, letter spacing, and weight (600)
 ## Search page
 
 - **Header band.** `bg-primary text-primary-foreground`, with `--ring` set to white. The first row holds the logo, the word "NutriBook" in `font-heading text-subheading` with no mark, on the left and the "Are you a nutrition professional?" link on the right. The second row holds the search form.
+- **Language bar.** A thin `brand-ink` bar above the header band on every page, a step darker than the band, with white text and `--ring` set to white (white on `brand-ink` is 7.7:1). It holds only the language select, right-aligned: a borderless `sm` trigger, and each option is a flag emoji and the language's own name ("🇬🇧 English", "🇵🇹 Português").
 - **Favicon.** `src/app/icon.svg`, a full circle in `brand-strong`. An SVG cannot read the theme tokens, so the hex is repeated there; change both together.
 - **Search form.** Two 48px white inputs with visually hidden labels and placeholders, the location input with a pin icon at its end and a quiet hint under it ("If no location is provided we default to Braga.", `text-xs text-brand-soft`, 4.52:1 on the band, inset to line up with the input text). Translucent white would fall below 4.5:1, then a `brand-soft` (mint, dark green text) Search button. The fields stack on mobile.
 - **Results title.** The `h1` states the count and the resolved city, for example "6 nutritionists in Braga". An unknown location shows an alert above it that names the fallback city.

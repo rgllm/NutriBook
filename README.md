@@ -589,9 +589,11 @@ language.
 
 - **Choosing the language.** `frontend/src/i18n/request.ts` takes the
   `NEXT_LOCALE` cookie first, then the browser's `Accept-Language` (any
-  Portuguese variant gets `pt-PT`), then English. The EN and PT buttons in the
-  header are a Server Action that sets the cookie, and the page re-renders in
-  the new language.
+  Portuguese variant gets `pt-PT`), then English. The language select (flag and
+  native name) in a thin bar above the header calls a Server Action that sets
+  the cookie, and the page re-renders in the new language. It sits outside
+  the green band so the header keeps to the reference design: logo on the
+  left, professionals link on the right.
 - **Messages.** `frontend/messages/en-GB.json` and `pt-PT.json` hold every
   string, with ICU plurals and selects. `frontend/src/i18n/messages.ts` types
   the Portuguese file against the English one, so a missing message fails

@@ -9,7 +9,8 @@ test("a visitor switches to Portuguese, keeps it across visits, and switches bac
   const heading = page.getByRole("heading", { level: 1 })
   await expect(heading).toHaveText(`6 nutritionists in ${E2E_CITY}`)
 
-  await page.getByRole("button", { name: "Português" }).click()
+  await page.getByRole("combobox", { name: "Language" }).click()
+  await page.getByRole("option", { name: "Português" }).click()
 
   await expect(heading).toHaveText(`6 nutricionistas em ${E2E_CITY}`)
   await expect(page.locator("html")).toHaveAttribute("lang", "pt-PT")
@@ -18,7 +19,8 @@ test("a visitor switches to Portuguese, keeps it across visits, and switches bac
   await page.reload()
   await expect(heading).toHaveText(`6 nutricionistas em ${E2E_CITY}`)
 
-  await page.getByRole("button", { name: "English" }).click()
+  await page.getByRole("combobox", { name: "Idioma" }).click()
+  await page.getByRole("option", { name: "English" }).click()
   await expect(heading).toHaveText(`6 nutritionists in ${E2E_CITY}`)
 })
 
