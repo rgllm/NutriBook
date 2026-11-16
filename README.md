@@ -5,19 +5,13 @@ and location, then request an appointment with their name and email. Nutritionis
 accept or reject requests, and guests receive the answer by email. Accepting a
 request automatically rejects every pending request that overlaps it.
 
-Built for a senior full-stack technical challenge with Rails 8.1, Ruby 3.4,
-PostgreSQL 18, Next.js 16, and React 19. The interface supports British English
-and European Portuguese. The nutritionist view has no authentication, as allowed
-by the challenge.
-
 ## Getting started
 
 ### What to install
 
-- Git.
-- Docker with Docker Compose, with the Docker engine running.
-- Node.js 24, the version used in CI.
-- pnpm 12.18.0, pinned in the package manifests.
+- Docker
+- Node.js
+- pnpm
 
 Ruby, PostgreSQL, Meilisearch, and Mailpit run in Docker. You do not need to
 install them on your machine. The frontend runs locally with pnpm.
@@ -33,40 +27,23 @@ pnpm --dir frontend install --frozen-lockfile
 pnpm dev
 ```
 
-`pnpm dev` builds and starts the Docker services, waits for them to be ready,
-and starts Next.js. Rails prepares the database, loads seeds on a fresh database,
-and rebuilds the search index before serving requests. Open
-[the application](http://localhost:3000).
+On a fresh database, the backend creates the schema, loads the demo seeds, and
+builds the search index before it serves requests, so there is no separate seed
+step. Open [the application](http://localhost:3000).
 
 | Service | Address | Purpose |
 | --- | --- | --- |
-| Next.js | <http://localhost:3000> | Search, booking, and pending requests |
-| Rails | <http://localhost:3001> | JSON API |
-| API documentation | <http://localhost:3001/docs> | Interactive Swagger UI |
-| Rails health | <http://localhost:3001/up> | Application health response |
-| Mailpit | <http://localhost:8025> | Inbox for all development emails |
+| Next.js | <http://localhost:3000> | Frontend |
+| Rails | <http://localhost:3001> | Backend |
+| API documentation | <http://localhost:3001/docs> | Swagger |
+| Mailpit | <http://localhost:8025> | Inbox for development emails |
 
 PostgreSQL and Meilisearch are available only inside the Compose network.
 Docker volumes preserve their data across restarts. The credentials in
 `compose.yaml` are for local development.
 
-The frontend defaults to `http://localhost:3001`, so no `.env.local` file is
-needed. Set `API_URL` in the environment or in `frontend/.env.local` to override
-it. If you change `BACKEND_PORT`, update `API_URL` too. `MAILPIT_PORT` overrides
-the inbox port.
-The frontend build needs network access to download Inter and Outfit through
-`next/font/google`.
-
-To run the services separately:
-
-```sh
-docker compose up --build -d --wait
-pnpm --dir frontend dev
-```
-
-Backend code reloads through a bind mount. Rebuild the backend image after
-changing its gems. Restart the backend after adding a job class so the worker
-loads it.
+The frontend runs on port 3000 and calls the Rails API at
+`http://localhost:3001` by default, so no `.env` file is needed.
 
 ### Main commands
 
@@ -95,9 +72,6 @@ Backend commands require the development Compose stack to be running.
 | `pnpm e2e:ui` | Run the same end-to-end suite in Playwright UI mode |
 | `pnpm e2e:lint` / `pnpm e2e:typecheck` | Check the end-to-end test code |
 | `pnpm e2e:down` | Remove the end-to-end containers and their data volumes |
-
-`pnpm test` at the root runs only backend tests. Run the frontend and
-end-to-end suites separately.
 
 ## Architecture
 
@@ -413,18 +387,3 @@ report with:
 ```sh
 pnpm --dir e2e exec playwright show-report
 ```
-
-### Continuous integration and limits
-
-[GitHub Actions](.github/workflows/ci.yml) runs on pull requests and pushes to
-`trunk`. Backend and frontend jobs run for relevant changes on pull requests
-and always on trunk pushes. The end-to-end job runs on every pull request and
-trunk push. It checks lint and types, runs Playwright, and uploads failure
-reports for seven days.
-
-The browser suite currently covers desktop Chromium. It does not provide
-cross-browser, automated axe accessibility, or visual-regression coverage.
-Failure screenshots help diagnosis but do not establish parity with the design
-reference. Email tests exercise all ten failed attempts and check that the answer
-persists and Solid Queue records the failure. The SMTP crash window described
-above remains a delivery limitation.
