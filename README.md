@@ -59,8 +59,7 @@ Backend commands require the development Compose stack to be running.
 | `pnpm rails <args>` | Run a Rails command inside the backend container |
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:rollback` | Roll back the latest migration |
-| `pnpm db:seed` | Add missing demo records and rebuild the search index |
-| `pnpm demo` | Print the pending-request page URLs for the current database |
+| `pnpm db:seed` | Add missing demo records, rebuild the search index, and print the demo request URLs |
 | `pnpm db:psql` | Open PostgreSQL against the development database |
 | `pnpm rails search:reindex` | Rebuild Meilisearch after manual data changes |
 | `pnpm backend:test` or `pnpm test` | Run the Rails test suite |
@@ -286,31 +285,28 @@ Try these flows after a fresh setup:
 | Empty results | <http://localhost:3000/?q=zzzznomatch&location=Braga> | Empty state with a way to clear the search |
 | Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
 | Replace a request | Book again with the same email, including with another nutritionist | Previous pending request disappears from its list |
-| Answer requests | The links `pnpm demo` prints | Pending cards with Accept and Reject actions |
+| Answer requests | The links `pnpm db:seed` prints | Pending cards with Accept and Reject actions |
 | Automatic rejection | Accept one of the seeded 10:00 requests | Both overlapping cards leave the list, and each guest gets an email |
 | Read answer emails | <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
 | Change language | Use the language selector above the header | Translated UI that persists across visits |
 
 Nutritionist IDs change when the database is reseeded, because PostgreSQL does
-not reset its sequences, so the pending-request pages have no fixed URL. Print
-them for the current database with:
+not reset its sequences, so the pending-request pages have no fixed URL. The
+seeds end by printing them with the current IDs, and running `pnpm db:seed`
+again is safe whenever you need them:
 
-```sh
-pnpm demo
-```
-
-It links the nutritionist with the most pending requests and says which ones
-overlap, then a nutritionist with no requests, an ID with no nutritionist, and
-a malformed ID:
-
-```md
-- **Aline Moreira, with 4 pending requests:** http://localhost:3000/nutritionists/212/requests
+```text
+Try the pending-requests page:
+- Aline Moreira, with 4 seeded requests: http://localhost:3000/nutritionists/242/requests
   - Accepting Danilo Santos also rejects Nataniel Batista's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
   - Hugo Estéves and Eduarda Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
-- **Gúbio Barros, with no requests:** http://localhost:3000/nutritionists/214/requests shows the empty state.
-- **An ID with no nutritionist:** http://localhost:3000/nutritionists/999999/requests shows the 404 page.
-- **A malformed ID:** http://localhost:3000/nutritionists/1abc/requests returns a real 404.
+- Silas Saraiva, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
+- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the 404 page.
+- A malformed ID: http://localhost:3000/nutritionists/1abc/requests returns a real 404.
 ```
+
+The list describes the seeded scenario. Requests you answer in the app stay
+answered, so the first page then shows fewer cards.
 
 `pnpm db:seed` adds missing demo records and preserves answered requests. It does
 not restore the original pending list. To erase development records and rebuild
