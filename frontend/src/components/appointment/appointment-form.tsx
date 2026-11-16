@@ -33,6 +33,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { RequestAppointmentButton } from "@/components/appointment/request-appointment-button"
 import type { Nutritionist } from "@/lib/api/nutritionists"
+import { formatEuros } from "@/lib/format"
 import {
   isSlotInPast,
   practiceToday,
@@ -55,6 +56,10 @@ export function AppointmentForm({
   action: (formData: FormData) => void
 }) {
   const { services } = nutritionist
+  const serviceItems = services.map((service) => ({
+    value: service.id,
+    label: `${service.name} · ${formatEuros(service.priceEur)} · ${service.durationMinutes} min`,
+  }))
   const [serviceId, setServiceId] = useState(
     services.length === 1 ? services[0].id : undefined,
   )
@@ -144,7 +149,7 @@ export function AppointmentForm({
         <Field data-invalid={Boolean(errors.service)}>
           <FieldLabel htmlFor="service">Service</FieldLabel>
           <Select
-            items={services.map((service) => ({ value: service.id, label: service.name }))}
+            items={serviceItems}
             value={serviceId ?? null}
             onValueChange={selectService}
           >
@@ -156,9 +161,9 @@ export function AppointmentForm({
               <SelectValue placeholder="Choose a service" />
             </SelectTrigger>
             <SelectContent>
-              {services.map((service) => (
-                <SelectItem key={service.id} value={service.id}>
-                  {service.name}
+              {serviceItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
                 </SelectItem>
               ))}
             </SelectContent>
