@@ -1,4 +1,5 @@
 import { InboxIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import {
   Empty,
@@ -9,16 +10,16 @@ import {
 } from "@/components/ui/empty"
 
 export function NoPendingRequests() {
+  const t = useTranslations("Requests")
+
   return (
     <Empty className="border bg-card">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <InboxIcon />
         </EmptyMedia>
-        <EmptyTitle>No pending requests</EmptyTitle>
-        <EmptyDescription>
-          New appointment requests from guests will show up here.
-        </EmptyDescription>
+        <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
+        <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   )

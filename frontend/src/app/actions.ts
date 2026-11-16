@@ -1,5 +1,7 @@
 "use server"
 
+import { getTranslations } from "next-intl/server"
+
 import { createAppointmentRequest } from "@/lib/api/appointment-requests"
 import { ApiUnavailableError } from "@/lib/api/http"
 import { toAppointmentErrors, type RequestAppointmentState } from "@/lib/appointment-request"
@@ -11,6 +13,14 @@ export async function requestAppointment(
   formData: FormData,
 ): Promise<RequestAppointmentState> {
   const values = { name: text(formData, "name"), email: text(formData, "email") }
+  const [t, tErrors] = await Promise.all([
+    getTranslations("Appointment"),
+    getTranslations("AppointmentErrors"),
+  ])
+  const describe = (key: string, code: string) => {
+    const id = `${key}.${code}` as Parameters<typeof tErrors>[0]
+    return tErrors.has(id) ? tErrors(id) : tErrors("unknown")
+  }
 
   try {
     const result = await createAppointmentRequest({
@@ -23,12 +33,12 @@ export async function requestAppointment(
     })
     return result.ok
       ? { status: "sent", request: result.data }
-      : { status: "editing", errors: toAppointmentErrors(result.errors), values }
+      : { status: "editing", errors: toAppointmentErrors(result.errors, describe), values }
   } catch (error) {
     if (!(error instanceof ApiUnavailableError)) throw error
     return {
       status: "editing",
-      errors: { form: "We could not send your request. Try again in a moment." },
+      errors: { form: t("unavailable") },
       values,
     }
   }

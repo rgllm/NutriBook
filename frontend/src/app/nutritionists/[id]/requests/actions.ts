@@ -1,6 +1,7 @@
 "use server"
 
 import { refresh } from "next/cache"
+import { getTranslations } from "next-intl/server"
 
 import { answerAppointmentRequest } from "@/lib/api/appointment-requests"
 import { ApiConflictError, ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
@@ -15,16 +16,19 @@ export async function answerRequest(
   _previous: AnswerRequestState,
   formData: FormData,
 ): Promise<AnswerRequestState> {
+  const [t, tConflicts] = await Promise.all([
+    getTranslations("Requests"),
+    getTranslations("RequestConflicts"),
+  ])
+
   try {
     const result = await answerAppointmentRequest(
       nutritionistId,
       requestId,
       String(formData.get("status") ?? ""),
     )
-    if (!result.ok) {
-      const [error = "We could not answer this request."] = Object.values(result.errors).flat()
-      return { status: "failed", error }
-    }
+    // The only invalid answer is a status the buttons never send.
+    if (!result.ok) return { status: "failed", error: t("failed") }
     refresh()
     return {
       status: "answered",
@@ -34,14 +38,15 @@ export async function answerRequest(
   } catch (error) {
     if (error instanceof ApiConflictError) {
       refresh()
-      return { status: "gone", message: error.message }
+      const reason = error.message as Parameters<typeof tConflicts>[0]
+      return { status: "gone", message: tConflicts.has(reason) ? tConflicts(reason) : t("gone") }
     }
     if (error instanceof ApiNotFoundError) {
       refresh()
-      return { status: "gone", message: "This request no longer exists." }
+      return { status: "gone", message: t("gone") }
     }
     if (error instanceof ApiUnavailableError) {
-      return { status: "failed", error: "We could not answer this request. Try again in a moment." }
+      return { status: "failed", error: t("unavailable") }
     }
     throw error
   }

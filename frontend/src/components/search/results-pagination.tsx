@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl"
+
 import {
   Pagination,
   PaginationContent,
@@ -16,12 +18,14 @@ export function ResultsPagination({
   pageCount: number
   hrefFor: (page: number) => string
 }) {
+  const t = useTranslations("Search")
+
   return (
-    <Pagination>
+    <Pagination aria-label={t("pagination")}>
       <PaginationContent>
         {page > 1 && (
           <PaginationItem>
-            <PaginationPrevious href={hrefFor(page - 1)} />
+            <PaginationPrevious href={hrefFor(page - 1)} aria-label={t("previousPage")} />
           </PaginationItem>
         )}
         {Array.from({ length: pageCount }, (_, index) => index + 1).map((target) => (
@@ -33,7 +37,7 @@ export function ResultsPagination({
         ))}
         {page < pageCount && (
           <PaginationItem>
-            <PaginationNext href={hrefFor(page + 1)} />
+            <PaginationNext href={hrefFor(page + 1)} aria-label={t("nextPage")} />
           </PaginationItem>
         )}
       </PaginationContent>

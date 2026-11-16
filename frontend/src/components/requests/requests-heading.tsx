@@ -1,10 +1,12 @@
+import { useTranslations } from "next-intl"
+
 export function RequestsHeading({ nutritionistName }: { nutritionistName: string }) {
+  const t = useTranslations("Requests")
+
   return (
     <div className="flex flex-col gap-1">
-      <h1 className="font-heading text-heading text-balance">Pending requests</h1>
-      <p className="text-muted-foreground">
-        Requests sent to {nutritionistName}. Accept or reject each one.
-      </p>
+      <h1 className="font-heading text-heading text-balance">{t("title")}</h1>
+      <p className="text-muted-foreground">{t("description", { name: nutritionistName })}</p>
     </div>
   )
 }

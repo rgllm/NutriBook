@@ -1,6 +1,7 @@
 "use client"
 
 import { CalendarPlusIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { AppointmentFlow } from "@/components/appointment/appointment-flow"
 import { Button } from "@/components/ui/button"
@@ -12,13 +13,15 @@ export function ScheduleAppointmentDialog({
 }: {
   nutritionist: Nutritionist
 }) {
+  const t = useTranslations("Nutritionist")
+
   return (
     <Dialog>
       <DialogTrigger render={<Button variant="coral-soft" className="w-full" />}>
         <CalendarPlusIcon data-icon="inline-start" />
-        Schedule appointment
+        {t("scheduleAppointment")}
       </DialogTrigger>
-      <DialogContent className="gap-6 sm:max-w-[42rem] sm:p-6">
+      <DialogContent closeLabel={t("close")} className="gap-6 sm:max-w-[42rem] sm:p-6">
         <AppointmentFlow nutritionist={nutritionist} />
       </DialogContent>
     </Dialog>

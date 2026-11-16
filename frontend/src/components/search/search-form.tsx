@@ -1,5 +1,6 @@
 import Form from "next/form"
 import { MapPinIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
@@ -21,6 +22,8 @@ export function SearchForm({
   location?: string
   locations?: Locations
 }) {
+  const t = useTranslations("Search")
+
   return (
     <Form
       // The form survives client navigations, and inputs ignore a new
@@ -33,20 +36,20 @@ export function SearchForm({
     >
       <Field>
         <FieldLabel htmlFor="search-query" className="sr-only">
-          Nutritionist or service
+          {t("queryLabel")}
         </FieldLabel>
         <InputGroup className={FIELD_ON_BAND}>
           <InputGroupInput
             id="search-query"
             name="q"
             defaultValue={query}
-            placeholder="Search for a nutritionist or service"
+            placeholder={t("queryPlaceholder")}
           />
         </InputGroup>
       </Field>
       <Field>
         <FieldLabel htmlFor="search-location" className="sr-only">
-          Location
+          {t("locationLabel")}
         </FieldLabel>
         <InputGroup className={FIELD_ON_BAND}>
           <InputGroupInput
@@ -55,7 +58,7 @@ export function SearchForm({
             list={locations && "known-cities"}
             autoComplete="address-level2"
             defaultValue={location}
-            placeholder="Location"
+            placeholder={t("locationPlaceholder")}
             aria-describedby={locations && "search-location-hint"}
           />
           <InputGroupAddon align="inline-end">
@@ -64,7 +67,7 @@ export function SearchForm({
         </InputGroup>
         {locations && (
           <FieldDescription id="search-location-hint" className="px-3 text-xs text-brand-soft">
-            If no location is provided we default to {locations.default}.
+            {t("locationHint", { city: locations.default })}
           </FieldDescription>
         )}
         {locations && (
@@ -76,7 +79,7 @@ export function SearchForm({
         )}
       </Field>
       <Button type="submit" variant="brand-soft" size="lg" className="sm:px-10">
-        Search
+        {t("submit")}
       </Button>
     </Form>
   )

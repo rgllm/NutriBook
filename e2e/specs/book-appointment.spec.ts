@@ -3,17 +3,13 @@ import { pendingRequest } from "../support/pages"
 import { addDays, lisbonInstant, upcomingMonday, type IsoDay } from "../support/schedule"
 import { E2E_CITY } from "../support/stack"
 
-// The calendar names each day the way date-fns's "PPPP" format writes it,
-// for example "Tuesday, November 24th, 2026".
+// The calendar names each day the way date-fns's British "PPPP" format writes
+// it, for example "Tuesday, 24 November 2026".
 function calendarDay(day: IsoDay) {
   const date = new Date(`${day}T12:00:00Z`)
   const part = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en-US", { timeZone: "UTC", ...options }).format(date)
-  const dayOfMonth = date.getUTCDate()
-  const suffix = [11, 12, 13].includes(dayOfMonth)
-    ? "th"
-    : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[dayOfMonth % 10] ?? "th"
-  return `${part({ weekday: "long" })}, ${part({ month: "long" })} ${dayOfMonth}${suffix}, ${part({ year: "numeric" })}`
+    new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...options }).format(date)
+  return `${part({ weekday: "long" })}, ${part({ day: "numeric", month: "long", year: "numeric" })}`
 }
 
 // How the confirmation names the day, for example "Tuesday 24 November".
@@ -48,11 +44,11 @@ test("a guest requests an appointment and the nutritionist sees it", async ({ pa
   const service = dialog.getByRole("combobox", { name: "Service" })
   await service.click()
   await expect(page.getByRole("option")).toHaveText([
-    "First appointment · 35€ · 60 min",
-    "Follow-up · 20€ · 30 min",
+    "First appointment · €35 · 60 min",
+    "Follow-up · €20 · 30 min",
   ])
-  await page.getByRole("option", { name: "Follow-up · 20€ · 30 min", exact: true }).click()
-  await expect(service).toContainText("Follow-up · 20€ · 30 min")
+  await page.getByRole("option", { name: "Follow-up · €20 · 30 min", exact: true }).click()
+  await expect(service).toContainText("Follow-up · €20 · 30 min")
 
   await expect(dialog.getByRole("button", { name: calendarDay(monday) })).toBeDisabled()
   await dialog.getByRole("button", { name: calendarDay(tuesday) }).click()

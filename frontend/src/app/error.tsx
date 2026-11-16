@@ -1,6 +1,7 @@
 "use client"
 
 import { TriangleAlertIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -13,6 +14,8 @@ import {
 } from "@/components/ui/empty"
 
 export default function Error({ retry }: { error: unknown; retry: () => void }) {
+  const t = useTranslations("ErrorPage")
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 sm:px-8 sm:py-10">
       <Empty className="border bg-card">
@@ -20,12 +23,12 @@ export default function Error({ retry }: { error: unknown; retry: () => void }) 
           <EmptyMedia variant="icon">
             <TriangleAlertIcon />
           </EmptyMedia>
-          <EmptyTitle>Something went wrong</EmptyTitle>
-          <EmptyDescription>This page failed to load. Try again in a moment.</EmptyDescription>
+          <EmptyTitle>{t("title")}</EmptyTitle>
+          <EmptyDescription>{t("description")}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button variant="outline" onClick={retry}>
-            Try again
+            {t("retry")}
           </Button>
         </EmptyContent>
       </Empty>

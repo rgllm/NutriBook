@@ -22,7 +22,7 @@ class AppointmentRequestsController < ApplicationController
         include: { service: { only: %i[id name street_address city] } }
       ), status: :created
     else
-      render json: { errors: request.errors.to_hash }, status: :unprocessable_content
+      render json: { errors: request.error_codes }, status: :unprocessable_content
     end
   end
 
@@ -35,7 +35,7 @@ class AppointmentRequestsController < ApplicationController
   rescue AppointmentRequest::NotAnswerable => error
     render json: { error: error.message, status: appointment_request.status }, status: :conflict
   rescue ActiveRecord::RecordInvalid => error
-    render json: { errors: error.record.errors.to_hash }, status: :unprocessable_content
+    render json: { errors: error.record.error_codes }, status: :unprocessable_content
   end
 
   private

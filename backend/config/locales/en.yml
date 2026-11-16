@@ -4,27 +4,11 @@ en:
       models:
         appointment_request:
           attributes:
-            guest_name:
-              blank: Enter your name.
-              too_long: Use at most %{count} characters.
-            guest_email:
-              blank: Enter your email.
-              too_long: Use at most %{count} characters.
-              invalid: Enter a valid email, like name@example.com.
-            service:
-              required: Choose a service.
             starts_at:
-              blank: Pick a day and time.
-              past: Pick a time that has not passed yet.
-              not_a_slot: Pick one of the available times.
-              taken: This time is no longer available. Pick another.
+              past: has already passed
+              not_a_slot: is not a bookable slot
+              taken: overlaps an accepted appointment
             online:
-              not_offered: This nutritionist does not offer online appointments.
+              not_offered: is not offered by this nutritionist
             status:
-              not_an_answer: Answer with accepted or rejected.
-  appointment_request:
-    not_answerable:
-      accepted: This request was already accepted.
-      rejected: This request was already rejected.
-      superseded: The guest replaced this request with a newer one.
-      booked: This time overlaps an accepted appointment. Reject the request instead.
+              not_an_answer: must be accepted or rejected

@@ -16,11 +16,11 @@ export class ApiUnavailableError extends Error {}
 export class ApiNotFoundError extends Error {}
 
 // The record can no longer change as asked, for example because it was already
-// answered. The message is written for the person who acted.
+// answered. The message is the API's code for why, such as "already_accepted".
 export class ApiConflictError extends Error {}
 
-// The API refused the input. Its messages are keyed by field and written for
-// the person who filled in the form.
+// The API refused the input. Its error codes, such as "blank" or "past", are
+// keyed by field; the frontend writes the messages.
 export type ValidationErrors = Record<string, string[]>
 
 const validationErrorsSchema = z.object({ errors: z.record(z.string(), z.array(z.string())) })

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { SearchXIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { SiteHeader } from "@/components/site-header"
 import { buttonVariants } from "@/components/ui/button"
@@ -14,6 +15,8 @@ import {
 import { cn } from "@/lib/utils"
 
 export default function NotFound() {
+  const t = useTranslations("NotFoundPage")
+
   return (
     <>
       <SiteHeader />
@@ -24,14 +27,12 @@ export default function NotFound() {
             <EmptyMedia variant="icon">
               <SearchXIcon />
             </EmptyMedia>
-            <EmptyTitle>Page not found</EmptyTitle>
-            <EmptyDescription>
-              This page does not exist. Check the address, or find a nutritionist from search.
-            </EmptyDescription>
+            <EmptyTitle>{t("title")}</EmptyTitle>
+            <EmptyDescription>{t("description")}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Link href="/" className={cn(buttonVariants({ variant: "outline" }))}>
-              Back to search
+              {t("back")}
             </Link>
           </EmptyContent>
         </Empty>
