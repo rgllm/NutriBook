@@ -125,7 +125,7 @@ docker compose exec backend bin/rubocop
 # Frontend
 cd frontend
 pnpm lint
-pnpm exec tsc --noEmit
+pnpm typecheck
 pnpm build
 
 # End to end (from the project root; each run resets the e2e stack)

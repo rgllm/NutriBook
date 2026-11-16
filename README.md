@@ -519,7 +519,7 @@ status depends on the id:
 ```sh
 pnpm test                    # Vitest
 pnpm lint
-pnpm exec tsc --noEmit
+pnpm typecheck               # next typegen, then tsc
 ```
 
 Vitest runs two projects. `*.test.ts` files run in Node and cover the API
@@ -684,7 +684,7 @@ failed test keeps its trace and a screenshot in `e2e/test-results/`, and
   tests, and a seed replant. PostgreSQL runs as a service from the same
   `postgres:18-alpine` image as Compose, which ships `btree_gist` and
   `unaccent`, so the migrations enable them as they do locally.
-- **Frontend** runs `pnpm lint`, `tsc --noEmit`, `pnpm test`, and
+- **Frontend** runs `pnpm lint`, `pnpm typecheck`, `pnpm test`, and
   `pnpm build`.
 - **End to end** lints and typechecks `e2e/`, then runs `pnpm e2e` against the
   Docker stack. A failed run uploads the Playwright report and traces.
