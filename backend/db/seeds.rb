@@ -68,6 +68,9 @@ def seed_service(nutritionist, catalog_entry, city:, street_address:)
   end
 end
 
+# Filled inside the transaction and read by the summary printed after it.
+nutritionists = demo_requests = nil
+
 ActiveRecord::Base.transaction do
   CITIES.each do |name, (latitude, longitude, _)|
     City.find_or_create_by!(name:) do |city|
@@ -111,12 +114,12 @@ ActiveRecord::Base.transaction do
   first_appointment = nutritionists.first.services.find_by!(name: "First appointment", city: "Braga")
   follow_up = nutritionists.first.services.find_by!(name: "Follow-up", city: "Braga")
 
-  [
+  demo_requests = [
     [ first_appointment, day, "10:00" ],
     [ follow_up, day, "10:00" ],
     [ first_appointment, day, "14:00" ],
     [ follow_up, day + 1, "09:00" ]
-  ].each do |service, date, time|
+  ].map do |service, date, time|
     guest_name = unique_person_name
     guest_email = "#{guest_name.parameterize(separator: ".")}@example.com"
 
@@ -133,3 +136,22 @@ end
 puts "Seeded #{Nutritionist.count} nutritionists, #{Service.count} services, " \
   "and #{AppointmentRequest.pending.count} pending requests."
 puts NutritionistIndex.refresh
+
+# IDs move when the database is reseeded, so print where to try the
+# pending-requests page. This describes the seeded scenario: answering requests
+# in the app changes what the first link shows.
+frontend_url = ENV.fetch("FRONTEND_URL", "http://localhost:3000")
+requests_url = ->(id) { "#{frontend_url}/nutritionists/#{id}/requests" }
+booked, overlapping, *free = demo_requests.map(&:guest_name)
+busy, idle = nutritionists.first(2)
+
+puts <<~GUIDE
+
+  Try the pending-requests page:
+  - #{busy.name}, with #{demo_requests.size} seeded requests: #{requests_url.(busy.id)}
+    - Accepting #{booked} also rejects #{overlapping}'s request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
+    - #{free.to_sentence} don't overlap anyone, so accepting or rejecting either one removes only that card.
+  - #{idle.name}, with no requests: #{requests_url.(idle.id)} shows the empty state.
+  - An ID with no nutritionist: #{requests_url.([ 999_999, Nutritionist.maximum(:id) + 1 ].max)} shows the 404 page.
+  - A malformed ID: #{requests_url.("1abc")} returns a real 404.
+GUIDE
