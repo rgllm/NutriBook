@@ -191,6 +191,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Locations"
+  /locations/nearest:
+    get:
+      operationId: nearestLocation
+      summary: Find the searchable city nearest a point
+      description: >
+        The city with at least one service whose centre is closest to the
+        point, by great-circle distance. The search form uses it to fill the
+        location from the browser's position.
+      tags: [Locations]
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "41.55"
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "-8.43"
+      responses:
+        "200":
+          description: The nearest city.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NearestLocation"
+        "404":
+          description: No city has a service yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFound"
+        "422":
+          description: A coordinate is missing, not a number, or out of range.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrors"
 components:
   schemas:
     NutritionistSearch:
@@ -299,6 +340,14 @@ components:
             type: string
           example: [Braga, Porto]
         default:
+          type: string
+          example: Braga
+    NearestLocation:
+      type: object
+      additionalProperties: false
+      required: [city]
+      properties:
+        city:
           type: string
           example: Braga
     AppointmentRequestInput:

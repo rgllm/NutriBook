@@ -102,6 +102,7 @@ pnpm e2e:typecheck
 
 ```mermaid
 erDiagram
+    cities ||--o{ services : "is the city of"
     nutritionists ||--o{ services : offers
     nutritionists ||--o{ appointment_requests : receives
     services ||--o{ appointment_requests : "is booked in"
@@ -114,13 +115,20 @@ erDiagram
         boolean offers_online
     }
 
+    cities {
+        bigint id PK
+        string name UK
+        decimal latitude "city centre, -90 to 90"
+        decimal longitude "city centre, -180 to 180"
+    }
+
     services {
         bigint id PK
         bigint nutritionist_id FK
         string name
         decimal price ">= 0"
         string street_address "where the service is given"
-        string city "used by search"
+        string city FK "cities.name, used by search"
         integer duration_minutes "> 0"
     }
 
@@ -152,11 +160,12 @@ they hold even if application code has a bug or two requests race:
 | --- | --- |
 | A guest has at most one pending request | Partial unique index on `lower(guest_email)` where `status = 'pending'` |
 | A nutritionist never has two accepted appointments that overlap | Exclusion constraint on `nutritionist_id` and `tsrange(starts_at, ends_at)` where `status = 'accepted'` (`btree_gist`). Ranges are half-open, so 10:00–11:00 and 11:00–12:00 do not overlap |
+| A service is in a city search knows | Foreign key `services.city` → `cities.name` |
 | A request's service belongs to the request's nutritionist | Composite foreign key `(nutritionist_id, service_id)` → `services (nutritionist_id, id)` |
 | `answered_at` is set exactly when a nutritionist answered | Check that `answered_at IS NOT NULL` equals `status IN ('accepted', 'rejected')` |
 | A rejected request says why, and only a rejected request does | Check that `rejection_reason IS NOT NULL` equals `status = 'rejected'` |
 | Only an answered request can have been emailed | Check that `answer_notified_at` is null or `answered_at` is set |
-| Valid values | Checks on `title`, `status`, `rejection_reason`, `price >= 0`, `duration_minutes > 0`, and `ends_at > starts_at` |
+| Valid values | Checks on `title`, `status`, `rejection_reason`, `price >= 0`, `duration_minutes > 0`, `ends_at > starts_at`, and city coordinates on the globe |
 | Guest input stays a sane size | Checks that `guest_name` is at most 100 characters and `guest_email` at most 254, the longest address SMTP delivers to |
 
 A request copies its end time from the service's duration when it is created,
@@ -181,12 +190,16 @@ page, three of its nutritionists also see patients in Porto, and one works from
 two addresses in Braga. The first Braga nutritionist has four pending requests,
 two of which overlap, to try the automatic rejection. Names come from Faker with a fixed
 random seed, so every run produces the same data, and the file is idempotent.
-Use `bin/rails db:seed:replant` to start over.
+Use `bin/rails db:seed:replant` to start over. Each seeded city
+stores the coordinates of its centre, which "Use my location" measures from.
+The street addresses are made up, so the seeds give no coordinates per
+service.
 
 Indexes follow the queries: `services (city, nutritionist_id)` for search
 by city, `services (nutritionist_id, id)` for the composite key and lookups by
 nutritionist, and `appointment_requests (nutritionist_id, status, starts_at)`
-for a nutritionist's request list.
+for a nutritionist's request list. The `services (city, nutritionist_id)` index
+also covers the foreign key to `cities`.
 
 ## API
 
@@ -265,6 +278,21 @@ curl 'http://localhost:3001/locations'
 
 ```json
 { "locations": ["Braga", "Porto"], "default": "Braga" }
+```
+
+`GET /locations/nearest?latitude=41.12&longitude=-8.61` returns the city with
+at least one service whose centre is nearest the point, by great-circle
+distance (`City.nearest_to`). The search form calls it for "Use my location".
+A missing, non-numeric, or out-of-range coordinate is a `422`, and a directory
+with no services is a `404`. Rails filters `latitude` and `longitude` out of
+its logs.
+
+```sh
+curl 'http://localhost:3001/locations/nearest?latitude=41.12&longitude=-8.61'
+```
+
+```json
+{ "city": "Porto" }
 ```
 
 `NutritionistSearch` in `backend/app/models/` owns location resolution,

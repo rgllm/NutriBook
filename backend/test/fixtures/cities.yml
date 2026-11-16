@@ -1,0 +1,24 @@
+braga:
+  name: Braga
+  latitude: 41.545400
+  longitude: -8.426500
+
+porto:
+  name: Porto
+  latitude: 41.157900
+  longitude: -8.629100
+
+faro:
+  name: Faro
+  latitude: 37.019400
+  longitude: -7.932200
+
+guimaraes:
+  name: Guimarães
+  latitude: 41.442500
+  longitude: -8.291800
+
+lisboa:
+  name: Lisboa
+  latitude: 38.722300
+  longitude: -9.139300

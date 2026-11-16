@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_15_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_16_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -33,15 +33,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_170000) do
     t.index "lower((guest_email)::text)", name: "index_appointment_requests_one_pending_per_guest", unique: true, where: "((status)::text = 'pending'::text)"
     t.index ["nutritionist_id", "status", "starts_at"], name: "idx_on_nutritionist_id_status_starts_at_b75b60395a"
     t.index ["service_id"], name: "index_appointment_requests_on_service_id"
-    t.check_constraint "(answered_at IS NOT NULL) = (status::text = ANY (ARRAY['accepted'::character varying, 'rejected'::character varying]::text[]))", name: "appointment_requests_answered_at_matches_status"
+    t.check_constraint "(answered_at IS NOT NULL) = (status::text = ANY (ARRAY['accepted'::character varying::text, 'rejected'::character varying::text]))", name: "appointment_requests_answered_at_matches_status"
     t.check_constraint "(rejection_reason IS NOT NULL) = (status::text = 'rejected'::text)", name: "appointment_requests_rejection_reason_matches_status"
     t.check_constraint "answer_notified_at IS NULL OR answered_at IS NOT NULL", name: "appointment_requests_notified_only_when_answered"
     t.check_constraint "char_length(guest_email::text) <= 254", name: "appointment_requests_guest_email_length"
     t.check_constraint "char_length(guest_name::text) <= 100", name: "appointment_requests_guest_name_length"
     t.check_constraint "ends_at > starts_at", name: "appointment_requests_ends_after_starts"
-    t.check_constraint "rejection_reason::text = ANY (ARRAY['declined'::character varying, 'overlap'::character varying]::text[])", name: "appointment_requests_rejection_reason_allowed"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'superseded'::character varying]::text[])", name: "appointment_requests_status_allowed"
+    t.check_constraint "rejection_reason::text = ANY (ARRAY['declined'::character varying::text, 'overlap'::character varying::text])", name: "appointment_requests_rejection_reason_allowed"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'superseded'::character varying::text])", name: "appointment_requests_status_allowed"
     t.exclusion_constraint "nutritionist_id WITH =, tsrange(starts_at, ends_at) WITH &&", where: "(status)::text = 'accepted'::text", using: :gist, name: "appointment_requests_no_overlapping_accepted"
+  end
+
+  create_table "cities", force: :cascade do |t|
+    t.string "name", null: false
+    t.decimal "latitude", precision: 8, scale: 6, null: false
+    t.decimal "longitude", precision: 9, scale: 6, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_cities_on_name", unique: true
+    t.check_constraint "latitude >= '-90'::integer::numeric AND latitude <= 90::numeric", name: "cities_latitude_in_range"
+    t.check_constraint "longitude >= '-180'::integer::numeric AND longitude <= 180::numeric", name: "cities_longitude_in_range"
   end
 
   create_table "nutritionists", force: :cascade do |t|
@@ -52,7 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_170000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["license_number"], name: "index_nutritionists_on_license_number", unique: true
-    t.check_constraint "title::text = ANY (ARRAY['Dietitian'::character varying, 'Nutritionist'::character varying]::text[])", name: "nutritionists_title_allowed"
+    t.check_constraint "title::text = ANY (ARRAY['Dietitian'::character varying::text, 'Nutritionist'::character varying::text])", name: "nutritionists_title_allowed"
   end
 
   create_table "services", force: :cascade do |t|
@@ -222,6 +233,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_170000) do
 
   add_foreign_key "appointment_requests", "nutritionists"
   add_foreign_key "appointment_requests", "services", column: ["nutritionist_id", "service_id"], primary_key: ["nutritionist_id", "id"]
+  add_foreign_key "services", "cities", column: "city", primary_key: "name"
   add_foreign_key "services", "nutritionists"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade
   add_foreign_key "solid_queue_batch_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

@@ -11,15 +11,17 @@ Faker::Config.locale = "pt"
 Faker::Config.random = Random.new(2026)
 Faker::UniqueGenerator.clear
 
-CITY_COUNTS = {
-  "Braga" => 8,
-  "Porto" => 5,
-  "Lisboa" => 5,
-  "Guimarães" => 3,
-  "Coimbra" => 3,
-  "Leiria" => 2,
-  "Aveiro" => 2,
-  "Faro" => 2
+# Each city's centre, which "use my location" measures from, and how many
+# nutritionists work there.
+CITIES = {
+  "Braga" => [ 41.545400, -8.426500, 8 ],
+  "Porto" => [ 41.157900, -8.629100, 5 ],
+  "Lisboa" => [ 38.722300, -9.139300, 5 ],
+  "Guimarães" => [ 41.442500, -8.291800, 3 ],
+  "Coimbra" => [ 40.203300, -8.410300, 3 ],
+  "Leiria" => [ 39.743600, -8.807100, 2 ],
+  "Aveiro" => [ 40.640500, -8.653800, 2 ],
+  "Faro" => [ 37.019400, -7.932200, 2 ]
 }.freeze
 
 # Name, duration in minutes, and the price range in euros.
@@ -67,7 +69,14 @@ def seed_service(nutritionist, catalog_entry, city:, street_address:)
 end
 
 ActiveRecord::Base.transaction do
-  nutritionists = CITY_COUNTS.flat_map do |city, count|
+  CITIES.each do |name, (latitude, longitude, _)|
+    City.find_or_create_by!(name:) do |city|
+      city.latitude = latitude
+      city.longitude = longitude
+    end
+  end
+
+  nutritionists = CITIES.flat_map do |city, (_, _, count)|
     Array.new(count) do
       name = unique_person_name
       title = Faker::Base.sample(Nutritionist::TITLES)
