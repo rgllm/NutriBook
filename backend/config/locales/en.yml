@@ -6,8 +6,10 @@ en:
           attributes:
             guest_name:
               blank: Enter your name.
+              too_long: Use at most %{count} characters.
             guest_email:
               blank: Enter your email.
+              too_long: Use at most %{count} characters.
               invalid: Enter a valid email, like name@example.com.
             service:
               required: Choose a service.

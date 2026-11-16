@@ -152,6 +152,7 @@ they hold even if application code has a bug or two requests race:
 | A rejected request says why, and only a rejected request does | Check that `rejection_reason IS NOT NULL` equals `status = 'rejected'` |
 | Only an answered request can have been emailed | Check that `answer_notified_at` is null or `answered_at` is set |
 | Valid values | Checks on `title`, `status`, `rejection_reason`, `price >= 0`, `duration_minutes > 0`, and `ends_at > starts_at` |
+| Guest input stays a sane size | Checks that `guest_name` is at most 100 characters and `guest_email` at most 254, the longest address SMTP delivers to |
 
 A request copies its end time from the service's duration when it is created,
 so editing a service later does not move existing appointments. `superseded`
@@ -208,6 +209,10 @@ locations are the cities that have at least one service, plus `Lisbon` and
 one. The response says which case applied in `location.source`: `input`,
 `default`, or `fallback`. A page past the end returns the last page, and a
 missing or invalid page returns the first.
+
+`q` has no length limit of its own. It is never stored, it is bound as a
+parameter of an `ILIKE` over a few hundred rows, and Puma already refuses a
+query string over 10 KB, so a cap would add a rule without removing a risk.
 
 Results are ordered by name. Each nutritionist lists only the services they
 offer at the searched location, ordered by street address and then by name.

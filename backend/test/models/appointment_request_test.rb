@@ -72,6 +72,32 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert_equal [ "Enter your email." ], request.errors[:guest_email]
   end
 
+  test "accepts common valid emails" do
+    [ "joana@example.com", "joana.silva+nutri@mail.example.pt", "j_o-a@sub-domain.example.co.uk" ].each do |guest_email|
+      assert build_request(guest_email:).valid?, guest_email
+    end
+  end
+
+  test "refuses an email whose domain has no dot" do
+    [ "user@com", "user@localhost" ].each do |guest_email|
+      request = build_request(guest_email:)
+
+      assert_not request.valid?, guest_email
+      assert_equal [ "Enter a valid email, like name@example.com." ], request.errors[:guest_email], guest_email
+    end
+  end
+
+  test "limits the guest name and email length" do
+    longest_email = "#{"a" * (AppointmentRequest::GUEST_EMAIL_MAX_LENGTH - "@example.com".length)}@example.com"
+    assert build_request(guest_name: "a" * AppointmentRequest::GUEST_NAME_MAX_LENGTH, guest_email: longest_email).valid?
+
+    request = build_request(guest_name: "a" * 10_000, guest_email: "#{"a" * 10_000}@example.com")
+
+    assert_not request.valid?
+    assert_equal [ "Use at most 100 characters." ], request.errors[:guest_name]
+    assert_equal [ "Use at most 254 characters." ], request.errors[:guest_email]
+  end
+
   test "a missing service is reported once, on the service" do
     request = build_request(service: nil)
 
@@ -353,6 +379,18 @@ class AppointmentRequestTest < ActiveSupport::TestCase
   test "only an answered request can be marked as notified" do
     assert_raises(ActiveRecord::CheckViolation) do
       appointment_requests(:pending).update_column(:answer_notified_at, Time.current)
+    end
+  end
+
+  test "the database limits the guest name length" do
+    assert_raises(ActiveRecord::CheckViolation) do
+      appointment_requests(:pending).update_column(:guest_name, "a" * (AppointmentRequest::GUEST_NAME_MAX_LENGTH + 1))
+    end
+  end
+
+  test "the database limits the guest email length" do
+    assert_raises(ActiveRecord::CheckViolation) do
+      appointment_requests(:pending).update_column(:guest_email, "#{"a" * AppointmentRequest::GUEST_EMAIL_MAX_LENGTH}@example.com")
     end
   end
 

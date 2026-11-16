@@ -315,9 +315,11 @@ components:
               example: 1
             guest_name:
               type: string
+              description: At most 100 characters; a longer name is a 422.
               example: Joana Silva
             guest_email:
               type: string
+              description: At most 254 characters, with a dot in the domain; anything else is a 422.
               example: joana.silva@example.com
             date:
               type: string
@@ -342,9 +344,11 @@ components:
           enum: [pending]
         guest_name:
           type: string
+          maxLength: 100
           example: Joana Silva
         guest_email:
           type: string
+          maxLength: 254
           description: Stored lowercase.
           example: joana.silva@example.com
         starts_at:
@@ -464,9 +468,11 @@ components:
           type: integer
         guest_name:
           type: string
+          maxLength: 100
           example: Rita Gomes
         guest_email:
           type: string
+          maxLength: 254
           example: rita.gomes@example.com
         starts_at:
           type: string

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_15_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_15_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -36,6 +36,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_15_160000) do
     t.check_constraint "(answered_at IS NOT NULL) = (status::text = ANY (ARRAY['accepted'::character varying, 'rejected'::character varying]::text[]))", name: "appointment_requests_answered_at_matches_status"
     t.check_constraint "(rejection_reason IS NOT NULL) = (status::text = 'rejected'::text)", name: "appointment_requests_rejection_reason_matches_status"
     t.check_constraint "answer_notified_at IS NULL OR answered_at IS NOT NULL", name: "appointment_requests_notified_only_when_answered"
+    t.check_constraint "char_length(guest_email::text) <= 254", name: "appointment_requests_guest_email_length"
+    t.check_constraint "char_length(guest_name::text) <= 100", name: "appointment_requests_guest_name_length"
     t.check_constraint "ends_at > starts_at", name: "appointment_requests_ends_after_starts"
     t.check_constraint "rejection_reason::text = ANY (ARRAY['declined'::character varying, 'overlap'::character varying]::text[])", name: "appointment_requests_rejection_reason_allowed"
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'superseded'::character varying]::text[])", name: "appointment_requests_status_allowed"

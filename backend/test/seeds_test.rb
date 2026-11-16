@@ -22,10 +22,17 @@ class SeedsTest < ActiveSupport::TestCase
     assert answered.reload.accepted?
   end
 
+  test "reports what it seeded" do
+    out, = capture_io { silence_warnings { Rails.application.load_seed } }
+
+    assert_match(/\ASeeded \d+ nutritionists, \d+ services/, out)
+  end
+
   private
 
   def load_seeds
-    # seeds.rb defines top-level constants, which warn when loaded again.
-    silence_warnings { Rails.application.load_seed }
+    # seeds.rb defines top-level constants, which warn when loaded again, and
+    # prints a summary meant for whoever ran db:seed.
+    silence_warnings { capture_io { Rails.application.load_seed } }
   end
 end
