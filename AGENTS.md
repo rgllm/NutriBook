@@ -105,8 +105,9 @@ Optional, valued by reviewers. Do them after the core flows are solid.
   you see a lint error, a failing test, or a flaky test, fix it, even when your
   current work did not cause it.
 - Every feature ships with tests. Backend rules get model and request tests, and
-  mailers get mailer tests. The frontend has no test runner yet; add one with the
-  first piece of frontend logic worth testing instead of leaving it uncovered.
+  mailers get mailer tests. Frontend logic gets Vitest tests, components get
+  Testing Library tests in `*.test.tsx`, and API fixtures go through `stubApi`
+  so they are checked against `openapi.yaml`.
 - Before calling work done, run the checks for the side you touched and report
   the real result.
 
