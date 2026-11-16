@@ -13,6 +13,7 @@ export async function requestAppointment(
   formData: FormData,
 ): Promise<RequestAppointmentState> {
   const values = { name: text(formData, "name"), email: text(formData, "email") }
+  const serviceId = text(formData, "service_id")
   const [t, tErrors] = await Promise.all([
     getTranslations("Appointment"),
     getTranslations("AppointmentErrors"),
@@ -24,7 +25,7 @@ export async function requestAppointment(
 
   try {
     const result = await createAppointmentRequest({
-      serviceId: text(formData, "service_id"),
+      serviceId: serviceId ? Number(serviceId) : undefined,
       guestName: values.name,
       guestEmail: values.email,
       date: text(formData, "date"),

@@ -107,8 +107,10 @@ Optional, valued by reviewers. Do them after the core flows are solid.
   you see a lint error, a failing test, or a flaky test, fix it, even when your
   current work did not cause it.
 - Every feature ships with tests. Backend rules get model and request tests, and
-  mailers get mailer tests. Frontend logic gets Vitest tests. A change to a
-  user flow updates its spec in `e2e/`.
+  mailers get mailer tests. Frontend logic gets Vitest tests, components get
+  Testing Library tests in `*.test.tsx`, and API fixtures go through `stubApi`
+  so they are checked against `openapi.yaml`. A change to a user flow updates
+  its spec in `e2e/`.
 - Before calling work done, run the checks for the side you touched and report
   the real result.
 

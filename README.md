@@ -457,6 +457,18 @@ pnpm lint
 pnpm exec tsc --noEmit
 ```
 
+Vitest runs two projects. `*.test.ts` files run in Node and cover the API
+client, the Server Actions, and the helpers in `src/lib/`. `*.test.tsx` files
+are component tests: they run in jsdom with Testing Library and query by role
+and label, as a guest or nutritionist would find things. The render helper in
+`frontend/src/test/render.tsx` supplies the English messages and Lisbon time
+zone through the real next-intl provider. Every test that
+reaches Rails stubs only `fetch`, through `stubApi` in
+`frontend/src/test/stub-api.ts`. The stub checks each call and each JSON reply
+against `backend/public/openapi.yaml`, so a request body or fixture the spec no
+longer describes fails the test. The backend request tests check the same file
+from the other side.
+
 ### Frontend decisions
 
 - **The backend owns every rule.** Matching, the Braga default and fallback,
@@ -474,7 +486,8 @@ pnpm exec tsc --noEmit
   code that calls Rails. A small Zod schema per endpoint checks the payload,
   renames snake_case to camelCase, and turns decimal price strings into
   numbers; the app's types are inferred from those schemas. The backend
-  request tests pin the same JSON shape.
+  request tests and the frontend's test fixtures are both checked against
+  `openapi.yaml`, so the two sides agree on one JSON shape.
 - **No caching.** Search and locations are fetched fresh on every request.
   Results change only when the seeds run, nothing would invalidate a cache
   tag, and free-text queries rarely repeat a cache key.
