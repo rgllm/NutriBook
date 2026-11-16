@@ -675,6 +675,26 @@ failed test keeps its trace and a screenshot in `e2e/test-results/`, and
   a screen reader would, and the app has no test ids.
 
 ## Design
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on every push to
+`trunk`. It has three jobs.
+
+- **Backend** runs `bin/ci`: RuboCop, bundler-audit, Brakeman, the Rails
+  tests, and a seed replant. PostgreSQL runs as a service from the same
+  `postgres:18-alpine` image as Compose, which ships `btree_gist` and
+  `unaccent`, so the migrations enable them as they do locally.
+- **Frontend** runs `pnpm lint`, `tsc --noEmit`, `pnpm test`, and
+  `pnpm build`.
+- **End to end** lints and typechecks `e2e/`, then runs `pnpm e2e` against the
+  Docker stack. A failed run uploads the Playwright report and traces.
+
+On a pull request, the backend job runs only when `backend/` changes, and the
+frontend job only when `frontend/` or `backend/public/openapi.yaml` changes,
+since the frontend tests check their fixtures against that contract. A change
+to the workflow runs both. The end-to-end job always runs, and a push to
+`trunk` runs every job.
+
 
 `frontend/DESIGN.md` is the design reference. The UI follows the challenge's
 reference image, which is a Nutrium page, and takes its palette and shapes from
