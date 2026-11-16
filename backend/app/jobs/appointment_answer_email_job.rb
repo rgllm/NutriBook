@@ -1,3 +1,5 @@
+require "net/smtp"
+
 # Emails the guest how their request was answered. AppointmentRequest#answer!
 # enqueues it in the transaction that answers the request.
 #

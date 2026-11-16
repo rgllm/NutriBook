@@ -34,6 +34,11 @@ docker compose down
 Backend source changes reload through the bind mount. Rebuild the image after
 changing the Gemfile or Gemfile.lock.
 
+The API loads Active Record, Action Controller, Action View, Action Mailer,
+Active Job, and Rails' test integration explicitly. Action View renders the
+email templates. Active Storage, Action Cable, Action Mailbox, and Action Text
+are unused and their engines are not loaded.
+
 ### Background jobs and email
 
 Active Job runs on [Solid Queue](https://github.com/rails/solid_queue), and

@@ -9,11 +9,16 @@ export type SearchState = {
 const firstValue = (value: string | string[] | undefined) =>
   ((Array.isArray(value) ? value[0] : value) ?? "").trim()
 
+const pageNumber = (value: string) => {
+  const page = Number(value)
+  return Number.isInteger(page) && page > 0 ? page : 1
+}
+
 export function parseSearchParams(params: SearchParams): SearchState {
   return {
     query: firstValue(params.q),
     location: firstValue(params.location),
-    page: Number(firstValue(params.page)) || 1,
+    page: pageNumber(firstValue(params.page)),
   }
 }
 

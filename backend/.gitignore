@@ -10,6 +10,4 @@
 !/tmp/pids/
 /tmp/pids/*
 !/tmp/pids/.keep
-/storage/*
-!/storage/.keep
 /vendor/bundle
