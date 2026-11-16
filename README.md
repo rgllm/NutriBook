@@ -221,6 +221,41 @@ and pending lists. Solid Queue uses additional tables in the same database.
 - **Keep business rules in Rails.** The UI renders API results and translates
   field error codes. Backend validation protects every caller, including
   callers that bypass the form.
+- **Identify professionals by licence number.** `id` identifies each database
+  row and is used in routes. A unique `license_number` identifies the
+  professional and makes seeding idempotent. Names need not be unique; the
+  earlier name-derived slug was removed.
+- **Put addresses on services, not nutritionists.** Each service requires a
+  street address and city. A nutritionist can work in several cities or at
+  several addresses in the same city, without a separate practices table.
+  Search cards list distinct addresses from the services in the selected city.
+  The agreed booking behavior is to show each service's address in the selector
+  for in-person appointments and hide it for online appointments. The current
+  selector shows only name, price, and duration, so distinguishing service
+  locations before submission remains a UI gap.
+- **Keep online as a choice on the request.** Every service still has a physical
+  address. Guests can choose online only when the nutritionist offers it;
+  otherwise the checkbox is hidden, and Rails rejects an online submission.
+  The same service supplies the price and duration for either choice. For online
+  appointments, answer emails show "Online" instead of a street address.
+  Online-only services are outside this model.
+- **Keep overdue requests answerable.** A new request must start in the future,
+  but an existing pending request does not expire automatically. It remains in
+  the list, ordered by start time and then ID, with an overdue badge. The
+  nutritionist may still accept or reject it and trigger the usual email.
+  Acceptance still checks for overlapping accepted appointments. This keeps
+  unanswered requests visible and follows the requirement that they stay
+  pending until answered.
+- **Distinguish replacement from rejection.** A guest's new valid request
+  supersedes their previous pending request, even with another nutritionist.
+  Superseding sends no email because it is the guest's replacement, rather than
+  an answer. Superseded and answered requests cannot be answered again.
+- **Preserve the booked interval, but read the current service address.**
+  `ends_at` captures the duration at booking. Service names, addresses, and
+  prices are not copied onto requests. There is no service-editing interface,
+  so this is a deliberate limitation. Before adding one, snapshot the address
+  and price on the request so edits do not rewrite booking history or change
+  the location shown in a delayed email.
 - **Use transactions, locks, and constraints together.** Submissions take a
   transaction-scoped advisory lock derived from the guest's email before
   superseding their pending request. Invalid submissions roll back that change.
