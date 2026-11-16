@@ -11,11 +11,3 @@ export type AnswerRequestState =
   | { status: "answered"; answer: RequestAnswer; rejectedCount: number }
   | { status: "gone"; message: string }
   | { status: "failed"; error: string }
-
-export function answeredMessage(answer: RequestAnswer, guestName: string, rejectedCount: number) {
-  const answered = `${answer === "accepted" ? "Accepted" : "Rejected"} ${guestName}'s request.`
-  if (rejectedCount === 0) return answered
-  return rejectedCount === 1
-    ? `${answered} 1 overlapping request was rejected.`
-    : `${answered} ${rejectedCount} overlapping requests were rejected.`
-}

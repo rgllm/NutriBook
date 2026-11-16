@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { format } from "date-fns"
+import { useFormatter, useLocale, useTranslations } from "next-intl"
+import { enGB, pt } from "react-day-picker/locale"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -33,7 +34,9 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { RequestAppointmentButton } from "@/components/appointment/request-appointment-button"
 import type { Nutritionist } from "@/lib/api/nutritionists"
+import type { Locale } from "@/i18n/locale"
 import {
+  bookingDayInstant,
   isSlotInPast,
   practiceToday,
   TIME_SLOTS,
@@ -46,6 +49,8 @@ import {
 
 type EditingState = Extract<RequestAppointmentState, { status: "editing" }>
 
+const CALENDAR_LOCALES = { "en-GB": enGB, "pt-PT": pt } satisfies Record<Locale, unknown>
+
 export function AppointmentForm({
   nutritionist,
   state,
@@ -55,7 +60,18 @@ export function AppointmentForm({
   state: EditingState
   action: (formData: FormData) => void
 }) {
+  const t = useTranslations("Appointment")
+  const format = useFormatter()
+  const locale = useLocale()
   const { services } = nutritionist
+  const serviceItems = services.map((service) => ({
+    value: service.id,
+    label: t("serviceOption", {
+      name: service.name,
+      price: service.priceEur,
+      minutes: service.durationMinutes,
+    }),
+  }))
   const [serviceId, setServiceId] = useState(
     services.length === 1 ? services[0].id : undefined,
   )
@@ -107,17 +123,20 @@ export function AppointmentForm({
 
       <DialogHeader>
         <DialogTitle className="text-subheading">
-          Schedule an appointment
+          {t("title")}
         </DialogTitle>
         <DialogDescription>
-          With {nutritionist.name}, {nutritionist.title.toLowerCase()} in{" "}
-          {nutritionist.city}. They will confirm your request by email.
+          {t("description", {
+            name: nutritionist.name,
+            title: nutritionist.title,
+            city: nutritionist.city,
+          })}
         </DialogDescription>
       </DialogHeader>
 
       <FieldGroup className="sm:flex-row">
         <Field data-invalid={Boolean(errors.name)}>
-          <FieldLabel htmlFor="guest-name">Your name</FieldLabel>
+          <FieldLabel htmlFor="guest-name">{t("name")}</FieldLabel>
           <Input
             id="guest-name"
             name="name"
@@ -130,7 +149,7 @@ export function AppointmentForm({
           <FieldError id={errorId("name")}>{errors.name}</FieldError>
         </Field>
         <Field data-invalid={Boolean(errors.email)}>
-          <FieldLabel htmlFor="guest-email">Email</FieldLabel>
+          <FieldLabel htmlFor="guest-email">{t("email")}</FieldLabel>
           <Input
             id="guest-email"
             name="email"
@@ -148,9 +167,9 @@ export function AppointmentForm({
 
       <FieldGroup>
         <Field data-invalid={Boolean(errors.service)}>
-          <FieldLabel htmlFor="service">Service</FieldLabel>
+          <FieldLabel htmlFor="service">{t("service")}</FieldLabel>
           <Select
-            items={services.map((service) => ({ value: service.id, label: service.name }))}
+            items={serviceItems}
             value={serviceId ?? null}
             onValueChange={selectService}
           >
@@ -160,12 +179,12 @@ export function AppointmentForm({
               aria-invalid={Boolean(errors.service)}
               aria-describedby={describedBy("service")}
             >
-              <SelectValue placeholder="Choose a service" />
+              <SelectValue placeholder={t("servicePlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              {services.map((service) => (
-                <SelectItem key={service.id} value={service.id}>
-                  {service.name}
+              {serviceItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -181,18 +200,19 @@ export function AppointmentForm({
               aria-invalid={Boolean(errors.online)}
               aria-describedby={describedBy("online")}
             />
-            <FieldLabel htmlFor="online">Online appointment</FieldLabel>
+            <FieldLabel htmlFor="online">{t("online")}</FieldLabel>
             <FieldError id={errorId("online")}>{errors.online}</FieldError>
           </Field>
         )}
       </FieldGroup>
 
       <FieldSet>
-        <FieldLegend>Date and time</FieldLegend>
+        <FieldLegend>{t("dateAndTime")}</FieldLegend>
         <div className="flex flex-col gap-6 sm:flex-row">
           <Field className="sm:w-auto">
             <Calendar
               mode="single"
+              locale={CALENDAR_LOCALES[locale]}
               selected={date}
               onSelect={selectDate}
               disabled={[{ before: practiceToday() }, { dayOfWeek: [0] }]}
@@ -201,7 +221,7 @@ export function AppointmentForm({
           </Field>
           <Field className="flex-1" data-invalid={Boolean(errors.when)}>
             <FieldLabel id="time-label">
-              {date ? format(date, "EEEE, d MMMM") : "Time"}
+              {date ? format.dateTime(bookingDayInstant(date), "appointmentDay") : t("time")}
             </FieldLabel>
             <ToggleGroup
               aria-labelledby="time-label"
@@ -224,7 +244,7 @@ export function AppointmentForm({
             {errors.when ? (
               <FieldError id={errorId("when")}>{errors.when}</FieldError>
             ) : (
-              !date && <FieldDescription>Pick a day to see available times.</FieldDescription>
+              !date && <FieldDescription>{t("pickDay")}</FieldDescription>
             )}
           </Field>
         </div>
@@ -237,7 +257,7 @@ export function AppointmentForm({
       )}
 
       <DialogFooter className="-mx-4 -mb-4 sm:-mx-6 sm:-mb-6 sm:px-6">
-        <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+        <DialogClose render={<Button variant="outline" />}>{t("cancel")}</DialogClose>
         <RequestAppointmentButton />
       </DialogFooter>
     </form>

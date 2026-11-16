@@ -1,13 +1,15 @@
-import { render, screen } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { answerRequest } from "@/app/nutritionists/[id]/requests/actions"
 import { AnswerRequestForm } from "@/components/requests/answer-request-form"
 import type { AnswerRequestState } from "@/lib/pending-requests"
+import { render } from "@/test/render"
 import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
+vi.mock("next-intl/server", () => import("@/test/translations"))
 vi.mock("next/cache", () => ({ refresh: vi.fn() }))
 
 const accept = () => screen.getByRole("button", { name: "Accept the request from Rita Gomes" })

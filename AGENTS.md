@@ -109,7 +109,8 @@ Optional, valued by reviewers. Do them after the core flows are solid.
 - Every feature ships with tests. Backend rules get model and request tests, and
   mailers get mailer tests. Frontend logic gets Vitest tests, components get
   Testing Library tests in `*.test.tsx`, and API fixtures go through `stubApi`
-  so they are checked against `openapi.yaml`.
+  so they are checked against `openapi.yaml`. A change to a user flow updates
+  its spec in `e2e/`.
 - Before calling work done, run the checks for the side you touched and report
   the real result.
 
@@ -125,7 +126,7 @@ pnpm lint
 pnpm exec tsc --noEmit
 pnpm build
 
-# End to end (from the project root; resets the e2e stack first)
+# End to end (from the project root; each run resets the e2e stack)
 pnpm e2e
 pnpm e2e:lint
 pnpm e2e:typecheck

@@ -1,5 +1,5 @@
 import { useActionState } from "react"
-import { render, screen } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -7,6 +7,7 @@ import { AppointmentForm } from "@/components/appointment/appointment-form"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import type { RequestAppointmentState } from "@/lib/appointment-request"
 import { nutritionist } from "@/test/nutritionist"
+import { render } from "@/test/render"
 
 type EditingState = Extract<RequestAppointmentState, { status: "editing" }>
 
@@ -79,11 +80,11 @@ describe("AppointmentForm", () => {
 
     await user.type(screen.getByLabelText("Your name"), "Joana Silva")
     await user.click(screen.getByRole("checkbox", { name: "Online appointment" }))
-    await user.click(screen.getByRole("button", { name: /November 23rd/ }))
+    await user.click(screen.getByRole("button", { name: /Monday, 23 November 2026/ }))
 
     expect(screen.getByLabelText("Your name")).not.toHaveAccessibleDescription()
     expect(screen.getByRole("checkbox", { name: "Online appointment" })).not.toHaveAccessibleDescription()
-    expect(screen.getByRole("group", { name: "Monday, 23 November" })).not.toHaveAccessibleDescription()
+    expect(screen.getByRole("group", { name: "Monday 23 November" })).not.toHaveAccessibleDescription()
     expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
     expect(screen.queryByText("Enter your name.")).not.toBeInTheDocument()
   })

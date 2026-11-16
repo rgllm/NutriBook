@@ -93,7 +93,6 @@ pnpm test                 # backend tests
 pnpm lint                 # backend, frontend, and e2e lint
 pnpm e2e                  # end-to-end tests (see below)
 pnpm e2e:ui               # the same, in Playwright's UI mode
-pnpm e2e:reset            # reset the e2e stack without running tests
 pnpm e2e:down             # remove the e2e stack and its data
 pnpm e2e:lint
 pnpm e2e:typecheck
@@ -283,12 +282,14 @@ curl -X POST 'http://localhost:3001/appointment_requests' \
        "time": "10:00", "online": false}}'
 ```
 
-It returns `201` with the request, or `422` with messages per field, written
-for the guest so the frontend shows them as they are:
+It returns `201` with the request, or `422` with error codes per field. The
+API does not know the guest's language, so the frontend words each code:
 
 ```json
-{ "errors": { "starts_at": ["Pick one of the available times."] } }
+{ "errors": { "starts_at": ["not_a_slot"] } }
 ```
+
+`public/openapi.yaml` lists every code a field can have.
 
 All times are Portuguese wall-clock time. The API takes the day and the time
 as they were picked, and `BookingSchedule` reads them in `Europe/Lisbon` and
@@ -354,13 +355,13 @@ curl -X PATCH 'http://localhost:3001/nutritionists/1/appointment_requests/7' \
 follow the same route constraint as the list, so `7abc` never answers request
 7. A request that isn't this nutritionist's returns `404`, and any status other than
 `accepted` or `rejected` returns `422`. If the request was already answered or
-superseded, the API returns `409` with its current status. It does the same
-when accepting the request would overlap an accepted appointment, which can
-happen when the guest booked at the moment the nutritionist accepted another
-request:
+superseded, the API returns `409` with a reason code and the request's current
+status. It does the same, with `overlaps_accepted`, when accepting the request
+would overlap an accepted appointment, which can happen when the guest booked
+at the moment the nutritionist accepted another request:
 
 ```json
-{ "error": "This request was already accepted.", "status": "accepted" }
+{ "error": "already_accepted", "status": "accepted" }
 ```
 
 `AppointmentRequest#answer!` runs in one transaction. It locks the
@@ -433,7 +434,7 @@ Server Action, bound to the request on the server. On success the action calls
 `refresh()`, so the answered request and any overlapping requests the API
 rejected with it leave the list, and a Sonner toast says how many overlapping
 requests were rejected. A request that was already answered, for example in
-another tab, also leaves the list, with the API's reason in an error toast.
+another tab, also leaves the list, with the reason in an error toast.
 When the API is unavailable the card stays and shows a message to try again.
 Answering a request emails the guest; open Mailpit at <http://localhost:8025>
 to read it.
@@ -459,7 +460,9 @@ pnpm exec tsc --noEmit
 Vitest runs two projects. `*.test.ts` files run in Node and cover the API
 client, the Server Actions, and the helpers in `src/lib/`. `*.test.tsx` files
 are component tests: they run in jsdom with Testing Library and query by role
-and label, as a guest or nutritionist would find things. Every test that
+and label, as a guest or nutritionist would find things. The render helper in
+`frontend/src/test/render.tsx` supplies the English messages and Lisbon time
+zone through the real next-intl provider. Every test that
 reaches Rails stubs only `fetch`, through `stubApi` in
 `frontend/src/test/stub-api.ts`. The stub checks each call and each JSON reply
 against `backend/public/openapi.yaml`, so a request body or fixture the spec no
@@ -472,9 +475,9 @@ from the other side.
   paging, and the list of known cities come from the API. The frontend renders
   what it gets and keeps no copy of those rules.
 - **The booking form does not validate.** It posts through a Server Action
-  with `useActionState`, and Rails answers with messages per field, already
-  written for the guest. `toAppointmentErrors` puts each message under its
-  field, and changing a field clears its message. The day and time travel as
+  with `useActionState`, and Rails answers with error codes per field. The
+  action words each code in the guest's language, `toAppointmentErrors` puts
+  each message under its field, and changing a field clears its message. The day and time travel as
   the guest picked them (`2026-12-07`, `10:00`), so no time zone conversion
   happens in the browser or in Node. The time picker shows the same slots as
   `BookingSchedule`; that list is the one rule kept in both places, because
@@ -500,6 +503,33 @@ from the other side.
   form says the request could not be sent and keeps what the guest typed. Anything else, such
   as a 4xx or a payload that fails parsing, is a bug and reaches
   `app/error.tsx`.
+
+### Languages
+
+The interface is in British English and European Portuguese, with
+[next-intl](https://next-intl.dev/) in its mode without i18n routing. The URL
+does not carry the language, so a shared link opens in the reader's own
+language.
+
+- **Choosing the language.** `frontend/src/i18n/request.ts` takes the
+  `NEXT_LOCALE` cookie first, then the browser's `Accept-Language` (any
+  Portuguese variant gets `pt-PT`), then English. The EN and PT buttons in the
+  header are a Server Action that sets the cookie, and the page re-renders in
+  the new language.
+- **Messages.** `frontend/messages/en-GB.json` and `pt-PT.json` hold every
+  string, with ICU plurals and selects. `frontend/src/i18n/messages.ts` types
+  the Portuguese file against the English one, so a missing message fails
+  `tsc`.
+- **Formatting.** Prices, dates, and times use next-intl's formatter with the
+  named formats in `frontend/src/i18n/formats.ts`, always in `Europe/Lisbon`.
+  Prices follow each language: `€35` in English, `35 €` in Portuguese.
+- **What stays as written.** Service names and addresses come from the
+  nutritionists, so they are not translated. The nutritionist's title is a
+  fixed list, so it is. Emails stay in English: the backend does not know the
+  guest's language.
+- **Every page renders per request.** The root layout reads the cookie, so it
+  sets `instant = false`: a shell prerendered at build time could only be in
+  one language. Each page's `Suspense` boundaries still stream its data.
 
 ## End-to-end tests
 
@@ -532,19 +562,20 @@ pnpm --dir e2e exec playwright install chromium
 pnpm e2e
 ```
 
-`pnpm e2e` resets a separate Compose project, `nutribook-e2e`, before
-Playwright starts. It has its own database and Mailpit, so it never touches
-the development data. Rails runs on port 3101, Mailpit on 8125, and the
-frontend on 3100. The development stack can keep running alongside it. The
-reset stops Rails, replants the demo seeds, loads
+Every Playwright run, whether `pnpm e2e`, UI mode, or an editor
+integration, starts by resetting a separate Compose project, `nutribook-e2e`,
+in `e2e/global-setup.ts`. It has its own database and Mailpit, so it never
+touches the development data. Rails runs on port 3101, Mailpit on 8125, and
+the frontend on 3100. The development stack can keep running alongside it.
+The reset stops Rails, replants the demo seeds, loads
 `e2e/fixtures/nutritionists.rb`, empties Mailpit, and starts Rails again.
 Rails stays stopped while the data is replaced, because replanting also
 empties the Solid Queue tables that its worker polls.
 
-Playwright then builds the frontend with `next build` and serves it with
-`next start`. A failed test keeps its trace and a screenshot in
-`e2e/test-results/`, and `pnpm --dir e2e exec playwright show-report` opens
-the HTML report.
+Playwright serves the frontend with `next build` and `next start`, pointed at
+the e2e Rails. The build calls no API, so it does not wait for the reset. A
+failed test keeps its trace and a screenshot in `e2e/test-results/`, and
+`pnpm --dir e2e exec playwright show-report` opens the HTML report.
 
 ### How the tests stay independent
 
@@ -562,9 +593,6 @@ the HTML report.
   Lisbon and that the booking keeps the Lisbon time.
 - **Accessible selectors.** Tests find elements by role, label, and text, as
   a screen reader would, and the app has no test ids.
-
-Running `playwright test` directly skips the reset, so a second run fails on
-slots the first run accepted. Run `pnpm e2e:reset` first.
 
 ## Design
 

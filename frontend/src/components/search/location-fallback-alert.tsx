@@ -1,15 +1,16 @@
 import { InfoIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function LocationFallbackAlert({ input, city }: { input: string; city: string }) {
+  const t = useTranslations("Search")
+
   return (
     <Alert>
       <InfoIcon />
-      <AlertTitle>We don&apos;t know &ldquo;{input}&rdquo; yet</AlertTitle>
-      <AlertDescription>
-        Showing nutritionists in {city} instead. Pick a city from the location suggestions.
-      </AlertDescription>
+      <AlertTitle>{t("unknownLocationTitle", { input })}</AlertTitle>
+      <AlertDescription>{t("unknownLocationDescription", { city })}</AlertDescription>
     </Alert>
   )
 }

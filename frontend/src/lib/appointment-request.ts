@@ -2,7 +2,7 @@ import { format, parseISO } from "date-fns"
 
 import type { CreatedAppointmentRequest } from "@/lib/api/appointment-requests"
 import type { ValidationErrors } from "@/lib/api/http"
-import { PRACTICE_TIME_ZONE } from "@/lib/format"
+import { PRACTICE_TIME_ZONE } from "@/i18n/formats"
 
 // Mirrors BookingSchedule::SLOT_HOURS in the backend, which enforces them.
 export const TIME_SLOTS = [
@@ -36,11 +36,16 @@ const FIELDS_BY_API_KEY: Record<string, AppointmentField> = {
   online: "online",
 }
 
-export function toAppointmentErrors(errors: ValidationErrors): AppointmentErrors {
+// Shows the first of each field's error codes as the message that describe()
+// gives it, in the guest's language.
+export function toAppointmentErrors(
+  errors: ValidationErrors,
+  describe: (key: string, code: string) => string,
+): AppointmentErrors {
   const formErrors: AppointmentErrors = {}
-  for (const [key, messages] of Object.entries(errors)) {
+  for (const [key, codes] of Object.entries(errors)) {
     const field = FIELDS_BY_API_KEY[key] ?? "form"
-    formErrors[field] ??= messages[0]
+    formErrors[field] ??= describe(key, codes[0])
   }
   return formErrors
 }
@@ -68,6 +73,10 @@ function practiceNow(now: Date) {
 
 // The day the calendar shows, as the API expects it ("2026-11-23").
 export const toBookingDay = (date: Date) => format(date, "yyyy-MM-dd")
+
+// Noon UTC on the calendar's day falls on that same day in Lisbon, so the
+// formatter, which shows Lisbon time, names the day the guest picked.
+export const bookingDayInstant = (date: Date) => new Date(`${toBookingDay(date)}T12:00:00Z`)
 
 // Today in Lisbon, as a calendar day in the browser's zone.
 export const practiceToday = (now = new Date()) => parseISO(practiceNow(now).day)

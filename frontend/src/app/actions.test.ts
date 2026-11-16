@@ -4,6 +4,7 @@ import { requestAppointment } from "@/app/actions"
 import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
+vi.mock("next-intl/server", () => import("@/test/translations"))
 
 const initialState = { status: "editing", errors: {}, values: { name: "", email: "" } } as const
 
@@ -68,9 +69,9 @@ describe("requestAppointment", () => {
       Response.json(
         {
           errors: {
-            service: ["Choose a service."],
-            guest_email: ["Enter a valid email, like name@example.com."],
-            starts_at: ["Pick one of the available times."],
+            service: ["blank"],
+            guest_email: ["invalid"],
+            starts_at: ["not_a_slot"],
           },
         },
         { status: 422 },

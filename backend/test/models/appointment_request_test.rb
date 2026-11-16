@@ -60,16 +60,16 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     request = AppointmentRequest.new(service: @service, guest_email: "not-an-email")
 
     assert_not request.valid?
-    assert_equal [ "Enter your name." ], request.errors[:guest_name]
-    assert_equal [ "Enter a valid email, like name@example.com." ], request.errors[:guest_email]
-    assert_equal [ "Pick a day and time." ], request.errors[:starts_at]
+    assert_equal [ :blank ], request.error_codes[:guest_name]
+    assert_equal [ :invalid ], request.error_codes[:guest_email]
+    assert_equal [ :blank ], request.error_codes[:starts_at]
   end
 
   test "a blank email asks for one instead of calling it invalid" do
     request = build_request(guest_email: " ")
 
     assert_not request.valid?
-    assert_equal [ "Enter your email." ], request.errors[:guest_email]
+    assert_equal [ :blank ], request.error_codes[:guest_email]
   end
 
   test "accepts common valid emails" do
@@ -83,7 +83,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
       request = build_request(guest_email:)
 
       assert_not request.valid?, guest_email
-      assert_equal [ "Enter a valid email, like name@example.com." ], request.errors[:guest_email], guest_email
+      assert_equal [ :invalid ], request.error_codes[:guest_email], guest_email
     end
   end
 
@@ -94,15 +94,15 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     request = build_request(guest_name: "a" * 10_000, guest_email: "#{"a" * 10_000}@example.com")
 
     assert_not request.valid?
-    assert_equal [ "Use at most 100 characters." ], request.errors[:guest_name]
-    assert_equal [ "Use at most 254 characters." ], request.errors[:guest_email]
+    assert_equal [ :too_long ], request.error_codes[:guest_name]
+    assert_equal [ :too_long ], request.error_codes[:guest_email]
   end
 
   test "a missing service is reported once, on the service" do
     request = build_request(service: nil)
 
     assert_not request.valid?
-    assert_equal [ "Choose a service." ], request.errors[:service]
+    assert_equal [ :blank ], request.error_codes[:service]
     assert_empty request.errors[:nutritionist]
   end
 
@@ -111,14 +111,14 @@ class AppointmentRequestTest < ActiveSupport::TestCase
 
     request = build_request(service: services(:ana_sports_nutrition), online: true)
     assert_not request.valid?
-    assert_equal [ "This nutritionist does not offer online appointments." ], request.errors[:online]
+    assert_equal [ :not_offered ], request.error_codes[:online]
   end
 
   test "a new request must start in the future" do
     request = build_request(starts_at: Time.utc(2026, 11, 20, 11, 0))
 
     assert_not request.valid?
-    assert_equal [ "Pick a time that has not passed yet." ], request.errors[:starts_at]
+    assert_equal [ :past ], request.error_codes[:starts_at]
   end
 
   test "a new request must start on a bookable slot" do
@@ -131,7 +131,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
       request = build_request(starts_at:)
 
       assert_not request.valid?, label
-      assert_equal [ "Pick one of the available times." ], request.errors[:starts_at], label
+      assert_equal [ :not_a_slot ], request.error_codes[:starts_at], label
     end
   end
 
@@ -140,7 +140,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     request = build_request(starts_at: Time.utc(2026, 12, 1, 14, 0))
 
     assert_not request.valid?
-    assert_equal [ "This time is no longer available. Pick another." ], request.errors[:starts_at]
+    assert_equal [ :taken ], request.error_codes[:starts_at]
     assert build_request(starts_at: Time.utc(2026, 12, 1, 15, 0)).valid?
   end
 
@@ -218,22 +218,22 @@ class AppointmentRequestTest < ActiveSupport::TestCase
 
       error = assert_raises(ActiveRecord::RecordInvalid) { request.answer!(answer) }
 
-      assert_equal [ "Answer with accepted or rejected." ], error.record.errors[:status], answer.inspect
+      assert_equal [ :not_an_answer ], error.record.error_codes[:status], answer.inspect
       assert request.reload.pending?
     end
   end
 
   test "an answered or superseded request cannot be answered again" do
     {
-      accepted: "This request was already accepted.",
-      rejected: "This request was already rejected.",
-      superseded: "The guest replaced this request with a newer one."
-    }.each do |fixture, message|
+      accepted: "already_accepted",
+      rejected: "already_rejected",
+      superseded: "superseded"
+    }.each do |fixture, reason|
       request = appointment_requests(fixture)
 
       error = assert_raises(AppointmentRequest::NotAnswerable) { request.answer!("accepted") }
 
-      assert_equal message, error.message
+      assert_equal reason, error.message
       assert_equal fixture.to_s, request.reload.status
     end
   end
@@ -253,7 +253,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
 
     error = assert_raises(AppointmentRequest::NotAnswerable) { request.answer!("accepted") }
 
-    assert_equal "This time overlaps an accepted appointment. Reject the request instead.", error.message
+    assert_equal "overlaps_accepted", error.message
     assert request.reload.pending?
     request.answer!("rejected")
     assert request.reload.rejected?
@@ -287,7 +287,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     request = AppointmentRequest.submit(request_attributes(guest_email: "rita.gomes@example.com", starts_at: nil))
 
     assert_not request.persisted?
-    assert_equal [ "Pick a day and time." ], request.errors[:starts_at]
+    assert_equal [ :blank ], request.error_codes[:starts_at]
     assert appointment_requests(:pending).reload.pending?
   end
 

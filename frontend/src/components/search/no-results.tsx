@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { SearchXIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -20,23 +21,23 @@ export function NoResults({
   query: string
   clearHref: string
 }) {
+  const t = useTranslations("Search")
+
   return (
     <Empty className="border bg-card">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <SearchXIcon />
         </EmptyMedia>
-        <EmptyTitle>No nutritionists found</EmptyTitle>
+        <EmptyTitle>{t("noResultsTitle")}</EmptyTitle>
         <EmptyDescription>
-          {query
-            ? `Nobody in ${city} matches “${query}”. Try another name or service.`
-            : `There are no nutritionists in ${city} yet. Try a nearby city.`}
+          {query ? t("noMatch", { city, query }) : t("noneInCity", { city })}
         </EmptyDescription>
       </EmptyHeader>
       {query && (
         <EmptyContent>
           <Link href={clearHref} className={buttonVariants({ variant: "outline" })}>
-            Clear search
+            {t("clearSearch")}
           </Link>
         </EmptyContent>
       )}

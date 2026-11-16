@@ -1,12 +1,14 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
+import { getTranslations } from "next-intl/server"
 
 import { PendingRequests } from "@/components/requests/pending-requests"
 import { RequestsSkeleton } from "@/components/requests/requests-skeleton"
 import { SiteHeader } from "@/components/site-header"
 
-export const metadata: Metadata = {
-  title: "NutriBook · Pending requests",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Metadata")
+  return { title: t("requestsTitle") }
 }
 
 export default function NutritionistRequestsPage({

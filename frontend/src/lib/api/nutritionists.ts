@@ -9,11 +9,13 @@ const serviceSchema = z
     name: z.string(),
     price: z.coerce.number(),
     street_address: z.string(),
+    duration_minutes: z.number(),
   })
-  .transform(({ price, street_address, ...service }) => ({
+  .transform(({ price, street_address, duration_minutes, ...service }) => ({
     ...service,
     priceEur: price,
     streetAddress: street_address,
+    durationMinutes: duration_minutes,
   }))
 
 const nutritionistSchema = z

@@ -6,6 +6,7 @@ import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ refresh: vi.fn() }))
+vi.mock("next-intl/server", () => import("@/test/translations"))
 
 function answer(status: string) {
   const formData = new FormData()
@@ -29,7 +30,7 @@ describe("answerRequest", () => {
 
   it("refreshes away a request that was already answered and says why", async () => {
     stubApi(
-      Response.json({ error: "This request was already rejected.", status: "rejected" }, { status: 409 }),
+      Response.json({ error: "already_rejected", status: "rejected" }, { status: 409 }),
     )
 
     expect(await answer("accepted")).toEqual({ status: "gone", message: "This request was already rejected." })
@@ -43,12 +44,17 @@ describe("answerRequest", () => {
     expect(refresh).toHaveBeenCalledOnce()
   })
 
-  it("keeps the card with the API's message for an answer it does not accept", async () => {
-    stubApi(
-      Response.json({ errors: { status: ["Answer with accepted or rejected."] } }, { status: 422 }),
-    )
+  it("refreshes away a request for a conflict it has no message for", async () => {
+    stubApi(Response.json({ error: "archived", status: "archived" }, { status: 409 }), { checkContract: false })
 
-    expect(await answer("maybe")).toEqual({ status: "failed", error: "Answer with accepted or rejected." })
+    expect(await answer("accepted")).toEqual({ status: "gone", message: "This request no longer exists." })
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it("keeps the card for an answer the API does not accept", async () => {
+    stubApi(Response.json({ errors: { status: ["not_an_answer"] } }, { status: 422 }))
+
+    expect(await answer("maybe")).toEqual({ status: "failed", error: "We could not answer this request." })
     expect(refresh).not.toHaveBeenCalled()
   })
 

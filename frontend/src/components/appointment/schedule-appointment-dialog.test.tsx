@@ -1,12 +1,14 @@
-import { render, screen } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { ScheduleAppointmentDialog } from "@/components/appointment/schedule-appointment-dialog"
 import { nutritionist } from "@/test/nutritionist"
+import { render } from "@/test/render"
 import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
+vi.mock("next-intl/server", () => import("@/test/translations"))
 
 afterEach(() => {
   vi.useRealTimers()
@@ -36,7 +38,7 @@ describe("ScheduleAppointmentDialog", () => {
     await user.click(screen.getByRole("button", { name: "Schedule appointment" }))
     await user.type(screen.getByLabelText("Your name"), "Joana Silva")
     await user.type(screen.getByLabelText("Email"), "Joana.Silva@example.com")
-    await user.click(screen.getByRole("button", { name: /November 23rd/ }))
+    await user.click(screen.getByRole("button", { name: /Monday, 23 November 2026/ }))
     await user.click(screen.getByRole("button", { name: "10:00" }))
     await user.click(screen.getByRole("button", { name: "Request appointment" }))
 

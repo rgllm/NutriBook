@@ -73,18 +73,21 @@ describe("searchNutritionists", () => {
               name: "First appointment",
               priceEur: 40,
               streetAddress: "Avenida Ladislau Moraes, 232",
+              durationMinutes: 60,
             },
             {
               id: 34,
               name: "Follow-up",
               priceEur: 19.5,
               streetAddress: "Avenida Ladislau Moraes, 232",
+              durationMinutes: 30,
             },
             {
               id: 35,
               name: "Sports nutrition",
               priceEur: 45,
               streetAddress: "Rua de Cedofeita, 9",
+              durationMinutes: 45,
             },
           ],
         },
@@ -127,6 +130,24 @@ describe("searchNutritionists", () => {
 
   it("treats a client error as a bug, not an outage", async () => {
     stubApi(new Response(null, { status: 404 }))
+
+    const error = await searchNutritionists(search).catch((error: unknown) => error)
+    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeInstanceOf(ApiUnavailableError)
+  })
+
+  it("rejects a service without a duration", async () => {
+    const [nutritionist] = payload.nutritionists
+    const [service, ...rest] = nutritionist.services
+    stubApi(
+      Response.json({
+        ...payload,
+        nutritionists: [
+          { ...nutritionist, services: [{ ...service, duration_minutes: undefined }, ...rest] },
+        ],
+      }),
+      { checkContract: false },
+    )
 
     const error = await searchNutritionists(search).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)

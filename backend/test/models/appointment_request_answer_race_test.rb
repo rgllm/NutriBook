@@ -44,7 +44,7 @@ class AppointmentRequestAnswerRaceTest < ActiveSupport::TestCase
     release.count_down
 
     assert_equal [ @second.id ], slow.value
-    assert_equal "This request was already rejected.", fast.value.message
+    assert_equal "already_rejected", fast.value.message
     assert @first.reload.accepted?
     assert @second.reload.rejected?
   end
