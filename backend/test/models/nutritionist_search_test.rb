@@ -1,6 +1,22 @@
 require "test_helper"
 
 class NutritionistSearchTest < ActiveSupport::TestCase
+  # Answers like NutritionistIndex from canned pages of ids, and records each call.
+  class FakeIndex
+    attr_reader :calls
+
+    def initialize(pages = {}, total: pages.values.sum(&:size), unavailable_pages: [])
+      @pages, @total, @unavailable_pages, @calls = pages, total, unavailable_pages, []
+    end
+
+    def search(query, city:, page:, per_page:)
+      @calls << { query:, city:, page:, per_page: }
+      raise NutritionistIndex::Unavailable, "connection refused" if @unavailable_pages.include?(page)
+
+      NutritionistIndex::Hits.new(ids: @pages.fetch(page, []), total: @total, page:)
+    end
+  end
+
   test "a blank location defaults to Braga" do
     [ nil, "", "   " ].each do |input|
       search = search(location: input)
@@ -167,10 +183,71 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     assert_equal one, queries
   end
 
+  test "a typed query is ranked by the search index in the resolved city" do
+    other = create_nutritionist("Ana Jane", location: "Braga")
+    index = FakeIndex.new({ 1 => [ other.id, nutritionists(:mary_jane).id ] })
+
+    search = search(query: " jnae ", location: "braga", index:)
+
+    assert_equal [ other, nutritionists(:mary_jane) ], search.nutritionists
+    assert_equal 2, search.total_count
+    assert_equal [ { query: "jnae", city: "Braga", page: 1, per_page: 5 } ], index.calls
+  end
+
+  test "ranked results list only the services at the searched location" do
+    mary = nutritionists(:mary_jane)
+    mary.services.create!(name: "Weight loss", price: 30, city: "Porto", street_address: "Rua de Cedofeita 9", duration_minutes: 45)
+
+    porto = search(query: "mary", location: "Porto", index: FakeIndex.new({ 1 => [ mary.id ] })).nutritionists
+
+    assert_equal [ "Weight loss" ], porto.first.services.map(&:name)
+  end
+
+  test "a ranked page past the end asks the index for the last page" do
+    index = FakeIndex.new({ 2 => [ nutritionists(:mary_jane).id ] }, total: 6)
+
+    search = search(query: "nutri", location: "Braga", page: "9", index:)
+
+    assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
+    assert_equal 2, search.page
+    assert_equal [ 9, 2 ], index.calls.pluck(:page)
+  end
+
+  test "when the index fails on the last page the SQL match sets its own count and page" do
+    index = FakeIndex.new({ 2 => [ nutritionists(:mary_jane).id ] }, total: 6, unavailable_pages: [ 2 ])
+
+    search = search(query: "jane", location: "Braga", page: "9", index:)
+
+    assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
+    assert_equal 1, search.total_count
+    assert_equal 1, search.page
+    assert_equal 1, search.total_pages
+  end
+
+  test "an id the index still holds but PostgreSQL no longer does is left out" do
+    index = FakeIndex.new({ 1 => [ 0, nutritionists(:mary_jane).id ] })
+
+    assert_equal [ nutritionists(:mary_jane) ], search(query: "mary", location: "Braga", index:).nutritionists
+  end
+
+  test "without a query the index is not asked" do
+    index = FakeIndex.new
+
+    assert_equal [ nutritionists(:mary_jane) ], search(location: "Braga", index:).nutritionists
+    assert_empty index.calls
+  end
+
+  test "when the index is unavailable the query is matched in SQL" do
+    search = search(query: "jane", location: "Braga", index: FakeIndex.new(unavailable_pages: [ 1 ]))
+
+    assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
+    assert_equal 1, search.total_count
+  end
+
   private
 
-  def search(query: nil, location: nil, page: nil)
-    NutritionistSearch.new(query:, location:, page:)
+  def search(query: nil, location: nil, page: nil, index: nil)
+    NutritionistSearch.new(query:, location:, page:, index:)
   end
 
   def create_nutritionist(name, location:, services: [ "First appointment" ])

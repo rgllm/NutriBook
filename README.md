@@ -11,10 +11,10 @@ Install Docker with Docker Compose, then run from the project root.
 docker compose up --build -d --wait
 ```
 
-This starts three development containers: Rails at <http://localhost:3001>,
-PostgreSQL on the Compose network, and Mailpit, which catches every email the
-backend sends, at <http://localhost:8025>. Rails prepares its databases before
-starting the server. Check <http://localhost:3001/up> for the Rails health
+This starts four development containers: Rails at <http://localhost:3001>,
+PostgreSQL and Meilisearch on the Compose network, and Mailpit, which catches
+every email the backend sends, at <http://localhost:8025>. Rails prepares its
+databases and rebuilds the search index before starting the server. Check <http://localhost:3001/up> for the Rails health
 response. Set `BACKEND_PORT` or `MAILPIT_PORT` to choose other host ports.
 
 The database uses a named Docker volume that survives container restarts.
@@ -216,23 +216,28 @@ parameters.
 
 | Parameter | Meaning |
 | --- | --- |
-| `q` | Matches part of a nutritionist's name or the name of one of their services at the location |
+| `q` | Matches a nutritionist's name or the name of one of their services at the location |
 | `location` | The city to search |
 | `page` | The results page, five nutritionists per page |
 
 Matching ignores case and accents, so `joao` finds João and `guimaraes` finds
-Guimarães. PostgreSQL's `unaccent` extension does this for `q`. The known
+Guimarães. Meilisearch matches `q` by word, forgiving typos and taking the last
+word as a prefix, so `goncalvs` finds Gonçalves and `spor` finds Sports
+nutrition. When Meilisearch cannot answer, PostgreSQL matches `q` as part of a
+name, ignoring accents with its `unaccent` extension; see
+[Search engine](#search-engine). The known
 locations are the cities that have at least one service, plus `Lisbon` and
 `Oporto` as aliases. A blank location searches Braga, and so does an unknown
 one. The response says which case applied in `location.source`: `input`,
 `default`, or `fallback`. A page past the end returns the last page, and a
 missing or invalid page returns the first.
 
-`q` has no length limit of its own. It is never stored, it is bound as a
-parameter of an `ILIKE` over a few hundred rows, and Puma already refuses a
+`q` has no length limit of its own. It is never stored, it reaches Meilisearch
+as a search string and PostgreSQL as a bound parameter, and Puma already refuses a
 query string over 10 KB, so a cap would add a rule without removing a risk.
 
-Results are ordered by name. Each nutritionist lists only the services they
+Without `q`, results are ordered by name. With `q`, the best matches come
+first and ties are ordered by name. Each nutritionist lists only the services they
 offer at the searched location, ordered by street address and then by name.
 Prices are decimal strings.
 
@@ -298,6 +303,38 @@ curl 'http://localhost:3001/locations/nearest?latitude=41.12&longitude=-8.61'
 `NutritionistSearch` in `backend/app/models/` owns location resolution,
 matching, and paging. It runs a fixed number of queries whatever the page
 size, because the page's services are preloaded in one query.
+
+### Search engine
+
+Meilisearch ranks searches that have a `q`. PostgreSQL stays the source of
+truth, and location rules stay in Rails.
+
+- **What is indexed.** `NutritionistIndex` builds one document per nutritionist
+  and city, with the names of the services offered there. Filtering on the
+  city keeps a query from matching a service in another city.
+- **What a search asks.** Rails resolves the location first, then asks
+  Meilisearch for one page of nutritionist ids in that city. It loads those
+  nutritionists and their services from PostgreSQL in the ranked order. The
+  response has the same shape whichever path answered.
+- **Without `q`**, listing a city needs no ranking, so PostgreSQL answers on
+  its own.
+- **When Meilisearch is down**, unreachable, slower than one second, or
+  missing its index, the search falls back to the SQL match and logs a
+  warning. Guests still get results, without typo tolerance.
+- **Keeping it current.** Rails rebuilds the whole index when the server
+  starts and at the end of `db:seed`. Nothing else writes nutritionists or
+  services, and a full rebuild of a few hundred documents is simpler than
+  tracking changes. Run `bin/rails search:reindex` after changing data by hand.
+- **Tests.** The Rails tests never use Meilisearch: the test environment
+  leaves `MEILISEARCH_URL` unset, and the search tests pass a stand-in index.
+  The e2e suite searches with typos against the real engine.
+- **Prefixes, not substrings.** Meilisearch matches from the start of a word,
+  so `ane` no longer finds Jane. Guests type words, not word middles, so typo
+  tolerance is worth that trade.
+
+The service runs in development mode without a master key, reachable only on
+the Compose network. A deployment would set `MEILI_ENV=production` and a
+master key, and pass that key to the client.
 
 `POST /appointment_requests` books a pending request. The guest sends a name,
 an email, a service, a day and a time, and whether the appointment is online.
@@ -573,10 +610,11 @@ language.
 ## End-to-end tests
 
 `e2e/` holds a Playwright suite that drives the real app in Chromium: the
-production build of the frontend, Rails, PostgreSQL, Solid Queue, and Mailpit.
+production build of the frontend, Rails, PostgreSQL, Meilisearch, Solid
+Queue, and Mailpit.
 It covers the flows the challenge asks for, across the whole stack:
 
-- **Search** by name (ignoring accents), by service, and by city, with paging,
+- **Search** by name (ignoring accents and typos), by service, and by city, with paging,
   the empty state, the Braga default for a blank location, and the fallback
   alert for an unknown one.
 - **Booking** through the modal: the API's validation messages, days and slots
@@ -603,11 +641,12 @@ pnpm e2e
 
 Every Playwright run, whether `pnpm e2e`, UI mode, or an editor
 integration, starts by resetting a separate Compose project, `nutribook-e2e`,
-in `e2e/global-setup.ts`. It has its own database and Mailpit, so it never
-touches the development data. Rails runs on port 3101, Mailpit on 8125, and
+in `e2e/global-setup.ts`. It has its own database, Meilisearch, and Mailpit,
+so it never touches the development data. Rails runs on port 3101, Mailpit on 8125, and
 the frontend on 3100. The development stack can keep running alongside it.
 The reset stops Rails, replants the demo seeds, loads
-`e2e/fixtures/nutritionists.rb`, empties Mailpit, and starts Rails again.
+`e2e/fixtures/nutritionists.rb`, empties Mailpit, and starts Rails again,
+which rebuilds the search index with the fixture's nutritionists.
 Rails stays stopped while the data is replaced, because replanting also
 empties the Solid Queue tables that its worker polls.
 
