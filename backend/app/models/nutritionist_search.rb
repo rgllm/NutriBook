@@ -3,6 +3,8 @@ class NutritionistSearch
   LOCATION_ALIASES = { "lisbon" => "Lisboa", "oporto" => "Porto" }.freeze
   PER_PAGE = 5
 
+  Result = Data.define(:records, :total, :page)
+
   attr_reader :location, :location_source
 
   # A typed query is ranked by the search index when there is one. Without a
@@ -19,19 +21,19 @@ class NutritionistSearch
   end
 
   def total_count
-    @total_count ||= index_hits&.total || matching.count
+    result.total
   end
 
   def total_pages
-    [ total_count.fdiv(PER_PAGE).ceil, 1 ].max
+    page_count(total_count)
   end
 
   def page
-    @page ||= @requested_page.clamp(1, total_pages)
+    result.page
   end
 
   def nutritionists
-    @nutritionists ||= (index_hits ? ranked_page : name_ordered_page).tap do |records|
+    @nutritionists ||= result.records.tap do |records|
       ActiveRecord::Associations::Preloader.new(
         records:, associations: :services, scope: Service.where(city: location).order(:street_address, :name, :id)
       ).call
@@ -56,30 +58,39 @@ class NutritionistSearch
     ActiveSupport::Inflector.transliterate(value.to_s).downcase.squish
   end
 
-  def index_hits
-    return @index_hits if defined?(@index_hits)
-
-    @index_hits = (search_index(@requested_page) if @index && @query.present?)
-  rescue NutritionistIndex::Unavailable => error
-    Rails.logger.warn("Search index unavailable, matching in SQL: #{error.message}")
-    @index_hits = nil
+  # The records, total, and page always come from the same path, so a fallback
+  # never mixes the index's count with SQL's records.
+  def result
+    @result ||= ranked_result || name_ordered_result
   end
 
-  # A page past the end asks the index again for the last page.
-  def ranked_page
-    hits = index_hits.page == page ? index_hits : search_index(page)
+  def ranked_result
+    return unless @index && @query.present?
+
+    hits = search_index(@requested_page)
+    page = @requested_page.clamp(1, page_count(hits.total))
+    hits = search_index(page) unless hits.page == page
+
     by_id = Nutritionist.where(id: hits.ids).index_by(&:id)
-    hits.ids.filter_map { |id| by_id[id] }
-  rescue NutritionistIndex::Unavailable
-    name_ordered_page
+    Result.new(records: hits.ids.filter_map { |id| by_id[id] }, total: hits.total, page:)
+  rescue NutritionistIndex::Unavailable => error
+    Rails.logger.warn("Search index unavailable, matching in SQL: #{error.message}")
+    nil
   end
 
   def search_index(page)
     @index.search(@query, city: location, page:, per_page: PER_PAGE)
   end
 
-  def name_ordered_page
-    matching.order(:name, :id).limit(PER_PAGE).offset((page - 1) * PER_PAGE).to_a
+  def name_ordered_result
+    total = matching.count
+    page = @requested_page.clamp(1, page_count(total))
+    records = matching.order(:name, :id).limit(PER_PAGE).offset((page - 1) * PER_PAGE).to_a
+    Result.new(records:, total:, page:)
+  end
+
+  def page_count(total)
+    [ total.fdiv(PER_PAGE).ceil, 1 ].max
   end
 
   # A subquery keeps one row per nutritionist however many services match.

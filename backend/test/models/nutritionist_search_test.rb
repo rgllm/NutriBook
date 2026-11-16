@@ -5,13 +5,13 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   class FakeIndex
     attr_reader :calls
 
-    def initialize(pages = {}, total: pages.values.sum(&:size), unavailable: false)
-      @pages, @total, @unavailable, @calls = pages, total, unavailable, []
+    def initialize(pages = {}, total: pages.values.sum(&:size), unavailable_pages: [])
+      @pages, @total, @unavailable_pages, @calls = pages, total, unavailable_pages, []
     end
 
     def search(query, city:, page:, per_page:)
       @calls << { query:, city:, page:, per_page: }
-      raise NutritionistIndex::Unavailable, "connection refused" if @unavailable
+      raise NutritionistIndex::Unavailable, "connection refused" if @unavailable_pages.include?(page)
 
       NutritionistIndex::Hits.new(ids: @pages.fetch(page, []), total: @total, page:)
     end
@@ -213,6 +213,17 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     assert_equal [ 9, 2 ], index.calls.pluck(:page)
   end
 
+  test "when the index fails on the last page the SQL match sets its own count and page" do
+    index = FakeIndex.new({ 2 => [ nutritionists(:mary_jane).id ] }, total: 6, unavailable_pages: [ 2 ])
+
+    search = search(query: "jane", location: "Braga", page: "9", index:)
+
+    assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
+    assert_equal 1, search.total_count
+    assert_equal 1, search.page
+    assert_equal 1, search.total_pages
+  end
+
   test "an id the index still holds but PostgreSQL no longer does is left out" do
     index = FakeIndex.new({ 1 => [ 0, nutritionists(:mary_jane).id ] })
 
@@ -227,7 +238,7 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   end
 
   test "when the index is unavailable the query is matched in SQL" do
-    search = search(query: "jane", location: "Braga", index: FakeIndex.new(unavailable: true))
+    search = search(query: "jane", location: "Braga", index: FakeIndex.new(unavailable_pages: [ 1 ]))
 
     assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
     assert_equal 1, search.total_count
