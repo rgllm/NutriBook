@@ -3,8 +3,8 @@ import "server-only"
 import { z } from "zod"
 
 const API_URL = z
-  .url({ error: "Set API_URL in frontend/.env.local; see frontend/.env.example." })
-  .parse(process.env.API_URL)
+  .url({ error: "API_URL must be a valid URL." })
+  .parse(process.env.API_URL ?? "http://localhost:3001")
 
 const TIMEOUT_MS = 5_000
 

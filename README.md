@@ -30,7 +30,6 @@ Clone the repository and install the frontend dependencies:
 git clone https://github.com/rgllm/NutriBook.git
 cd NutriBook
 pnpm --dir frontend install --frozen-lockfile
-cp frontend/.env.example frontend/.env.local
 pnpm dev
 ```
 
@@ -51,8 +50,10 @@ PostgreSQL and Meilisearch are available only inside the Compose network.
 Docker volumes preserve their data across restarts. The credentials in
 `compose.yaml` are for local development.
 
-`frontend/.env.local` sets `API_URL=http://localhost:3001`. If you change
-`BACKEND_PORT`, update `API_URL` too. `MAILPIT_PORT` overrides the inbox port.
+The frontend defaults to `http://localhost:3001`, so no `.env.local` file is
+needed. Set `API_URL` in the environment or in `frontend/.env.local` to override
+it. If you change `BACKEND_PORT`, update `API_URL` too. `MAILPIT_PORT` overrides
+the inbox port.
 The frontend build needs network access to download Inter and Outfit through
 `next/font/google`.
 
