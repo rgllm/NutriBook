@@ -20,6 +20,11 @@ NUTRITIONISTS = [
 ].freeze
 
 ActiveRecord::Base.transaction do
+  City.find_or_create_by!(name: CITY) do |city|
+    city.latitude = 41.693200
+    city.longitude = -8.832900
+  end
+
   NUTRITIONISTS.each do |license_number, name, title, offers_online, street_address, services|
     nutritionist = Nutritionist.find_or_create_by!(license_number:) do |record|
       record.name = name

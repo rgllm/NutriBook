@@ -4,7 +4,7 @@ class SeedsTest < ActiveSupport::TestCase
   test "seeding twice creates nothing new" do
     load_seeds
 
-    assert_no_difference [ "Nutritionist.count", "Service.count", "AppointmentRequest.count" ] do
+    assert_no_difference [ "City.count", "Nutritionist.count", "Service.count", "AppointmentRequest.count" ] do
       load_seeds
     end
   end
