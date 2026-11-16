@@ -6,11 +6,12 @@ import {
   getPendingRequests,
 } from "@/lib/api/appointment-requests"
 import { ApiConflictError, ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
+import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
 
 const input = {
-  serviceId: "381",
+  serviceId: 381,
   guestName: "Joana Silva",
   guestEmail: "Joana.Silva@example.com",
   date: "2026-12-07",
@@ -18,23 +19,13 @@ const input = {
   online: true,
 }
 
-function respondWith(response: Response | Error) {
-  const fetch = vi.fn<(url: URL, init: RequestInit) => Promise<Response>>(async () => {
-    if (response instanceof Error) throw response
-    return response
-  })
-  vi.stubGlobal("fetch", fetch)
-  return fetch
-}
-
 afterEach(() => {
-  vi.unstubAllGlobals()
   vi.useRealTimers()
 })
 
 describe("createAppointmentRequest", () => {
   it("posts the request as the API expects and maps the created request", async () => {
-    const fetch = respondWith(
+    const fetch = stubApi(
       Response.json(
         {
           id: 17,
@@ -57,7 +48,7 @@ describe("createAppointmentRequest", () => {
     expect(init.method).toBe("POST")
     expect(JSON.parse(String(init.body))).toEqual({
       appointment_request: {
-        service_id: "381",
+        service_id: 381,
         guest_name: "Joana Silva",
         guest_email: "Joana.Silva@example.com",
         date: "2026-12-07",
@@ -79,7 +70,7 @@ describe("createAppointmentRequest", () => {
   })
 
   it("returns the API's messages when it refuses the request", async () => {
-    respondWith(
+    stubApi(
       Response.json(
         { errors: { starts_at: ["Pick one of the available times."] } },
         { status: 422 },
@@ -93,15 +84,15 @@ describe("createAppointmentRequest", () => {
   })
 
   it("reports the API as unavailable when it cannot be reached or fails", async () => {
-    respondWith(new TypeError("fetch failed"))
+    stubApi(new TypeError("fetch failed"))
     await expect(createAppointmentRequest(input)).rejects.toBeInstanceOf(ApiUnavailableError)
 
-    respondWith(new Response(null, { status: 503 }))
+    stubApi(new Response(null, { status: 503 }))
     await expect(createAppointmentRequest(input)).rejects.toBeInstanceOf(ApiUnavailableError)
   })
 
   it("treats any other client error as a bug, not an outage", async () => {
-    respondWith(new Response(null, { status: 400 }))
+    stubApi(new Response(null, { status: 400 }))
 
     const error = await createAppointmentRequest(input).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)
@@ -122,7 +113,7 @@ describe("getPendingRequests", () => {
 
   it("reads the nutritionist's requests and marks the ones whose time has passed", async () => {
     vi.useFakeTimers({ now: new Date("2026-11-20T12:00:00Z"), toFake: ["Date"] })
-    const fetch = respondWith(
+    const fetch = stubApi(
       Response.json({
         nutritionist: { id: 1, name: "Mary Jane" },
         appointment_requests: [
@@ -163,23 +154,23 @@ describe("getPendingRequests", () => {
   })
 
   it("returns null when no nutritionist has the id", async () => {
-    respondWith(Response.json({ error: "Nutritionist not found" }, { status: 404 }))
+    stubApi(Response.json({ error: "Nutritionist not found" }, { status: 404 }))
 
     expect(await getPendingRequests("999")).toBeNull()
   })
 
   it("reports the API as unavailable when it cannot be reached or fails", async () => {
-    respondWith(new TypeError("fetch failed"))
+    stubApi(new TypeError("fetch failed"))
     await expect(getPendingRequests("1")).rejects.toBeInstanceOf(ApiUnavailableError)
 
-    respondWith(new Response(null, { status: 500 }))
+    stubApi(new Response(null, { status: 500 }))
     await expect(getPendingRequests("1")).rejects.toBeInstanceOf(ApiUnavailableError)
   })
 })
 
 describe("answerAppointmentRequest", () => {
   it("sends the answer to the nutritionist's request and maps the rejected ids", async () => {
-    const fetch = respondWith(
+    const fetch = stubApi(
       Response.json({
         id: 7,
         status: "accepted",
@@ -198,7 +189,7 @@ describe("answerAppointmentRequest", () => {
   })
 
   it("returns the API's message for a status it does not accept", async () => {
-    respondWith(
+    stubApi(
       Response.json({ errors: { status: ["Answer with accepted or rejected."] } }, { status: 422 }),
     )
 
@@ -209,7 +200,7 @@ describe("answerAppointmentRequest", () => {
   })
 
   it("carries the API's message when the request was already answered", async () => {
-    respondWith(
+    stubApi(
       Response.json(
         { error: "This request was already accepted.", status: "accepted" },
         { status: 409 },
@@ -222,7 +213,7 @@ describe("answerAppointmentRequest", () => {
   })
 
   it("reports a request that is not the nutritionist's as not found", async () => {
-    respondWith(Response.json({ error: "AppointmentRequest not found" }, { status: 404 }))
+    stubApi(Response.json({ error: "AppointmentRequest not found" }, { status: 404 }))
 
     await expect(answerAppointmentRequest("2", 7, "accepted")).rejects.toBeInstanceOf(ApiNotFoundError)
   })
