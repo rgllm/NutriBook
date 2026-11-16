@@ -16,7 +16,7 @@ export function AnswerRequestForm({
   action: (previous: AnswerRequestState, formData: FormData) => Promise<AnswerRequestState>
   guestName: string
 }) {
-  const t = useTranslations("Requests")
+  const t = useTranslations("requests")
   // The toast is raised here, as the result arrives, because a refreshed list
   // unmounts this card before it could render anything.
   const [state, formAction] = useActionState(

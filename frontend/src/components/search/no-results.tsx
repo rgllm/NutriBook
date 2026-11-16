@@ -21,7 +21,7 @@ export function NoResults({
   query: string
   clearHref: string
 }) {
-  const t = useTranslations("Search")
+  const t = useTranslations("search")
 
   return (
     <Empty className="border bg-card">

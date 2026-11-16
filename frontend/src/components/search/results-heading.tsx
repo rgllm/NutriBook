@@ -9,7 +9,7 @@ export function ResultsHeading({
   city: string
   query: string
 }) {
-  const t = useTranslations("Search")
+  const t = useTranslations("search")
 
   return (
     <div className="flex flex-col gap-1">

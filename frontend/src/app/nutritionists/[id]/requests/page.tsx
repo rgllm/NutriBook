@@ -7,7 +7,7 @@ import { RequestsSkeleton } from "@/components/requests/requests-skeleton"
 import { SiteHeader } from "@/components/site-header"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("Metadata")
+  const t = await getTranslations("metadata")
   return { title: t("requestsTitle") }
 }
 

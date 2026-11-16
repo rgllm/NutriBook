@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils"
 
 export default function NotFound() {
-  const t = useTranslations("NotFoundPage")
+  const t = useTranslations("notFoundPage")
 
   return (
     <>

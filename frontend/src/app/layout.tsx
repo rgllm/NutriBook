@@ -15,7 +15,7 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
 export const instant = false
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("Metadata")
+  const t = await getTranslations("metadata")
   return { title: t("title"), description: t("description") }
 }
 

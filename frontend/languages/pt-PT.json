@@ -1,15 +1,15 @@
 {
-  "Metadata": {
+  "metadata": {
     "title": "NutriBook · Encontre um nutricionista",
     "description": "Pesquise nutricionistas por nome, serviço e localização, e peça uma consulta.",
     "requestsTitle": "NutriBook · Pedidos pendentes"
   },
-  "SiteHeader": {
+  "siteHeader": {
     "forProfessionals": "É profissional de nutrição? Conheça o nosso software",
     "forProfessionalsShort": "Para nutricionistas",
     "language": "Idioma"
   },
-  "Search": {
+  "search": {
     "queryLabel": "Nutricionista ou serviço",
     "queryPlaceholder": "Pesquise um nutricionista ou serviço",
     "locationLabel": "Localização",
@@ -35,7 +35,7 @@
     "previousPage": "Ir para a página anterior",
     "nextPage": "Ir para a página seguinte"
   },
-  "Nutritionist": {
+  "nutritionist": {
     "title": "{title, select, Dietitian {Dietista} other {Nutricionista}}",
     "online": "Online",
     "location": "Localização",
@@ -44,7 +44,7 @@
     "scheduleAppointment": "Marcar consulta",
     "close": "Fechar"
   },
-  "Appointment": {
+  "appointment": {
     "title": "Marcar uma consulta",
     "description": "Com {name}, {title, select, Dietitian {dietista} other {nutricionista}} em {city}. A confirmação do pedido chega por email.",
     "name": "O seu nome",
@@ -64,31 +64,31 @@
     "sentDescription": "Pediu a {nutritionist} <strong>{service}{online, select, true { (online)} other {}} no dia {start, date, appointmentDay} às {start, time, time}</strong>. O pedido ainda não está confirmado. Enviamos um email para {email} quando {nutritionist} responder.",
     "done": "Concluir"
   },
-  "AppointmentErrors": {
-    "guest_name": {
+  "appointmentErrors": {
+    "guestName": {
       "blank": "Indique o seu nome.",
-      "too_long": "Use no máximo 100 caracteres."
+      "tooLong": "Use no máximo 100 caracteres."
     },
-    "guest_email": {
+    "guestEmail": {
       "blank": "Indique o seu email.",
-      "too_long": "Use no máximo 254 caracteres.",
+      "tooLong": "Use no máximo 254 caracteres.",
       "invalid": "Indique um email válido, como nome@exemplo.pt."
     },
     "service": {
       "blank": "Escolha um serviço."
     },
-    "starts_at": {
+    "startsAt": {
       "blank": "Escolha um dia e uma hora.",
       "past": "Escolha uma hora que ainda não tenha passado.",
-      "not_a_slot": "Escolha uma das horas disponíveis.",
+      "notASlot": "Escolha uma das horas disponíveis.",
       "taken": "Esta hora já não está disponível. Escolha outra."
     },
     "online": {
-      "not_offered": "Este nutricionista não faz consultas online."
+      "notOffered": "Este nutricionista não faz consultas online."
     },
     "unknown": "Verifique o pedido e tente de novo."
   },
-  "Requests": {
+  "requests": {
     "title": "Pedidos pendentes",
     "description": "Pedidos enviados a {name}. Aceite ou rejeite cada um.",
     "online": "Online",
@@ -110,18 +110,18 @@
     "failed": "Não foi possível responder a este pedido.",
     "unavailable": "Não foi possível responder a este pedido. Tente de novo dentro de momentos."
   },
-  "RequestConflicts": {
-    "already_accepted": "Este pedido já foi aceite.",
-    "already_rejected": "Este pedido já foi rejeitado.",
+  "requestConflicts": {
+    "alreadyAccepted": "Este pedido já foi aceite.",
+    "alreadyRejected": "Este pedido já foi rejeitado.",
     "superseded": "O cliente substituiu este pedido por um mais recente.",
-    "overlaps_accepted": "Esta hora sobrepõe-se a uma consulta aceite. Rejeite o pedido."
+    "overlapsAccepted": "Esta hora sobrepõe-se a uma consulta aceite. Rejeite o pedido."
   },
-  "ErrorPage": {
+  "errorPage": {
     "title": "Algo correu mal",
     "description": "Não foi possível carregar esta página. Tente de novo dentro de momentos.",
     "retry": "Tentar de novo"
   },
-  "NotFoundPage": {
+  "notFoundPage": {
     "title": "Página não encontrada",
     "description": "Esta página não existe. Verifique o endereço ou encontre um nutricionista na pesquisa.",
     "back": "Voltar à pesquisa"

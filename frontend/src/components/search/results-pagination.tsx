@@ -18,7 +18,7 @@ export function ResultsPagination({
   pageCount: number
   hrefFor: (page: number) => string
 }) {
-  const t = useTranslations("Search")
+  const t = useTranslations("search")
 
   return (
     <Pagination aria-label={t("pagination")}>

@@ -29,7 +29,7 @@ const beforeHydration = () => false
 const coarse = (degrees: number) => Math.round(degrees * 100) / 100
 
 export function UseMyLocationButton({ inputId }: { inputId: string }) {
-  const t = useTranslations("Search")
+  const t = useTranslations("search")
   const canLocate = useSyncExternalStore(subscribe, supportsGeolocation, beforeHydration)
   const [locating, startLocating] = useTransition()
 

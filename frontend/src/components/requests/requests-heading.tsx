@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl"
 
 export function RequestsHeading({ nutritionistName }: { nutritionistName: string }) {
-  const t = useTranslations("Requests")
+  const t = useTranslations("requests")
 
   return (
     <div className="flex flex-col gap-1">

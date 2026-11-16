@@ -18,7 +18,7 @@ describe("prices", () => {
 
 describe("the confirmed request", () => {
   const sent = (t: typeof en, startsAt: string) =>
-    t.markup("Appointment.sentDescription", {
+    t.markup("appointment.sentDescription", {
       nutritionist: "Inês Araújo",
       service: "Follow-up",
       online: "false",
@@ -36,7 +36,7 @@ describe("the confirmed request", () => {
 
 describe("the answered request toast", () => {
   const answered = (t: typeof en, answer: string, rejected: number) =>
-    t("Requests.answered", { answer, guest: "Danilo Santos", rejected })
+    t("requests.answered", { answer, guest: "Danilo Santos", rejected })
 
   it("names the guest and the answer", () => {
     expect(answered(en, "accepted", 0)).toBe("Accepted Danilo Santos's request.")

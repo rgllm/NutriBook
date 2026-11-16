@@ -20,7 +20,7 @@ export function AnswerRequestButton({
   guestName: string
 }) {
   const { pending, data } = useFormStatus()
-  const t = useTranslations("Requests")
+  const t = useTranslations("requests")
   const { label, pendingLabel, ariaLabel, variant, Icon } = ANSWERS[answer]
   const isRunning = pending && data?.get("status") === answer
 

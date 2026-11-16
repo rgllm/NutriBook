@@ -19,7 +19,7 @@ export function AppointmentRequestSent({
   nutritionist: Nutritionist
   request: CreatedAppointmentRequest
 }) {
-  const t = useTranslations("Appointment")
+  const t = useTranslations("appointment")
 
   return (
     <>
