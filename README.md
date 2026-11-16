@@ -93,7 +93,6 @@ pnpm test                 # backend tests
 pnpm lint                 # backend, frontend, and e2e lint
 pnpm e2e                  # end-to-end tests (see below)
 pnpm e2e:ui               # the same, in Playwright's UI mode
-pnpm e2e:reset            # reset the e2e stack without running tests
 pnpm e2e:down             # remove the e2e stack and its data
 pnpm e2e:lint
 pnpm e2e:typecheck
@@ -521,19 +520,20 @@ pnpm --dir e2e exec playwright install chromium
 pnpm e2e
 ```
 
-`pnpm e2e` resets a separate Compose project, `nutribook-e2e`, before
-Playwright starts. It has its own database and Mailpit, so it never touches
-the development data. Rails runs on port 3101, Mailpit on 8125, and the
-frontend on 3100. The development stack can keep running alongside it. The
-reset stops Rails, replants the demo seeds, loads
+Every Playwright run, whether `pnpm e2e`, UI mode, or an editor
+integration, starts by resetting a separate Compose project, `nutribook-e2e`,
+in `e2e/global-setup.ts`. It has its own database and Mailpit, so it never
+touches the development data. Rails runs on port 3101, Mailpit on 8125, and
+the frontend on 3100. The development stack can keep running alongside it.
+The reset stops Rails, replants the demo seeds, loads
 `e2e/fixtures/nutritionists.rb`, empties Mailpit, and starts Rails again.
 Rails stays stopped while the data is replaced, because replanting also
 empties the Solid Queue tables that its worker polls.
 
-Playwright then builds the frontend with `next build` and serves it with
-`next start`. A failed test keeps its trace and a screenshot in
-`e2e/test-results/`, and `pnpm --dir e2e exec playwright show-report` opens
-the HTML report.
+Playwright serves the frontend with `next build` and `next start`, pointed at
+the e2e Rails. The build calls no API, so it does not wait for the reset. A
+failed test keeps its trace and a screenshot in `e2e/test-results/`, and
+`pnpm --dir e2e exec playwright show-report` opens the HTML report.
 
 ### How the tests stay independent
 
@@ -551,9 +551,6 @@ the HTML report.
   Lisbon and that the booking keeps the Lisbon time.
 - **Accessible selectors.** Tests find elements by role, label, and text, as
   a screen reader would, and the app has no test ids.
-
-Running `playwright test` directly skips the reset, so a second run fails on
-slots the first run accepted. Run `pnpm e2e:reset` first.
 
 ## Design
 
