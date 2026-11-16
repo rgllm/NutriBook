@@ -10,7 +10,9 @@ export default function Home({ searchParams }: PageProps<"/">) {
   return (
     <>
       <SiteHeader>
-        <Suspense fallback={<SearchForm />}>
+        {/* The prefilled form replaces this one when it streams in, dropping
+            anything typed here, so the placeholder takes no input. */}
+        <Suspense fallback={<SearchForm disabled />}>
           <PrefilledSearchForm searchParams={searchParams} />
         </Suspense>
       </SiteHeader>

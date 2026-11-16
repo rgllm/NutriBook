@@ -1,709 +1,389 @@
 # NutriBook
 
-Appointment requests for nutritionists. The project has a Next.js frontend in
-`frontend/` and a Rails API in `backend/`.
+NutriBook connects guests with nutritionists. Guests search by name, service,
+and location, then request an appointment with their name and email. Nutritionists
+accept or reject requests, and guests receive the answer by email. Accepting a
+request automatically rejects every pending request that overlaps it.
 
-## Start the backend and database
+## Getting started
 
-Install Docker with Docker Compose, then run from the project root.
+### What to install
 
-```sh
-docker compose up --build -d --wait
-```
+- Docker
+- Node.js
+- pnpm
 
-This starts four development containers: Rails at <http://localhost:3001>,
-PostgreSQL and Meilisearch on the Compose network, and Mailpit, which catches
-every email the backend sends, at <http://localhost:8025>. Rails prepares its
-databases and rebuilds the search index before starting the server. Check <http://localhost:3001/up> for the Rails health
-response. Set `BACKEND_PORT` or `MAILPIT_PORT` to choose other host ports.
+Ruby, PostgreSQL, Meilisearch, and Mailpit run in Docker. You do not need to
+install them on your machine. The frontend runs locally with pnpm.
 
-The database uses a named Docker volume that survives container restarts.
-The `nutribook` database username and password in `compose.yaml` are local
-development credentials. PostgreSQL is accessible to the backend as `db:5432`.
-Use `docker compose exec db psql -U nutribook -d nutribook_development` for SQL.
+### Run the project
+
+Clone the repository and install the frontend dependencies:
 
 ```sh
-docker compose logs -f backend
-docker compose exec backend bin/rails console
-docker compose exec backend bin/rails db:migrate
-docker compose exec backend bin/rails test
-docker compose exec backend bin/rubocop
-docker compose down
+git clone https://github.com/rgllm/NutriBook.git
+cd NutriBook
+pnpm --dir frontend install --frozen-lockfile
+pnpm dev
 ```
 
-Backend source changes reload through the bind mount. Rebuild the image after
-changing the Gemfile or Gemfile.lock.
+On a fresh database, the backend creates the schema, loads the demo seeds, and
+builds the search index before it serves requests, so there is no separate seed
+step. Open [the application](http://localhost:3000).
 
-The API loads Active Record, Action Controller, Action View, Action Mailer,
-Active Job, and Rails' test integration explicitly. Action View renders the
-email templates. Active Storage, Action Cable, Action Mailbox, and Action Text
-are unused and their engines are not loaded.
+| Service | Address | Purpose |
+| --- | --- | --- |
+| Next.js | <http://localhost:3000> | Frontend |
+| Rails | <http://localhost:3001> | Backend |
+| API documentation | <http://localhost:3001/docs> | Swagger |
+| Mailpit | <http://localhost:8025> | Inbox for development emails |
 
-### Background jobs and email
+PostgreSQL and Meilisearch are available only inside the Compose network.
+Docker volumes preserve their data across restarts. The credentials in
+`compose.yaml` are for local development.
 
-Active Job runs on [Solid Queue](https://github.com/rails/solid_queue), and
-its tables live in the main PostgreSQL database instead of a separate queue
-database. A job enqueued inside a transaction is therefore inserted in that
-same transaction. It is stored only if the transaction commits, and it
-disappears if the transaction rolls back. Emails depend on this: answering a
-request and queueing the guest's email happen in one commit, so an answer
-never goes without its email and a rolled-back answer never sends one.
-`config.active_job.enqueue_after_transaction_commit` is `false` on purpose;
-deferring the enqueue to after the commit would reopen the gap a crash could
-fall into. `test/jobs/transactional_enqueue_test.rb` checks both outcomes
-against the real adapter.
+The frontend runs on port 3000 and calls the Rails API at
+`http://localhost:3001` by default, so no `.env` file is needed.
 
-Sidekiq was left out for the same reason. Its jobs live in Redis, outside the
-PostgreSQL transaction, so the app would need its own outbox table to get this
-guarantee, plus a Redis service to run.
+### Main commands
 
-In development the Solid Queue supervisor runs inside Puma
-(`SOLID_QUEUE_IN_PUMA=1` in `compose.yaml`), so there is no separate jobs
-container. In production either set the same variable or run `bin/jobs` as
-its own process. The worker inside Puma picks up changes to existing code and
-templates, but not a newly added job class; restart the backend after adding
-one (`docker compose restart backend`). Mail goes out over SMTP: to Mailpit in development, and to the
-server in `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, and `SMTP_PASSWORD` in
-production. `MAIL_FROM` sets the sender. Tests use Action Mailer's `:test`
-delivery method and Active Job's test adapter.
+Run these from the repository root unless the command specifies a directory.
+Backend commands require the development Compose stack to be running.
 
-### Shortcuts
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Build and start Docker services, then run the frontend in development |
+| `pnpm stop` | Stop and remove development containers while keeping their data volumes |
+| `pnpm backend:logs` | Follow Rails logs |
+| `pnpm backend:console` | Open the Rails console |
+| `pnpm rails <args>` | Run a Rails command inside the backend container |
+| `pnpm db:migrate` | Apply pending migrations |
+| `pnpm db:rollback` | Roll back the latest migration |
+| `pnpm db:seed` | Add missing demo records and rebuild the search index |
+| `pnpm db:psql` | Open PostgreSQL against the development database |
+| `pnpm rails search:reindex` | Rebuild Meilisearch after manual data changes |
+| `pnpm backend:test` or `pnpm test` | Run the Rails test suite |
+| `pnpm backend:ci` | Run backend setup, lint, security audits, tests, and a test-database seed replant |
+| `pnpm --dir frontend test` | Run frontend unit and component tests |
+| `pnpm lint` | Run backend, frontend, and end-to-end lint |
+| `pnpm frontend:typecheck` | Generate Next.js types and run TypeScript checks |
+| `pnpm frontend:build` | Build the frontend for production |
+| `pnpm e2e` | Reset the isolated test stack and run Playwright |
+| `pnpm e2e:ui` | Run the same end-to-end suite in Playwright UI mode |
+| `pnpm e2e:lint` / `pnpm e2e:typecheck` | Check the end-to-end test code |
+| `pnpm e2e:down` | Remove the end-to-end containers and their data volumes |
 
-The root `package.json` wraps these commands as pnpm scripts, so you can run
-them from the project root without typing `docker compose exec`. Extra
-arguments pass through to the underlying command.
+## Architecture
 
-```sh
-pnpm dev                  # start Docker services, then the frontend
-pnpm stop                 # stop Docker services
-pnpm rails <args>         # any Rails command, e.g. pnpm rails generate model Service
-pnpm db:migrate
-pnpm db:rollback
-pnpm db:seed
-pnpm db:psql
-pnpm backend:test         # add a path to run one file
-pnpm backend:lint
-pnpm backend:ci
-pnpm backend:console
-pnpm backend:logs
-pnpm frontend:lint
-pnpm frontend:typecheck
-pnpm frontend:build
-pnpm test                 # backend tests
-pnpm lint                 # backend, frontend, and e2e lint
-pnpm e2e                  # end-to-end tests (see below)
-pnpm e2e:ui               # the same, in Playwright's UI mode
-pnpm e2e:down             # remove the e2e stack and its data
-pnpm e2e:lint
-pnpm e2e:typecheck
-```
+### Backend architecture
 
-## Database
+The Rails API owns search, validation, scheduling, and request state changes.
+Controllers handle HTTP input and responses. Domain behavior lives in models
+and small plain Ruby objects:
+
+| Component | Responsibility |
+| --- | --- |
+| `AppointmentRequest` | Submit, supersede, accept, and reject requests inside transactions |
+| `BookingSchedule` | Interpret Lisbon dates and enforce bookable start times |
+| `NutritionistSearch` | Resolve locations, search, preload services, and paginate results |
+| `NutritionistIndex` | Build Meilisearch documents and rank typed queries |
+| `City` | Find the nearest city with available services |
+| `AppointmentAnswerEmailJob` | Send answer emails with retries and a delivery marker |
+| `AppointmentRequestMailer` | Render accepted and rejected emails, including overlap rejections |
+
+Meilisearch indexes one document per nutritionist and city, including the service
+names offered there. Rails resolves the city first, retrieves ranked IDs, then
+loads the records from PostgreSQL. Searches without a query use SQL directly.
+If Meilisearch is unavailable, times out, or has no index, Rails falls back to
+case- and accent-insensitive SQL matching. The fallback has no typo tolerance.
+The index rebuilds at startup and after seeding because the app has no interface
+for editing nutritionists or services.
+
+Active Job uses Solid Queue in the same PostgreSQL database as the domain data.
+The worker runs inside Puma in development. Answering a request stores its state
+change and email jobs in one transaction. SMTP delivery happens afterwards,
+through Mailpit in development.
+
+The API contract lives in [openapi.yaml](backend/public/openapi.yaml).
+The main endpoints are:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/nutritionists?q=&location=&page=` | Search nutritionists, five per page |
+| GET | `/locations` | List cities with services and the default city |
+| GET | `/locations/nearest?latitude=&longitude=` | Resolve coordinates to the nearest supported city |
+| POST | `/appointment_requests` | Submit a guest's appointment request |
+| GET | `/nutritionists/:id/appointment_requests` | List a nutritionist's pending requests |
+| PATCH | `/nutritionists/:nutritionist_id/appointment_requests/:id` | Accept or reject a request |
+
+### Frontend architecture
+
+Next.js App Router pages fetch Rails data in Server Components. The server-only
+API client in `frontend/src/lib/api/` validates responses with Zod, converts
+snake_case keys to camelCase, and parses decimal prices. Requests use
+`cache: "no-store"` and a five-second timeout, so appointment lists stay fresh.
+
+Search state lives in `q`, `location`, and `page` URL parameters. The search
+form submits with `next/form`, which makes results shareable and supports GET
+submission without JavaScript. Suspense boundaries stream results and request
+lists with skeletons while their data loads.
+
+Booking and answer forms call Server Actions. Client components handle the
+dialog, calendar, pending states, field errors, and toasts. `useActionState`
+tracks form results and `useFormStatus` supplies pending feedback. Answering a
+request refreshes the page data so answered and automatically rejected cards
+leave the list. Transport failures show retry messages, while unexpected
+responses reach the error boundary.
+
+The UI uses Tailwind CSS v4 and shadcn/ui with Base UI primitives. The React
+Compiler is enabled. [DESIGN.md](frontend/DESIGN.md) defines the reference layout,
+typography, component rules, and semantic tokens in `frontend/src/app/theme.css`.
+
+`next-intl` provides English and Portuguese messages from `frontend/languages/`.
+The saved `NEXT_LOCALE` cookie takes priority over the browser's language,
+with English as the fallback. Language selection does not change the URL.
+Dates and times always use `Europe/Lisbon`.
+
+### Database design
 
 ```mermaid
 erDiagram
-    cities ||--o{ services : "is the city of"
+    cities ||--o{ services : locates
     nutritionists ||--o{ services : offers
     nutritionists ||--o{ appointment_requests : receives
-    services ||--o{ appointment_requests : "is booked in"
-
-    nutritionists {
-        bigint id PK
-        string name
-        string title "Dietitian or Nutritionist"
-        string license_number UK
-        boolean offers_online
-    }
+    services ||--o{ appointment_requests : books
 
     cities {
         bigint id PK
         string name UK
-        decimal latitude "city centre, -90 to 90"
-        decimal longitude "city centre, -180 to 180"
+        decimal latitude
+        decimal longitude
     }
-
+    nutritionists {
+        bigint id PK
+        string name
+        string title
+        string license_number UK
+        boolean offers_online
+    }
     services {
         bigint id PK
         bigint nutritionist_id FK
         string name
-        decimal price ">= 0"
-        string street_address "where the service is given"
-        string city FK "cities.name, used by search"
-        integer duration_minutes "> 0"
+        decimal price
+        string city FK
+        string street_address
+        integer duration_minutes
     }
-
     appointment_requests {
         bigint id PK
-        bigint service_id FK "with nutritionist_id, references services"
         bigint nutritionist_id FK
+        bigint service_id FK
         string guest_name
-        string guest_email "stored lowercase"
-        datetime starts_at "UTC"
-        datetime ends_at "starts_at + service duration"
-        string status "pending, accepted, rejected, superseded"
-        boolean online "only if the nutritionist offers it"
-        datetime answered_at "set only when accepted or rejected"
-        string rejection_reason "declined or overlap, set only when rejected"
-        datetime answer_notified_at "when the guest was emailed the answer"
+        string guest_email
+        datetime starts_at
+        datetime ends_at
+        string status
+        boolean online
+        datetime answered_at
+        string rejection_reason
+        datetime answer_notified_at
     }
 ```
 
-A guest is identified by email and has no table of their own; their name and
-email live on each request. Every column is `NOT NULL` except `answered_at`,
-`rejection_reason`, and `answer_notified_at`, and every table has `created_at`
-and `updated_at`.
+Guests have no account or separate table. Their name and normalized email live
+on each request. Service addresses allow a nutritionist to work in several
+cities or at several practices in one city. `services.city` references the
+unique city name. Prices use fixed-precision decimals.
 
-The business rules that PostgreSQL can express are database constraints, so
-they hold even if application code has a bug or two requests race:
+A request stores its UTC start and end times. The end time captures the service's
+duration at booking, so later duration changes do not move an existing request.
+Its status is `pending`, `accepted`, `rejected`, or `superseded`. A superseded
+request was replaced by the guest and does not count as a nutritionist's answer.
 
-| Rule | Constraint |
+PostgreSQL backs the domain rules with constraints:
+
+| Rule | Database enforcement |
 | --- | --- |
-| A guest has at most one pending request | Partial unique index on `lower(guest_email)` where `status = 'pending'` |
-| A nutritionist never has two accepted appointments that overlap | Exclusion constraint on `nutritionist_id` and `tsrange(starts_at, ends_at)` where `status = 'accepted'` (`btree_gist`). Ranges are half-open, so 10:00–11:00 and 11:00–12:00 do not overlap |
-| A service is in a city search knows | Foreign key `services.city` → `cities.name` |
-| A request's service belongs to the request's nutritionist | Composite foreign key `(nutritionist_id, service_id)` → `services (nutritionist_id, id)` |
-| `answered_at` is set exactly when a nutritionist answered | Check that `answered_at IS NOT NULL` equals `status IN ('accepted', 'rejected')` |
-| A rejected request says why, and only a rejected request does | Check that `rejection_reason IS NOT NULL` equals `status = 'rejected'` |
-| Only an answered request can have been emailed | Check that `answer_notified_at` is null or `answered_at` is set |
-| Valid values | Checks on `title`, `status`, `rejection_reason`, `price >= 0`, `duration_minutes > 0`, `ends_at > starts_at`, and city coordinates on the globe |
-| Guest input stays a sane size | Checks that `guest_name` is at most 100 characters and `guest_email` at most 254, the longest address SMTP delivers to |
+| At most one pending request per guest | Partial unique index on `lower(guest_email)` for pending rows |
+| No overlapping accepted appointments for a nutritionist | GiST exclusion constraint on `nutritionist_id` and `tsrange(starts_at, ends_at)`, using `btree_gist` |
+| A request's service belongs to its nutritionist | Composite foreign key to `services(nutritionist_id, id)` |
+| Valid state and answer metadata | Checks on status, rejection reason, answer timestamp, and notification timestamp |
+| Valid sizes and values | Checks on guest input lengths, positive durations, nonnegative prices, ordered times, and coordinate ranges |
 
-A request copies its end time from the service's duration when it is created,
-so editing a service later does not move existing appointments. `superseded`
-marks a pending request replaced by the same guest's newer one, so it stays
-distinct from a request the nutritionist rejected. Nutritionists and services
-use `restrict_with_error`, so records that requests point to cannot be deleted.
-The address belongs to the service, not the nutritionist: each service has the
-street address and city where it is given. One nutritionist can work in several
-cities, and at several addresses in the same city, so a nutritionist-level
-address could not say where a listed service happens. The search card lists the
-distinct addresses of the services it shows. (An earlier
-version kept one address per nutritionist; it showed a Braga street on Porto
-results.) A request reads the address from its service instead of copying it,
-because services cannot be edited in the app. If editing is added, copy the
-address and price onto the request when it is created.
+Time ranges are half-open. An appointment ending at 11:00 does not overlap one
+starting at 11:00. Indexes on `services(city, nutritionist_id)` and
+`appointment_requests(nutritionist_id, status, starts_at)` support city searches
+and pending lists. Solid Queue uses additional tables in the same database.
 
-`docker compose exec backend bin/rails db:seed` (or `pnpm db:seed`) creates 30
-nutritionists across eight cities, with services at different prices and
-durations. Braga, the default location, has enough for more than one results
-page, three of its nutritionists also see patients in Porto, and one works from
-two addresses in Braga. The first Braga nutritionist has four pending requests,
-two of which overlap, to try the automatic rejection. Names come from Faker with a fixed
-random seed, so every run produces the same data, and the file is idempotent.
-Use `bin/rails db:seed:replant` to start over. Each seeded city
-stores the coordinates of its centre, which "Use my location" measures from.
-The street addresses are made up, so the seeds give no coordinates per
-service.
+## Main decisions
 
-Indexes follow the queries: `services (city, nutritionist_id)` for search
-by city, `services (nutritionist_id, id)` for the composite key and lookups by
-nutritionist, and `appointment_requests (nutritionist_id, status, starts_at)`
-for a nutritionist's request list. The `services (city, nutritionist_id)` index
-also covers the foreign key to `cities`.
+- **Keep business rules in Rails.** The UI renders API results and translates
+  field error codes. Backend validation protects every caller, including
+  callers that bypass the form.
+- **Use transactions, locks, and constraints together.** Submissions take a
+  transaction-scoped advisory lock derived from the guest's email before
+  superseding their pending request. Invalid submissions roll back that change.
+  Answers lock the nutritionist with `FOR NO KEY UPDATE`, then the request,
+  so concurrent answers serialize without blocking foreign-key checks for new
+  requests. Database constraints remain the final protection.
+- **Queue email in the answer transaction.** Solid Queue shares the domain
+  database, so a rollback also removes the jobs. A Redis-backed queue would
+  need an outbox to give the same atomic enqueue guarantee.
+- **Make delivery retries safe where possible.** The email job locks the request
+  and checks `answer_notified_at` before sending. Transient failures retry up
+  to ten attempts. A crash after SMTP accepts an email but before the marker
+  is saved can still duplicate delivery. A provider with an idempotency key
+  would be needed to close that gap.
+- **Book in the practice's time zone.** Guests submit a date and time as picked.
+  Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
+  permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
+  13:00. These opening hours are a project assumption. Rails rejects requests
+  overlapping an accepted appointment, accounting for service duration.
+- **Use Meilisearch for typed search and keep SQL available.** Typo tolerance
+  and prefix matching improve discovery while PostgreSQL stays authoritative.
+  Meilisearch matches word prefixes rather than arbitrary substrings.
+- **Default unknown locations to Braga.** Blank locations also use Braga.
+  Matching ignores case and accents, and `Lisbon` and `Oporto` are aliases.
+  Geolocation rounds coordinates before sending them and fills the nearest
+  supported city. The guest still presses Search. It does not sort results
+  by distance to individual practices.
+- **Keep translations in the frontend.** English and Portuguese share typed
+  message keys. User-entered service names and addresses remain as written.
+  Answer emails remain in English because requests do not store a locale.
+- **Follow the reference with deliberate accessibility adjustments.** The
+  design uses a darker green for readable text and flat fills instead of
+  gradients. Outfit replaces the commercial reference font. The full choices
+  are in `frontend/DESIGN.md`.
 
-## API
+The scope has no authentication, nutritionist administration, or service-editing
+interface. The personal-page button is a placeholder. This is a challenge demo;
+the unauthenticated pending-request pages expose guest information and need an
+access boundary before any public deployment with real data.
 
-Interactive docs run at <http://localhost:3001/docs>. Swagger UI reads the
-OpenAPI spec in `backend/public/openapi.yaml`, which is also served at
-<http://localhost:3001/openapi.yaml>. The controller tests call
-`assert_schema_conform(200)` from `committee-rails`. That call fails when a
-request or response differs from the spec, so the docs stay in step with the
-code. A new endpoint goes into the spec in the same change as its controller
-test.
+## Demo data
 
-`GET /nutritionists` searches nutritionists. It takes three optional query
-parameters.
+[The seeds](backend/db/seeds.rb) create 30 nutritionists across Braga, Porto,
+Lisboa, Guimarães, Coimbra, Leiria, Aveiro, and Faro. Services have different
+prices and durations, including First appointment, Follow-up, and specialist
+consultations. Names and prices use a fixed Faker seed, and addresses are
+fictional.
 
-| Parameter | Meaning |
-| --- | --- |
-| `q` | Matches a nutritionist's name or the name of one of their services at the location |
-| `location` | The city to search |
-| `page` | The results page, five nutritionists per page |
+Braga has eight nutritionists for pagination. Three also offer services in
+Porto, and one works at two Braga addresses. The first seeded nutritionist has
+four pending requests for the next Monday and Tuesday. Two start at the same
+time, so accepting either demonstrates automatic overlap rejection.
 
-Matching ignores case and accents, so `joao` finds João and `guimaraes` finds
-Guimarães. Meilisearch matches `q` by word, forgiving typos and taking the last
-word as a prefix, so `goncalvs` finds Gonçalves and `spor` finds Sports
-nutrition. When Meilisearch cannot answer, PostgreSQL matches `q` as part of a
-name, ignoring accents with its `unaccent` extension; see
-[Search engine](#search-engine). The known
-locations are the cities that have at least one service, plus `Lisbon` and
-`Oporto` as aliases. A blank location searches Braga, and so does an unknown
-one. The response says which case applied in `location.source`: `input`,
-`default`, or `fallback`. A page past the end returns the last page, and a
-missing or invalid page returns the first.
+Try these flows after a fresh setup:
 
-`q` has no length limit of its own. It is never stored, it reaches Meilisearch
-as a search string and PostgreSQL as a bound parameter, and Puma already refuses a
-query string over 10 KB, so a cap would add a rule without removing a risk.
+| What to try | URL or action | Expected result |
+| --- | --- | --- |
+| Default location | <http://localhost:3000> | Braga results and pagination |
+| Service search | <http://localhost:3000/?q=first&location=Braga> | Nutritionists offering First appointment in Braga |
+| Another city | <http://localhost:3000/?location=Leiria> | Leiria results |
+| Unknown city | <http://localhost:3000/?location=Mars> | Braga results with a fallback notice |
+| Empty results | <http://localhost:3000/?q=zzzznomatch&location=Braga> | Empty state with a way to clear the search |
+| Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
+| Replace a request | Book again with the same email, including with another nutritionist | Previous pending request disappears from its list |
+| Answer requests | <http://localhost:3000/nutritionists/1/requests> | Pending cards with Accept and Reject actions |
+| Automatic rejection | Accept one of the seeded 10:00 requests | Both overlapping cards leave the list, and each guest gets an email |
+| Read answer emails | <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
+| Change language | Use the language selector above the header | Translated UI that persists across visits |
 
-Without `q`, results are ordered by name. With `q`, the best matches come
-first and ties are ordered by name. Each nutritionist lists only the services they
-offer at the searched location, ordered by street address and then by name.
-Prices are decimal strings.
-
-```sh
-curl 'http://localhost:3001/nutritionists?q=first&location=braga'
-```
-
-```json
-{
-  "nutritionists": [
-    {
-      "id": 1,
-      "name": "Mary Jane",
-      "title": "Dietitian",
-      "license_number": "2963N",
-      "offers_online": true,
-      "services": [
-        {
-          "id": 1,
-          "name": "First appointment",
-          "price": "25.0",
-          "street_address": "Rua do Souto 45",
-          "city": "Braga",
-          "duration_minutes": 60
-        }
-      ]
-    }
-  ],
-  "location": { "city": "Braga", "source": "input" },
-  "pagination": { "page": 1, "per_page": 5, "total_count": 1, "total_pages": 1 }
-}
-```
-
-`GET /locations` lists the cities that have at least one service, once each and
-in alphabetical order, for the search form's location input. These are the
-same cities `GET /nutritionists` accepts as known locations; both read
-`Service.cities`. `default` is the city a blank or unknown location
-searches.
+The example request URL assumes fresh seed IDs. To find the nutritionist who
+receives the seeded requests in an existing database, run:
 
 ```sh
-curl 'http://localhost:3001/locations'
+pnpm rails runner 'puts AppointmentRequest.pending.distinct.pluck(:nutritionist_id)'
 ```
 
-```json
-{ "locations": ["Braga", "Porto"], "default": "Braga" }
-```
-
-`GET /locations/nearest?latitude=41.12&longitude=-8.61` returns the city with
-at least one service whose centre is nearest the point, by great-circle
-distance (`City.nearest_to`). The search form calls it for "Use my location".
-A missing, non-numeric, or out-of-range coordinate is a `422`, and a directory
-with no services is a `404`. Rails filters `latitude` and `longitude` out of
-its logs.
+`pnpm db:seed` adds missing demo records and preserves answered requests. It does
+not restore the original pending list. To erase development records and rebuild
+the demo data, stop the backend first so its job worker does not poll queue
+tables while they are reset:
 
 ```sh
-curl 'http://localhost:3001/locations/nearest?latitude=41.12&longitude=-8.61'
+docker compose stop backend
+docker compose run --rm --no-deps backend bin/rails db:seed:replant
+docker compose up -d --wait backend
 ```
 
-```json
-{ "city": "Porto" }
-```
+## Testing strategy
 
-`NutritionistSearch` in `backend/app/models/` owns location resolution,
-matching, and paging. It runs a fixed number of queries whatever the page
-size, because the page's services are preloaded in one query.
+Tests focus on observable behavior and the backend invariants. PostgreSQL tests
+use the real database engine so locks, foreign keys, and exclusion constraints
+are exercised. Frontend tests stub the HTTP boundary. End-to-end tests connect
+the real browser, frontend, API, database, search engine, job worker, and inbox.
 
-### Search engine
+### What is covered
 
-Meilisearch ranks searches that have a `q`. PostgreSQL stays the source of
-truth, and location rules stay in Rails.
+| Layer | Tools and location | Coverage |
+| --- | --- | --- |
+| Domain and database | Minitest in `backend/test/models/` | Booking rules, replacement, overlap rejection, search, constraints, and concurrent submissions and answers |
+| HTTP API integration | `ActionDispatch::IntegrationTest` in `backend/test/controllers/` | Real routing and JSON responses, validation errors, conflicts, and OpenAPI compliance through `committee-rails` |
+| Email and jobs | `backend/test/mailers/` and `backend/test/jobs/` | Email content, retry exhaustion, repeat-send protection, and transactional job enqueue |
+| Seeds | `backend/test/seeds_test.rb` | Demo data and idempotence |
+| Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
+| Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |
+| API contract | Frontend `stubApi` and backend request assertions | Requests and responses checked against the same `openapi.yaml` |
+| End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, and language persistence |
 
-- **What is indexed.** `NutritionistIndex` builds one document per nutritionist
-  and city, with the names of the services offered there. Filtering on the
-  city keeps a query from matching a service in another city.
-- **What a search asks.** Rails resolves the location first, then asks
-  Meilisearch for one page of nutritionist ids in that city. It loads those
-  nutritionists and their services from PostgreSQL in the ranked order. The
-  response has the same shape whichever path answered.
-- **Without `q`**, listing a city needs no ranking, so PostgreSQL answers on
-  its own.
-- **When Meilisearch is down**, unreachable, slower than one second, or
-  missing its index, the search falls back to the SQL match and logs a
-  warning. Guests still get results, without typo tolerance.
-- **Keeping it current.** Rails rebuilds the whole index when the server
-  starts and at the end of `db:seed`. Nothing else writes nutritionists or
-  services, and a full rebuild of a few hundred documents is simpler than
-  tracking changes. Run `bin/rails search:reindex` after changing data by hand.
-- **Tests.** The Rails tests never use Meilisearch: the test environment
-  leaves `MEILISEARCH_URL` unset, and the search tests pass a stand-in index.
-  The e2e suite searches with typos against the real engine.
-- **Prefixes, not substrings.** Meilisearch matches from the start of a word,
-  so `ane` no longer finds Jane. Guests type words, not word middles, so typo
-  tolerance is worth that trade.
+Backend search tests use a stand-in index. The end-to-end suite exercises the
+real Meilisearch service, including typo tolerance. Playwright checks Lisbon
+booking behavior from a browser configured in Los Angeles.
 
-The service runs in development mode without a master key, reachable only on
-the Compose network. A deployment would set `MEILI_ENV=production` and a
-master key, and pass that key to the client.
+### Run backend and frontend checks
 
-`POST /appointment_requests` books a pending request. The guest sends a name,
-an email, a service, a day and a time, and whether the appointment is online.
+With the development stack running:
 
 ```sh
-curl -X POST 'http://localhost:3001/appointment_requests' \
-  -H 'Content-Type: application/json' \
-  -d '{"appointment_request": {"service_id": 1, "guest_name": "Joana Silva",
-       "guest_email": "joana.silva@example.com", "date": "2026-12-07",
-       "time": "10:00", "online": false}}'
+pnpm backend:ci
+pnpm frontend:lint
+pnpm frontend:typecheck
+pnpm --dir frontend test
+pnpm frontend:build
 ```
 
-It returns `201` with the request, or `422` with error codes per field. The
-API does not know the guest's language, so the frontend words each code:
-
-```json
-{ "errors": { "starts_at": ["not_a_slot"] } }
-```
-
-`public/openapi.yaml` lists every code a field can have.
-
-All times are Portuguese wall-clock time. The API takes the day and the time
-as they were picked, and `BookingSchedule` reads them in `Europe/Lisbon` and
-stores UTC, so a 10:00 booking stays 10:00 across daylight saving changes.
-`BookingSchedule` also owns the opening hours: Monday to Saturday, on the
-hour, from 09:00 to 18:00 except 13:00. A new request must start on one of
-those slots, in the future, and must not overlap an appointment the
-nutritionist already accepted, because that request could never be accepted.
-Online is only allowed when the nutritionist offers it. The frontend renders
-the same slots in its time picker; the API is the one that enforces them.
-
-`GET /nutritionists/:id/appointment_requests` returns the nutritionist and
-every request still waiting for their answer, soonest first. Requests whose
-time has passed stay in the list until the nutritionist answers them, so every
-guest gets an answer. An unknown id returns `404 { "error": "Nutritionist not
-found" }`; `ApplicationController` turns any missing record into that JSON
-response. The route only matches ids made of digits with no leading zero.
-Without that constraint, Rails would cast `1abc` or `01` to `1` and serve
-nutritionist 1's requests under a URL that names no one.
+For a focused backend run:
 
 ```sh
-curl 'http://localhost:3001/nutritionists/1/appointment_requests'
+pnpm backend:test test/models/appointment_request_test.rb
+pnpm backend:lint
 ```
 
-```json
-{
-  "nutritionist": { "id": 1, "name": "Mary Jane" },
-  "appointment_requests": [
-    {
-      "id": 7,
-      "guest_name": "Rita Gomes",
-      "guest_email": "rita.gomes@example.com",
-      "starts_at": "2026-12-01T10:00:00.000Z",
-      "ends_at": "2026-12-01T11:00:00.000Z",
-      "online": false,
-      "service": { "id": 1, "name": "First appointment" }
-    }
-  ]
-}
-```
+### Run end-to-end tests
 
-It runs two queries whatever the number of requests: the nutritionist, then
-the pending requests with their services preloaded, served by the
-`appointment_requests (nutritionist_id, status, starts_at)` index.
-
-`PATCH /nutritionists/:nutritionist_id/appointment_requests/:id` is how the
-nutritionist answers a request, with a status of `accepted` or `rejected`.
-Accepting also rejects every other pending request of the nutritionist that
-overlaps it in time, comparing start and end times, so the service's duration
-counts. Requests whose time has passed can still be answered.
+Install the test dependencies and Chromium once:
 
 ```sh
-curl -X PATCH 'http://localhost:3001/nutritionists/1/appointment_requests/7' \
-  -H 'Content-Type: application/json' \
-  -d '{"appointment_request": {"status": "accepted"}}'
-```
-
-```json
-{ "id": 7, "status": "accepted", "answered_at": "2026-11-20T12:00:00.000Z", "rejected_ids": [9] }
-```
-
-`rejected_ids` lists the requests rejected because they overlapped. Both ids
-follow the same route constraint as the list, so `7abc` never answers request
-7. A request that isn't this nutritionist's returns `404`, and any status other than
-`accepted` or `rejected` returns `422`. If the request was already answered or
-superseded, the API returns `409` with a reason code and the request's current
-status. It does the same, with `overlaps_accepted`, when accepting the request
-would overlap an accepted appointment, which can happen when the guest booked
-at the moment the nutritionist accepted another request:
-
-```json
-{ "error": "already_accepted", "status": "accepted" }
-```
-
-`AppointmentRequest#answer!` runs in one transaction. It locks the
-nutritionist's row with `FOR NO KEY UPDATE`, so one nutritionist's answers run
-one after the other. Without that lock, two overlapping requests accepted at
-the same moment would each lock their own row and then wait for the other's,
-and PostgreSQL would abort one with a deadlock. `FOR NO KEY UPDATE` still lets
-guests insert requests that reference the nutritionist. The exclusion
-constraint on accepted requests stays as the last guard against a double
-booking. A race test pauses one accept after it takes its locks, starts a
-second accept, and checks that the second waits and then finds its request
-rejected.
-
-### Answer emails
-
-Every request answered by `answer!` gets one email, including the ones
-rejected because they overlapped. `answer!` enqueues one
-`AppointmentAnswerEmailJob` per answered request inside its transaction, so the
-jobs exist exactly when the answers do (see [Background jobs and
-email](#background-jobs-and-email)). A rejected request records why in
-`rejection_reason`: `declined` when the nutritionist rejected it, `overlap`
-when accepting another request rejected it. The email says which.
-
-The job sends `AppointmentRequestMailer#accepted` or `#rejected`, then sets
-`answer_notified_at` while holding the request's row lock. Solid Queue runs a
-job at least once, so a retry after a successful send finds the column set and
-sends nothing. The one case left is a crash after the SMTP server accepted the
-email and before the column was written; the guest would get the email twice.
-Closing that gap needs a provider that deduplicates on an idempotency key.
-Network and SMTP-busy errors retry with growing waits, up to ten attempts.
-
-Emails show the appointment in Lisbon time, the zone the guest booked in, with
-the nutritionist, service, and address or "Online". They are in English, like
-the UI. A request replaced by the same guest's newer one (`superseded`) gets
-no email: the guest replaced it themselves, and the challenge asks for emails
-on answers only.
-
-`AppointmentRequest.submit` creates the request in one transaction. It takes a
-transaction-scoped advisory lock on the guest's email, marks the guest's
-pending request `superseded`, and inserts the new one. The lock makes two
-submissions from the same guest run one after the other, so the newer one
-always wins instead of failing on the one-pending-per-guest index. Different
-guests never wait for each other. A test holds one submission open, starts a
-second, and checks that it waits and then supersedes the first.
-
-## Frontend
-
-Run the frontend separately, with the backend running.
-
-```sh
-cd frontend
-cp .env.example .env.local   # API_URL=http://localhost:3001
-pnpm install
-pnpm dev
-```
-
-The frontend runs at <http://localhost:3000>. `API_URL` is required; the app
-stops with a message pointing at `.env.example` if it is missing.
-
-The search page reads `GET /nutritionists` and `GET /locations` from Server
-Components. "Schedule appointment" sends the request to
-`POST /appointment_requests` through the `requestAppointment` Server Action
-in `frontend/src/app/actions.ts`. The nutritionist's pending requests page, for example
-<http://localhost:3000/nutritionists/1/requests>, reads
-`GET /nutritionists/:id/appointment_requests`. It has no authentication, as
-the challenge allows. Requests whose time has passed carry an "Overdue" badge.
-Accept and Reject call
-`PATCH /nutritionists/:id/appointment_requests/:id` through the `answerRequest`
-Server Action, bound to the request on the server. On success the action calls
-`refresh()`, so the answered request and any overlapping requests the API
-rejected with it leave the list, and a Sonner toast says how many overlapping
-requests were rejected. A request that was already answered, for example in
-another tab, also leaves the list, with the reason in an error toast.
-When the API is unavailable the card stays and shows a message to try again.
-Answering a request emails the guest; open Mailpit at <http://localhost:8025>
-to read it.
-
-An id that is not a nutritionist shows the 404 page. Cache Components sends a
-page's shell, with status `200`, before the page can call `notFound()`, so the
-status depends on the id:
-
-- A malformed id (`1abc`, `01`, `0`) gets a real `404` from
-  `frontend/src/proxy.ts`, which checks the id's format before rendering. This
-  repeats the API's route constraint on purpose; the API still guards anyone
-  calling it directly.
-- A well-formed id that no nutritionist has gets the 404 page with status
-  `200` and `noindex`. Checking it in the proxy would cost an extra API call on
-  every page view.
-
-```sh
-pnpm test                    # Vitest
-pnpm lint
-pnpm typecheck               # next typegen, then tsc
-```
-
-Vitest runs two projects. `*.test.ts` files run in Node and cover the API
-client, the Server Actions, and the helpers in `src/lib/`. `*.test.tsx` files
-are component tests: they run in jsdom with Testing Library and query by role
-and label, as a guest or nutritionist would find things. The render helper in
-`frontend/src/test/render.tsx` supplies the English messages and Lisbon time
-zone through the real next-intl provider. Every test that
-reaches Rails stubs only `fetch`, through `stubApi` in
-`frontend/src/test/stub-api.ts`. The stub checks each call and each JSON reply
-against `backend/public/openapi.yaml`, so a request body or fixture the spec no
-longer describes fails the test. The backend request tests check the same file
-from the other side.
-
-### Frontend decisions
-
-- **The backend owns every rule.** Matching, the Braga default and fallback,
-  paging, and the list of known cities come from the API. The frontend renders
-  what it gets and keeps no copy of those rules.
-- **The booking form does not validate.** It posts through a Server Action
-  with `useActionState`, and Rails answers with error codes per field. The
-  action words each code in the guest's language, `toAppointmentErrors` puts
-  each message under its field, and changing a field clears its message. The day and time travel as
-  the guest picked them (`2026-12-07`, `10:00`), so no time zone conversion
-  happens in the browser or in Node. The time picker shows the same slots as
-  `BookingSchedule`; that list is the one rule kept in both places, because
-  the picker has to render it, and the API still rejects anything else.
-- **Responses are parsed at the boundary.** `frontend/src/lib/api/` is the only
-  code that calls Rails. A small Zod schema per endpoint checks the payload,
-  renames snake_case to camelCase, and turns decimal price strings into
-  numbers; the app's types are inferred from those schemas. The backend
-  request tests and the frontend's test fixtures are both checked against
-  `openapi.yaml`, so the two sides agree on one JSON shape.
-- **No caching.** Search and locations are fetched fresh on every request.
-  Results change only when the seeds run, nothing would invalidate a cache
-  tag, and free-text queries rarely repeat a cache key.
-- **Search runs on submit.** The form is a plain GET to `/` through
-  `next/form`, so the search lives in the URL and works without JavaScript.
-  Live search-as-you-type was tried and dropped: keeping the inputs in step
-  with the URL across typing, back, and links took more state than the
-  challenge justifies. A `key` built from the search remounts the inputs on
-  every navigation, so they always show the URL's values.
-- **"Use my location" fills the city and waits.** The pin at the end of the
-  location input is a button. It asks the browser for its position, rounds it
-  to two decimals (about a kilometre) before it leaves the browser, and the
-  `findNearestCity` Server Action asks `GET /locations/nearest` which city is
-  closest. The city goes into the input and the input takes focus, but
-  nothing is searched until the guest presses Search, so they can still type
-  a query or change the city. A denied permission, a failed lookup, or an
-  unreachable API shows an error toast and leaves the input alone. The button
-  stays disabled until the page hydrates, and in browsers without
-  geolocation. It stands in for the "sort by distance" extra: results are
-  still per city, and distance only picks the city.
-- **Two kinds of failure.** When Rails is unreachable, times out after five
-  seconds, or answers 5xx, the results area shows an inline "Search is
-  unavailable" message and the search form keeps working, and the booking
-  form says the request could not be sent and keeps what the guest typed. Anything else, such
-  as a 4xx or a payload that fails parsing, is a bug and reaches
-  `app/error.tsx`.
-
-### Languages
-
-The interface is in British English and European Portuguese, with
-[next-intl](https://next-intl.dev/) in its mode without i18n routing. The URL
-does not carry the language, so a shared link opens in the reader's own
-language.
-
-- **Choosing the language.** `frontend/src/i18n/request.ts` takes the
-  `NEXT_LOCALE` cookie first, then the browser's `Accept-Language` (any
-  Portuguese variant gets `pt-PT`), then English. The language select (flag and
-  native name) in a thin bar above the header calls a Server Action that sets
-  the cookie, and the page re-renders in the new language. It sits outside
-  the green band so the header keeps to the reference design: logo on the
-  left, professionals link on the right.
-- **Messages.** `frontend/languages/en-GB.json` and `pt-PT.json` hold every
-  string, with ICU plurals and selects. `frontend/src/i18n/messages.ts` types
-  the Portuguese file against the English one, so a missing message fails
-  `tsc`. Every key is camelCase. The API's snake_case error codes, such as
-  `not_a_slot`, go through `toMessageKey` before they look up a message.
-- **Formatting.** Prices, dates, and times use next-intl's formatter with the
-  named formats in `frontend/src/i18n/formats.ts`, always in `Europe/Lisbon`.
-  Prices follow each language: `€35` in English, `35 €` in Portuguese.
-- **What stays as written.** Service names and addresses come from the
-  nutritionists, so they are not translated. The nutritionist's title is a
-  fixed list, so it is. Emails stay in English: the backend does not know the
-  guest's language.
-- **Every page renders per request.** The root layout reads the cookie, so it
-  sets `instant = false`: a shell prerendered at build time could only be in
-  one language. Each page's `Suspense` boundaries still stream its data.
-
-## End-to-end tests
-
-`e2e/` holds a Playwright suite that drives the real app in Chromium: the
-production build of the frontend, Rails, PostgreSQL, Meilisearch, Solid
-Queue, and Mailpit.
-It covers the flows the challenge asks for, across the whole stack:
-
-- **Search** by name (ignoring accents and typos), by service, and by city, with paging,
-  the empty state, the Braga default for a blank location, and the fallback
-  alert for an unknown one.
-- **Booking** through the modal: the API's validation messages, days and slots
-  that have passed, and the request on the nutritionist's page afterwards.
-- **Answering**: accepting a request rejects the requests it overlaps (same
-  start, and a longer service that starts earlier) but not an adjacent one,
-  and each guest gets an email with the right outcome. Rejecting sends the
-  "declined" email.
-- **Replacing**: a guest's new request, even to another nutritionist, takes
-  their pending one off the first nutritionist's list.
-
-The backend tests cover each rule in depth, including races and
-exactly-once email delivery. The e2e tests prove the pieces work together.
-
-### Run them
-
-Install Docker, then run from the project root.
-
-```sh
-pnpm --dir e2e install
+pnpm --dir e2e install --frozen-lockfile
 pnpm --dir e2e exec playwright install chromium
+```
+
+On Linux, use `playwright install --with-deps chromium` when system browser
+dependencies are missing. Then run:
+
+```sh
+pnpm e2e:lint
+pnpm e2e:typecheck
 pnpm e2e
 ```
 
-Every Playwright run, whether `pnpm e2e`, UI mode, or an editor
-integration, starts by resetting a separate Compose project, `nutribook-e2e`,
-in `e2e/global-setup.ts`. It has its own database, Meilisearch, and Mailpit,
-so it never touches the development data. Rails runs on port 3101, Mailpit on 8125, and
-the frontend on 3100. The development stack can keep running alongside it.
-The reset stops Rails, replants the demo seeds, loads
-`e2e/fixtures/nutritionists.rb`, empties Mailpit, and starts Rails again,
-which rebuilds the search index with the fixture's nutritionists.
-Rails stays stopped while the data is replaced, because replanting also
-empties the Solid Queue tables that its worker polls.
+Each run resets the separate Compose project `nutribook-e2e`, adds dedicated
+fixtures, clears its mailbox, and builds and serves the production frontend.
+Its database and search volumes are separate from development. Default ports
+are 3100 for Next.js, 3101 for Rails, and 8125 for Mailpit. Override them with
+`E2E_FRONTEND_PORT`, `E2E_BACKEND_PORT`, and `E2E_MAILPIT_PORT`.
 
-Playwright serves the frontend with `next build` and `next start`, pointed at
-the e2e Rails. The build calls no API, so it does not wait for the reset. A
-failed test keeps its trace and a screenshot in `e2e/test-results/`, and
-`pnpm --dir e2e exec playwright show-report` opens the HTML report.
+The suite runs one worker with no retries because the tests share a database.
+Fixtures assign separate nutritionists to the flows, guests use unique emails,
+and test dates remain in the future. Do not run two suites against the same
+end-to-end stack at once. The production build also writes `frontend/.next`,
+so stop a local frontend development server before running the suite.
 
-### How the tests stay independent
+Failures retain screenshots and traces in `e2e/test-results/`. Open the HTML
+report with:
 
-- **Own data.** The fixture adds six nutritionists in Viana do Castelo, a city
-  the demo seeds leave empty, so search results there are exact. Each spec
-  books with its own nutritionist, and every test uses new guest emails.
-- **Days that stay bookable.** Tests book days in Lisbon time, on a Monday at
-  least two days ahead. A retry moves one week later, so it does not hit the
-  slot its failed attempt accepted.
-- **No retries.** One worker runs the specs, since they share one database,
-  and a failure fails the run instead of passing on a retry.
-- **Another time zone.** The browser runs in Los Angeles. The booking test
-  fixes the browser clock to a Lisbon afternoon, which is still early morning
-  in Los Angeles. It checks that the calendar and the time slots follow
-  Lisbon and that the booking keeps the Lisbon time.
-- **Accessible selectors.** Tests find elements by role, label, and text, as
-  a screen reader would, and the app has no test ids.
-
-## Continuous integration
-
-`.github/workflows/ci.yml` runs on every pull request and on every push to
-`trunk`. It has three jobs.
-
-- **Backend** runs `bin/ci`: RuboCop, bundler-audit, Brakeman, the Rails
-  tests, and a seed replant. PostgreSQL runs as a service from the same
-  `postgres:18-alpine` image as Compose, which ships `btree_gist` and
-  `unaccent`, so the migrations enable them as they do locally.
-- **Frontend** runs `pnpm lint`, `pnpm typecheck`, `pnpm test`, and
-  `pnpm build`.
-- **End to end** lints and typechecks `e2e/`, then runs `pnpm e2e` against the
-  Docker stack. A failed run uploads the Playwright report and traces.
-
-On a pull request, the backend job runs only when `backend/` changes, and the
-frontend job only when `frontend/` or `backend/public/openapi.yaml` changes,
-since the frontend tests check their fixtures against that contract. A change
-to the workflow runs both. The end-to-end job always runs, and a push to
-`trunk` runs every job.
-
-## Design
-
-`frontend/DESIGN.md` is the design reference. The UI follows the challenge's
-reference image, which is a Nutrium page, and takes its palette and shapes from
-nutrium.com: the Nutrium green, slate text, coral and mint action buttons, pill
-buttons, and flat white cards. Shades are darkened where the reference falls
-below the 4.5:1 that body text needs: white on the Nutrium green is 2.65:1, so
-the header band and green text use a darker green. Headings use Outfit in place
-of Nutrium's commercial Geomanist.
-
-Inter and Outfit load through `next/font/google`, so `pnpm build` needs
-network access to download them.
+```sh
+pnpm --dir e2e exec playwright show-report
+```
