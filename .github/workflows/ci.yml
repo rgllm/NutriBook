@@ -22,7 +22,6 @@ jobs:
       backend: ${{ github.event_name != 'pull_request' || steps.filter.outputs.backend == 'true' }}
       frontend: ${{ github.event_name != 'pull_request' || steps.filter.outputs.frontend == 'true' }}
     steps:
-      - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
         id: filter
         if: github.event_name == 'pull_request'
