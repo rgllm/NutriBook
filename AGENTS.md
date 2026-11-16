@@ -125,7 +125,7 @@ pnpm lint
 pnpm exec tsc --noEmit
 pnpm build
 
-# End to end (from the project root; resets the e2e stack first)
+# End to end (from the project root; each run resets the e2e stack)
 pnpm e2e
 pnpm e2e:lint
 pnpm e2e:typecheck

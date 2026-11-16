@@ -45,8 +45,14 @@ test("a guest requests an appointment and the nutritionist sees it", async ({ pa
 
   await dialog.getByLabel("Your name").fill(guest.name)
   await dialog.getByLabel("Email").fill(guest.email)
-  await dialog.getByRole("combobox", { name: "Service" }).click()
-  await page.getByRole("option", { name: "Follow-up" }).click()
+  const service = dialog.getByRole("combobox", { name: "Service" })
+  await service.click()
+  await expect(page.getByRole("option")).toHaveText([
+    "First appointment · 35€ · 60 min",
+    "Follow-up · 20€ · 30 min",
+  ])
+  await page.getByRole("option", { name: "Follow-up · 20€ · 30 min", exact: true }).click()
+  await expect(service).toContainText("Follow-up · 20€ · 30 min")
 
   await expect(dialog.getByRole("button", { name: calendarDay(monday) })).toBeDisabled()
   await dialog.getByRole("button", { name: calendarDay(tuesday) }).click()

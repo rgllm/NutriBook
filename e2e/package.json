@@ -3,10 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "scripts/stack.sh up && playwright test",
-    "test:ui": "scripts/stack.sh up && playwright test --ui",
-    "reset": "scripts/stack.sh up",
-    "down": "scripts/stack.sh down",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "down": "docker compose -p nutribook-e2e -f ../compose.yaml -f compose.yaml down --volumes",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
