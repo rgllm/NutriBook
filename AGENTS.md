@@ -23,6 +23,8 @@ higher one wins.
   Omakase), Brakeman, bundler-audit. Runs in Docker through `compose.yaml`.
 - `frontend/`: Next.js 16 (App Router), React 19 with the React Compiler,
   TypeScript, Tailwind CSS v4, shadcn/ui on Base UI, pnpm.
+- `e2e/`: Playwright end-to-end tests over the whole stack, run against a
+  separate Compose project (`nutribook-e2e`) so development data stays intact.
 
 The challenge requires Ruby on Rails 7.2+, PostgreSQL, and a JavaScript
 framework. Do not swap any of these out.
@@ -105,8 +107,8 @@ Optional, valued by reviewers. Do them after the core flows are solid.
   you see a lint error, a failing test, or a flaky test, fix it, even when your
   current work did not cause it.
 - Every feature ships with tests. Backend rules get model and request tests, and
-  mailers get mailer tests. The frontend has no test runner yet; add one with the
-  first piece of frontend logic worth testing instead of leaving it uncovered.
+  mailers get mailer tests. Frontend logic gets Vitest tests. A change to a
+  user flow updates its spec in `e2e/`.
 - Before calling work done, run the checks for the side you touched and report
   the real result.
 
@@ -121,6 +123,11 @@ cd frontend
 pnpm lint
 pnpm exec tsc --noEmit
 pnpm build
+
+# End to end (from the project root; resets the e2e stack first)
+pnpm e2e
+pnpm e2e:lint
+pnpm e2e:typecheck
 ```
 
 ## Working in this codebase

@@ -90,7 +90,13 @@ pnpm frontend:lint
 pnpm frontend:typecheck
 pnpm frontend:build
 pnpm test                 # backend tests
-pnpm lint                 # backend and frontend lint
+pnpm lint                 # backend, frontend, and e2e lint
+pnpm e2e                  # end-to-end tests (see below)
+pnpm e2e:ui               # the same, in Playwright's UI mode
+pnpm e2e:reset            # reset the e2e stack without running tests
+pnpm e2e:down             # remove the e2e stack and its data
+pnpm e2e:lint
+pnpm e2e:typecheck
 ```
 
 ## Database
@@ -483,6 +489,71 @@ pnpm exec tsc --noEmit
   form says the request could not be sent and keeps what the guest typed. Anything else, such
   as a 4xx or a payload that fails parsing, is a bug and reaches
   `app/error.tsx`.
+
+## End-to-end tests
+
+`e2e/` holds a Playwright suite that drives the real app in Chromium: the
+production build of the frontend, Rails, PostgreSQL, Solid Queue, and Mailpit.
+It covers the flows the challenge asks for, across the whole stack:
+
+- **Search** by name (ignoring accents), by service, and by city, with paging,
+  the empty state, the Braga default for a blank location, and the fallback
+  alert for an unknown one.
+- **Booking** through the modal: the API's validation messages, days and slots
+  that have passed, and the request on the nutritionist's page afterwards.
+- **Answering**: accepting a request rejects the requests it overlaps (same
+  start, and a longer service that starts earlier) but not an adjacent one,
+  and each guest gets an email with the right outcome. Rejecting sends the
+  "declined" email.
+- **Replacing**: a guest's new request, even to another nutritionist, takes
+  their pending one off the first nutritionist's list.
+
+The backend tests cover each rule in depth, including races and
+exactly-once email delivery. The e2e tests prove the pieces work together.
+
+### Run them
+
+Install Docker, then run from the project root.
+
+```sh
+pnpm --dir e2e install
+pnpm --dir e2e exec playwright install chromium
+pnpm e2e
+```
+
+`pnpm e2e` resets a separate Compose project, `nutribook-e2e`, before
+Playwright starts. It has its own database and Mailpit, so it never touches
+the development data. Rails runs on port 3101, Mailpit on 8125, and the
+frontend on 3100. The development stack can keep running alongside it. The
+reset stops Rails, replants the demo seeds, loads
+`e2e/fixtures/nutritionists.rb`, empties Mailpit, and starts Rails again.
+Rails stays stopped while the data is replaced, because replanting also
+empties the Solid Queue tables that its worker polls.
+
+Playwright then builds the frontend with `next build` and serves it with
+`next start`. A failed test keeps its trace and a screenshot in
+`e2e/test-results/`, and `pnpm --dir e2e exec playwright show-report` opens
+the HTML report.
+
+### How the tests stay independent
+
+- **Own data.** The fixture adds six nutritionists in Viana do Castelo, a city
+  the demo seeds leave empty, so search results there are exact. Each spec
+  books with its own nutritionist, and every test uses new guest emails.
+- **Days that stay bookable.** Tests book days in Lisbon time, on a Monday at
+  least two days ahead. A retry moves one week later, so it does not hit the
+  slot its failed attempt accepted.
+- **No retries.** One worker runs the specs, since they share one database,
+  and a failure fails the run instead of passing on a retry.
+- **Another time zone.** The browser runs in Los Angeles. The booking test
+  fixes the browser clock to a Lisbon afternoon, which is still early morning
+  in Los Angeles. It checks that the calendar and the time slots follow
+  Lisbon and that the booking keeps the Lisbon time.
+- **Accessible selectors.** Tests find elements by role, label, and text, as
+  a screen reader would, and the app has no test ids.
+
+Running `playwright test` directly skips the reset, so a second run fails on
+slots the first run accepted. Run `pnpm e2e:reset` first.
 
 ## Design
 
