@@ -1,7 +1,7 @@
 import Form from "next/form"
-import { MapPinIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 
+import { UseMyLocationButton } from "@/components/search/use-my-location-button"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import {
@@ -62,7 +62,7 @@ export function SearchForm({
             aria-describedby={locations && "search-location-hint"}
           />
           <InputGroupAddon align="inline-end">
-            <MapPinIcon />
+            <UseMyLocationButton inputId="search-location" />
           </InputGroupAddon>
         </InputGroup>
         {locations && (

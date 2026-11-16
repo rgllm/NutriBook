@@ -6,9 +6,12 @@ async function search(page: Page, { query = "", location = "" }) {
   await page.goto("/")
   const form = page.getByRole("search")
   await form.getByLabel("Nutritionist or service").fill(query)
-  await form.getByLabel("Location").fill(location)
+  await locationInput(page).fill(location)
   await form.getByRole("button", { name: "Search" }).click()
 }
+
+// Exact, because the "Use my location" button's label contains the word too.
+const locationInput = (page: Page) => page.getByRole("search").getByLabel("Location", { exact: true })
 
 // Each result card names its nutritionist in a level 2 heading.
 const resultNames = (page: Page) => page.getByRole("main").getByRole("heading", { level: 2 })
@@ -61,4 +64,30 @@ test("falls back to Braga for an unknown location and says so", async ({ page })
 
   await expect(page.getByRole("main").getByRole("alert")).toContainText("We don't know “Atlantis” yet")
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/ in Braga$/)
+})
+
+test.describe("with location access", () => {
+  // Just outside Viana do Castelo, nearer it than any city the demo seeds use.
+  test.use({ permissions: ["geolocation"], geolocation: { latitude: 41.71, longitude: -8.8 } })
+
+  test("fills in the nearest city and waits for the guest to search", async ({ page }) => {
+    await page.goto("/")
+    await page.getByRole("button", { name: "Use my location" }).click()
+
+    await expect(locationInput(page)).toHaveValue(E2E_CITY)
+    await expect(locationInput(page)).toBeFocused()
+    await expect(page).toHaveURL(/\/$/)
+
+    await page.getByRole("search").getByRole("button", { name: "Search" }).click()
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(`6 nutritionists in ${E2E_CITY}`)
+  })
+})
+
+test("says so when location access is denied and leaves the location alone", async ({ page }) => {
+  await page.goto("/?location=Porto")
+  await page.getByRole("button", { name: "Use my location" }).click()
+
+  await expect(page.getByText("Allow location access in your browser, or type a city.")).toBeVisible()
+  await expect(locationInput(page)).toHaveValue("Porto")
 })

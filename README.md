@@ -525,6 +525,17 @@ from the other side.
   with the URL across typing, back, and links took more state than the
   challenge justifies. A `key` built from the search remounts the inputs on
   every navigation, so they always show the URL's values.
+- **"Use my location" fills the city and waits.** The pin at the end of the
+  location input is a button. It asks the browser for its position, rounds it
+  to two decimals (about a kilometre) before it leaves the browser, and the
+  `findNearestCity` Server Action asks `GET /locations/nearest` which city is
+  closest. The city goes into the input and the input takes focus, but
+  nothing is searched until the guest presses Search, so they can still type
+  a query or change the city. A denied permission, a failed lookup, or an
+  unreachable API shows an error toast and leaves the input alone. The button
+  stays disabled until the page hydrates, and in browsers without
+  geolocation. It stands in for the "sort by distance" extra: results are
+  still per city, and distance only picks the city.
 - **Two kinds of failure.** When Rails is unreachable, times out after five
   seconds, or answers 5xx, the results area shows an inline "Search is
   unavailable" message and the search form keeps working, and the booking
