@@ -20,7 +20,9 @@ higher one wins.
 ## Stack
 
 - `backend/`: Rails 8.1 API, Ruby 3.4, PostgreSQL, Minitest, RuboCop (Rails
-  Omakase), Brakeman, bundler-audit. Runs in Docker through `compose.yaml`.
+  Omakase), Brakeman, bundler-audit. Runs in Docker through `compose.yaml`,
+  with Meilisearch ranking typed searches and falling back to SQL when it is
+  down (`NutritionistIndex`).
 - `frontend/`: Next.js 16 (App Router), React 19 with the React Compiler,
   TypeScript, Tailwind CSS v4, shadcn/ui on Base UI, pnpm.
 - `e2e/`: Playwright end-to-end tests over the whole stack, run against a

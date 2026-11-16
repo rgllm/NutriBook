@@ -12,12 +12,15 @@ services:
       SOLID_QUEUE_IN_PUMA: "1"
       SMTP_ADDRESS: mailpit
       SMTP_PORT: 1025
+      MEILISEARCH_URL: http://meilisearch:7700
     volumes:
       - ./backend:/rails
     depends_on:
       db:
         condition: service_healthy
       mailpit:
+        condition: service_healthy
+      meilisearch:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "ruby", "-rnet/http", "-e", "exit(Net::HTTP.get_response(URI('http://127.0.0.1:3000/up')).code == '200' ? 0 : 1)"]
@@ -46,5 +49,21 @@ services:
     ports:
       - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
 
+  # Ranks nutritionists for a typed query; PostgreSQL stays the source of truth.
+  # The backend rebuilds the index every time it starts.
+  meilisearch:
+    image: getmeili/meilisearch:v1.55.1
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
+  meilisearch_data:

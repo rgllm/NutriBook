@@ -22,6 +22,10 @@ Rails.application.configure do
   config.consider_all_requests_local = true
   config.cache_store = :null_store
 
+  # Tests pass a stand-in index where they need one, so the suite never
+  # depends on, or writes to, a running Meilisearch.
+  config.x.meilisearch_url = nil
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 

@@ -132,3 +132,4 @@ end
 
 puts "Seeded #{Nutritionist.count} nutritionists, #{Service.count} services, " \
   "and #{AppointmentRequest.pending.count} pending requests."
+puts NutritionistIndex.refresh
