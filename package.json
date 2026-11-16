@@ -7,7 +7,7 @@
     "dev": "docker compose up --build -d --wait && pnpm --dir frontend dev",
     "stop": "docker compose down",
     "test": "pnpm backend:test",
-    "lint": "pnpm backend:lint && pnpm frontend:lint",
+    "lint": "pnpm backend:lint && pnpm frontend:lint && pnpm e2e:lint",
     "rails": "docker compose exec backend bin/rails",
     "backend:test": "docker compose exec backend bin/rails test",
     "backend:lint": "docker compose exec backend bin/rubocop",
@@ -20,7 +20,13 @@
     "db:psql": "docker compose exec db psql -U nutribook -d nutribook_development",
     "frontend:lint": "pnpm --dir frontend lint",
     "frontend:typecheck": "pnpm --dir frontend exec tsc --noEmit",
-    "frontend:build": "pnpm --dir frontend build"
+    "frontend:build": "pnpm --dir frontend build",
+    "e2e": "pnpm --dir e2e test",
+    "e2e:ui": "pnpm --dir e2e test:ui",
+    "e2e:reset": "pnpm --dir e2e reset",
+    "e2e:down": "pnpm --dir e2e down",
+    "e2e:lint": "pnpm --dir e2e lint",
+    "e2e:typecheck": "pnpm --dir e2e typecheck"
   },
   "keywords": [],
   "author": "",

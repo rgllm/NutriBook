@@ -23,6 +23,8 @@ higher one wins.
   Omakase), Brakeman, bundler-audit. Runs in Docker through `compose.yaml`.
 - `frontend/`: Next.js 16 (App Router), React 19 with the React Compiler,
   TypeScript, Tailwind CSS v4, shadcn/ui on Base UI, pnpm.
+- `e2e/`: Playwright end-to-end tests over the whole stack, run against a
+  separate Compose project (`nutribook-e2e`) so development data stays intact.
 
 The challenge requires Ruby on Rails 7.2+, PostgreSQL, and a JavaScript
 framework. Do not swap any of these out.
@@ -122,6 +124,11 @@ cd frontend
 pnpm lint
 pnpm exec tsc --noEmit
 pnpm build
+
+# End to end (from the project root; resets the e2e stack first)
+pnpm e2e
+pnpm e2e:lint
+pnpm e2e:typecheck
 ```
 
 ## Working in this codebase

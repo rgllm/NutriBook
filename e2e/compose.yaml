@@ -1,0 +1,7 @@
+# Layered over the root compose.yaml as the nutribook-e2e project, which gives
+# the e2e run its own database and mailbox. Both projects bind-mount ./backend,
+# so the e2e server keeps its pid file apart from the development one.
+services:
+  backend:
+    environment:
+      PIDFILE: tmp/pids/e2e.pid
