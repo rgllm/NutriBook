@@ -31,6 +31,17 @@ test("finds nutritionists by the name of a service", async ({ page }) => {
   await expect(page.getByRole("main")).toContainText("Sports nutrition")
 })
 
+// Only the Meilisearch index forgives typos; the SQL fallback would find nobody.
+test("finds a nutritionist despite typos in the query", async ({ page }) => {
+  await search(page, { query: "goncalvs", location: E2E_CITY })
+
+  await expect(resultNames(page)).toHaveText(["João Gonçalves"])
+
+  await search(page, { query: "sprts nutrition", location: E2E_CITY })
+
+  await expect(resultNames(page)).toHaveText(["João Gonçalves"])
+})
+
 test("pages through the nutritionists in a city", async ({ page }) => {
   await search(page, { location: E2E_CITY })
 
