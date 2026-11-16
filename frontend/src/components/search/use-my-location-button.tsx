@@ -1,7 +1,7 @@
 "use client"
 
 import { useSyncExternalStore, useTransition } from "react"
-import { LoaderCircleIcon, MapPinIcon } from "lucide-react"
+import { LoaderCircleIcon, LocateFixedIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
@@ -70,7 +70,7 @@ export function UseMyLocationButton({ inputId }: { inputId: string }) {
       aria-label={label}
       title={label}
     >
-      {locating ? <LoaderCircleIcon className="animate-spin" /> : <MapPinIcon />}
+      {locating ? <LoaderCircleIcon className="animate-spin" /> : <LocateFixedIcon />}
     </InputGroupButton>
   )
 }
