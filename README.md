@@ -10,8 +10,11 @@ request automatically rejects every pending request that overlaps it.
 ### What to install
 
 - Docker
-- Node.js 24, at the exact version in `.node-version`. CI reads the same file.
+- Node.js 24, at the exact version in `.nvmrc`. CI reads the same file.
 - pnpm
+
+With nvm, run `nvm install` in the repository root to install and select this
+Node version.
 
 Ruby, PostgreSQL, Meilisearch, and Mailpit run in Docker. You do not need to
 install them on your machine. The frontend runs locally with pnpm.
