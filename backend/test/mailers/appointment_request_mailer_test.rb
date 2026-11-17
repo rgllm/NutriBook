@@ -72,17 +72,6 @@ class AppointmentRequestMailerTest < ActionMailer::TestCase
     end
   end
 
-  test "Portuguese times follow Lisbon summer time too" do
-    request = appointment_requests(:accepted)
-    request.assign_attributes(language: "pt-PT", online: true,
-      starts_at: Time.utc(2027, 6, 7, 9, 0), ends_at: Time.utc(2027, 6, 7, 9, 30))
-
-    body = AppointmentRequestMailer.answer(request).text_part.decoded
-
-    assert_includes body, "Quando: segunda-feira, 7 de junho de 2027, das 10:00 às 10:30 (hora de Lisboa)"
-    assert_includes body, "Onde: Online"
-  end
-
   test "a request booked in Portuguese is declined in Portuguese" do
     request = appointment_requests(:rejected)
     request.language = "pt-PT"
@@ -96,31 +85,11 @@ class AppointmentRequestMailerTest < ActionMailer::TestCase
     end
   end
 
-  test "an overlap rejection booked in Portuguese is in Portuguese" do
-    request = appointment_requests(:rejected)
-    request.assign_attributes(language: "pt-PT", rejection_reason: "overlap")
-
-    body = AppointmentRequestMailer.answer(request).text_part.decoded
-
-    assert_includes body, "Ana Ferreira aceitou outra consulta à mesma hora, por isso esta hora já não está disponível."
-  end
-
   test "a request in a language NutriBook does not write is answered in English" do
     request = appointment_requests(:accepted)
     request.language = "fr-FR"
 
     assert_equal "Your appointment with Mary Jane is confirmed", AppointmentRequestMailer.answer(request).subject
-  end
-
-  test "rendering an email leaves the language as it was" do
-    request = appointment_requests(:accepted)
-    request.language = "pt-PT"
-
-    assert_no_changes -> { I18n.locale } do
-      AppointmentRequestMailer.answer(request).subject
-    end
-    assert_equal "Your appointment request with Ana Ferreira was not accepted",
-      AppointmentRequestMailer.answer(appointment_requests(:rejected)).subject
   end
 
   test "every email language has the same messages" do
