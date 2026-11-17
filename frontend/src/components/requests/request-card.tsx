@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { answerRequest } from "@/app/nutritionists/[id]/requests/actions"
 import { AnswerRequestForm } from "@/components/requests/answer-request-form"
-import { initials } from "@/lib/format"
+import { initials } from "@/lib/initials"
 import type { PendingRequest } from "@/lib/api/appointment-requests"
 
 export function RequestCard({

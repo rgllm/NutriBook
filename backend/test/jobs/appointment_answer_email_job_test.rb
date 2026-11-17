@@ -35,7 +35,7 @@ class AppointmentAnswerEmailJobTest < ActiveJob::TestCase
     assert_equal "Your appointment with Mary Jane is confirmed", email_to(english).subject
     rejection = email_to(portuguese)
     assert_equal "O seu pedido de consulta com Mary Jane não foi aceite", rejection.subject
-    assert_includes rejection.text_part.decoded, "Mary Jane aceitou outra consulta à mesma hora"
+    assert_includes rejection.text_part.decoded, "Mary Jane não aceitou este pedido de consulta."
   end
 
   test "a retry after a successful send emails no one" do

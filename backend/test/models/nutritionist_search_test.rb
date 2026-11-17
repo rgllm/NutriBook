@@ -32,27 +32,12 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     end
   end
 
-  test "English city names resolve through the alias table" do
-    create_nutritionist("Inês Lima", location: "Lisboa")
-
-    assert_equal "Lisboa", search(location: "Lisbon").location
-    assert_equal "Porto", search(location: "oporto").location
-    assert_equal "input", search(location: "oporto").location_source
-  end
-
   test "an unknown location falls back to Braga" do
     search = search(location: "Atlantis")
 
     assert_equal "Braga", search.location
     assert_equal "fallback", search.location_source
     assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
-  end
-
-  test "an alias for a city nobody works in falls back to Braga" do
-    search = search(location: "Lisbon")
-
-    assert_equal "Braga", search.location
-    assert_equal "fallback", search.location_source
   end
 
   test "without a query it lists everyone with a service at the location" do

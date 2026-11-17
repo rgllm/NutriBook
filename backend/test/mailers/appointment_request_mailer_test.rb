@@ -46,15 +46,6 @@ class AppointmentRequestMailerTest < ActionMailer::TestCase
     end
   end
 
-  test "a request rejected for an overlap says the time was taken" do
-    request = appointment_requests(:rejected)
-    request.rejection_reason = "overlap"
-
-    body = AppointmentRequestMailer.answer(request).text_part.decoded
-
-    assert_includes body, "accepted another appointment at the same time, so this time is no longer available."
-  end
-
   test "a request booked in Portuguese is confirmed in Portuguese" do
     request = appointment_requests(:accepted)
     request.language = "pt-PT"
@@ -80,7 +71,7 @@ class AppointmentRequestMailerTest < ActionMailer::TestCase
 
     assert_equal "O seu pedido de consulta com Ana Ferreira não foi aceite", email.subject
     each_body(email) do |body|
-      assert_includes body, "Ana Ferreira não pode aceitar este pedido de consulta."
+      assert_includes body, "Ana Ferreira não aceitou este pedido de consulta."
       assert_includes body, "Pode pedir outra hora no NutriBook."
     end
   end

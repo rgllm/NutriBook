@@ -42,10 +42,10 @@ test("accepting a request rejects the requests it overlaps and emails every gues
   expect(confirmation.subject).toBe(`Your appointment with ${nutritionist.name} is confirmed`)
   const [englishRejection] = await mailbox.emailsTo(longerEarlier, 1)
   expect(englishRejection.subject).toMatch(NOT_ACCEPTED)
-  expect(englishRejection.text).toContain("accepted another appointment at the same time")
+  expect(englishRejection.text).toContain(`${nutritionist.name} can't take this appointment request.`)
   const [portugueseRejection] = await mailbox.emailsTo(sameStart, 1)
   expect(portugueseRejection.subject).toBe(`O seu pedido de consulta com ${nutritionist.name} não foi aceite`)
-  expect(portugueseRejection.text).toContain("aceitou outra consulta à mesma hora")
+  expect(portugueseRejection.text).toContain(`${nutritionist.name} não aceitou este pedido de consulta.`)
   await mailbox.emailsTo(adjacent, 0)
 })
 

@@ -22,5 +22,4 @@ en-GB:
     rejected:
       subject: "Your appointment request with %{nutritionist} was not accepted"
       declined: "%{nutritionist} can't take this appointment request."
-      overlap: "%{nutritionist} accepted another appointment at the same time, so this time is no longer available."
       request_again: You can request another time on NutriBook.

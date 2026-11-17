@@ -6,7 +6,6 @@ export type SearchState = {
   query: string
   location: string
   page: number
-  // The guest's position orders results nearest first; without it they order by relevance.
   near: Position | null
 }
 

@@ -1,6 +1,5 @@
 class NutritionistSearch
   DEFAULT_LOCATION = "Braga".freeze
-  LOCATION_ALIASES = { "lisbon" => "Lisboa", "oporto" => "Porto" }.freeze
   PER_PAGE = 5
 
   Result = Data.define(:records, :total, :page)
@@ -45,7 +44,7 @@ class NutritionistSearch
     key = location_key(input)
     return [ DEFAULT_LOCATION, "default" ] if key.empty?
 
-    city = known_locations[location_key(LOCATION_ALIASES.fetch(key, key))]
+    city = known_locations[key]
     city ? [ city, "input" ] : [ DEFAULT_LOCATION, "fallback" ]
   end
 
