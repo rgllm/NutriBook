@@ -1,5 +1,5 @@
-Hi <%= appointment_request.guest_name %>,
+<%= t("appointment_request_mailer.greeting", name: appointment_request.guest_name) %>
 
-<%= nutritionist_name %> accepted your appointment request. See you then.
+<%= t(".body", nutritionist: nutritionist_name) %>
 
 <%= render "details" %>

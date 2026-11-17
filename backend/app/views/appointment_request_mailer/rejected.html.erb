@@ -1,8 +1,4 @@
-<p>Hi <%= appointment_request.guest_name %>,</p>
-<% if appointment_request.rejection_overlap? %>
-  <p><%= nutritionist_name %> accepted another appointment at the same time, so this time is no longer available.</p>
-<% else %>
-  <p><%= nutritionist_name %> can't take this appointment request.</p>
-<% end %>
+<p><%= t("appointment_request_mailer.greeting", name: appointment_request.guest_name) %></p>
+<p><%= t(appointment_request.rejection_overlap? ? ".overlap" : ".declined", nutritionist: nutritionist_name) %></p>
 <%= render "details" %>
-<p>You can request another time on NutriBook.</p>
+<p><%= t(".request_again") %></p>

@@ -1,0 +1,25 @@
+# Answer emails in European Portuguese, for requests booked in pt-PT.
+pt-PT:
+  date:
+    day_names: [domingo, segunda-feira, terça-feira, quarta-feira, quinta-feira, sexta-feira, sábado]
+    month_names: [~, janeiro, fevereiro, março, abril, maio, junho, julho, agosto, setembro, outubro, novembro, dezembro]
+  time:
+    formats:
+      appointment_day: "%A, %-d de %B de %Y"
+  appointment_request_mailer:
+    greeting: "Olá %{name},"
+    appointment_time: "%{day}, das %{starts} às %{ends} (hora de Lisboa)"
+    online: Online
+    details:
+      nutritionist: Nutricionista
+      service: Serviço
+      when: Quando
+      where: Onde
+    accepted:
+      subject: "A sua consulta com %{nutritionist} está confirmada"
+      body: "%{nutritionist} aceitou o seu pedido de consulta. Até breve."
+    rejected:
+      subject: "O seu pedido de consulta com %{nutritionist} não foi aceite"
+      declined: "%{nutritionist} não pode aceitar este pedido de consulta."
+      overlap: "%{nutritionist} aceitou outra consulta à mesma hora, por isso esta hora já não está disponível."
+      request_again: Pode pedir outra hora no NutriBook.
