@@ -62,9 +62,11 @@ Backend commands require the development Compose stack to be running.
 | `pnpm db:seed` | Add missing demo records, rebuild the search index, and print the demo request URLs |
 | `pnpm db:psql` | Open PostgreSQL against the development database |
 | `pnpm rails search:reindex` | Rebuild Meilisearch after manual data changes |
-| `pnpm backend:test` or `pnpm test` | Run the Rails test suite |
+| `pnpm check` | Run the backend and frontend checks and the end-to-end lint and typecheck, without Playwright |
+| `pnpm test` | Run the Rails and frontend test suites |
+| `pnpm backend:test` | Run the Rails test suite |
 | `pnpm backend:ci` | Run backend setup, lint, security audits, tests, and a test-database seed replant |
-| `pnpm --dir frontend test` | Run frontend unit and component tests |
+| `pnpm frontend:test` | Run frontend unit and component tests |
 | `pnpm lint` | Run backend, frontend, and end-to-end lint |
 | `pnpm frontend:typecheck` | Generate Next.js types and run TypeScript checks |
 | `pnpm frontend:build` | Build the frontend for production |
@@ -380,15 +382,30 @@ booking behavior from a browser configured in Los Angeles.
 
 ### Run backend and frontend checks
 
-With the development stack running:
+`pnpm check` runs the same backend and frontend checks as CI, plus the
+end-to-end lint and typecheck. It does not run the Playwright suite. It needs
+the development stack running and the frontend and end-to-end dependencies
+installed. Stop a local frontend development server first because the build
+writes `frontend/.next`, as described under end-to-end tests below.
+
+```sh
+pnpm --dir e2e install --frozen-lockfile
+pnpm check
+```
+
+It runs these commands in order and stops at the first failure:
 
 ```sh
 pnpm backend:ci
 pnpm frontend:lint
 pnpm frontend:typecheck
-pnpm --dir frontend test
+pnpm frontend:test
 pnpm frontend:build
+pnpm e2e:lint
+pnpm e2e:typecheck
 ```
+
+`pnpm backend:ci` replants only the test database.
 
 For a focused backend run:
 
