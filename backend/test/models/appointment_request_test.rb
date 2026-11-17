@@ -298,6 +298,16 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert previous.reload.superseded?
   end
 
+  test "submit supersedes a pending request whose stored email differs in case" do
+    # Raw SQL, because the model would lowercase the stored email.
+    legacy = AppointmentRequest.find(insert_raw(guest_email: "Legacy.Guest@Example.com"))
+
+    request = AppointmentRequest.submit(request_attributes(guest_email: "legacy.guest@example.com"))
+
+    assert request.persisted?
+    assert legacy.reload.superseded?
+  end
+
   test "submit leaves other guests' pending requests alone" do
     request = AppointmentRequest.submit(request_attributes)
 
@@ -474,6 +484,6 @@ class AppointmentRequestTest < ActiveSupport::TestCase
         (service_id, nutritionist_id, guest_name, guest_email, starts_at, ends_at, status, created_at, updated_at)
       VALUES (?, ?, 'Rita Gomes', ?, '2026-12-05 10:00', '2026-12-05 11:00', 'pending', now(), now())
     SQL
-    AppointmentRequest.connection.execute(sql)
+    AppointmentRequest.connection.insert(sql)
   end
 end

@@ -57,12 +57,14 @@ class AppointmentRequest < ApplicationRecord
 
   # Saves a new request in place of the guest's pending one. The advisory lock
   # serialises submissions from the same email, so the newest always wins and
-  # the one-pending-per-guest index is never hit by a race.
+  # the one-pending-per-guest index is never hit by a race. The pending request
+  # is matched on lower(guest_email), the expression that index uses, so the
+  # lookup is indexed and finds every row the index would conflict with.
   def self.submit(attributes)
     request = new(attributes)
     transaction do
       connection.execute(sanitize_sql([ "SELECT pg_advisory_xact_lock(hashtext(?))", request.guest_email.to_s ]))
-      pending.where(guest_email: request.guest_email).update_all(status: "superseded", updated_at: Time.current)
+      pending.where("lower(guest_email) = ?", request.guest_email).update_all(status: "superseded", updated_at: Time.current)
       raise ActiveRecord::Rollback unless request.save
     end
     request
@@ -118,8 +120,9 @@ class AppointmentRequest < ApplicationRecord
       (new_record? || will_save_change_to_service_id? || will_save_change_to_starts_at?)
   end
 
-  # The nutritionist and end time always follow the chosen service, never the
-  # client. The composite foreign key enforces the same rule in the database.
+  # Rails derives the nutritionist and booked end time from the service, never
+  # the client. The composite foreign key enforces nutritionist/service
+  # consistency, not the duration calculation.
   def derive_from_service
     self.nutritionist = service.nutritionist
     self.ends_at = starts_at + service.duration_minutes.minutes

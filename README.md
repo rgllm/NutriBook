@@ -100,7 +100,9 @@ Meilisearch indexes one document per nutritionist and city, including the servic
 names offered there. Rails resolves the city first, retrieves ranked IDs, then
 loads the records from PostgreSQL. Searches without a query use SQL directly.
 If Meilisearch is unavailable, times out, or has no index, Rails falls back to
-case- and accent-insensitive SQL matching. The fallback has no typo tolerance.
+case- and accent-insensitive SQL matching. The fallback has no typo tolerance
+and orders by name, while Meilisearch ranks by relevance first, so the two can
+return different results.
 The index rebuilds at startup and after seeding because the app has no interface
 for editing nutritionists or services.
 
@@ -224,8 +226,24 @@ starting at 11:00. Indexes on `services(city, nutritionist_id)` and
 `appointment_requests(nutritionist_id, status, starts_at)` support city searches
 and pending lists. Solid Queue uses additional tables in the same database.
 
+## Retry a failed answer email
+
+An answer email that still fails after its retries stays in Solid Queue. In
+`pnpm backend:console`, `SolidQueue::FailedExecution` lists those jobs with
+their errors, and `failed.retry` queues one again once the cause is fixed. The
+job skips the send if `answer_notified_at` is already set.
+
 ## Main decisions
 
+- **Render every page per request, without Cache Components.** The locale
+  cookie sets `<html lang>`, so no page can be prerendered in a single
+  language, and appointment lists must always be fresh. The Rails API answers
+  locally in milliseconds, so no data was worth caching. Suspense still
+  streams page data.
+- **Let request pages handle missing nutritionists.** Malformed and unknown IDs
+  show the not-found page with `noindex`. The page shell streams before the
+  missing ID is resolved, so the HTTP status remains 200, a soft 404. There is
+  no proxy that duplicates backend ID validation to change the status code.
 - **Keep business rules in Rails.** The UI renders API results and translates
   field error codes. Backend validation protects every caller, including
   callers that bypass the form.
@@ -274,10 +292,11 @@ and pending lists. Solid Queue uses additional tables in the same database.
   database, so a rollback also removes the jobs. A Redis-backed queue would
   need an outbox to give the same atomic enqueue guarantee.
 - **Make delivery retries safe where possible.** The email job locks the request
-  and checks `answer_notified_at` before sending. Transient failures retry up
-  to ten attempts. A crash after SMTP accepts an email but before the marker
-  is saved can still duplicate delivery. A provider with an idempotency key
-  would be needed to close that gap.
+  and checks `answer_notified_at` before sending. Transient network and SMTP
+  errors retry with backoff, up to ten attempts. Permanent SMTP, authentication,
+  and TLS errors fail at once. A crash after SMTP accepts an email but before
+  the marker is saved can still duplicate delivery. A provider with an
+  idempotency key would be needed to close that gap.
 - **Book in the practice's time zone.** Guests submit a date and time as picked.
   Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
   permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
@@ -353,8 +372,7 @@ Try the pending-requests page:
   - Accepting Danilo Santos also rejects Nataniel Batista's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
   - Hugo Estéves and Eduarda Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
 - Silas Saraiva, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
-- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the 404 page.
-- A malformed ID: http://localhost:3000/nutritionists/1abc/requests returns a real 404.
+- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the not-found page.
 ```
 
 The list describes the seeded scenario. Requests you answer in the app stay
@@ -388,8 +406,11 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 | Seeds | `backend/test/seeds_test.rb` | Demo data and idempotence |
 | Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
 | Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |
-| API contract | Frontend `stubApi` and backend request assertions | Requests and responses checked against the same `openapi.yaml` |
+| API contract | Frontend `stubApi` and backend request assertions | Exercised requests and JSON responses checked against the same `openapi.yaml` |
 | End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, language persistence, and answer emails in the booking's language |
+
+Contract checks cover the calls these tests make, not every possible request.
+Fixtures that are malformed on purpose opt out with `checkContract: false`.
 
 Backend search tests use a stand-in index. The end-to-end suite exercises the
 real Meilisearch service, including typo tolerance. Playwright checks Lisbon
