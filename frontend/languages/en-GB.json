@@ -14,7 +14,6 @@
     "queryPlaceholder": "Search for a nutritionist or service",
     "locationLabel": "Location",
     "locationPlaceholder": "Location",
-    "locationHint": "If no location is provided we default to {city}.",
     "useMyLocation": "Use my location",
     "locating": "Finding your location…",
     "locationDenied": "Allow location access in your browser, or type a city.",

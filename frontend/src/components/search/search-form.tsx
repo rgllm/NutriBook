@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl"
 
 import { UseMyLocationButton } from "@/components/search/use-my-location-button"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
   InputGroupAddon,
@@ -77,17 +77,11 @@ export function SearchForm({
             autoComplete="address-level2"
             defaultValue={location}
             placeholder={t("locationPlaceholder")}
-            aria-describedby={locations && "search-location-hint"}
           />
           <InputGroupAddon align="inline-end">
             <UseMyLocationButton />
           </InputGroupAddon>
         </InputGroup>
-        {locations && (
-          <FieldDescription id="search-location-hint" className="px-3 text-xs text-brand-soft">
-            {t("locationHint", { city: locations.default })}
-          </FieldDescription>
-        )}
         {locations && (
           <datalist id="known-cities">
             {locations.locations.map((city) => (

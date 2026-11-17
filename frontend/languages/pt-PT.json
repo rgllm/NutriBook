@@ -14,7 +14,6 @@
     "queryPlaceholder": "Pesquise um nutricionista ou serviço",
     "locationLabel": "Localização",
     "locationPlaceholder": "Localização",
-    "locationHint": "Sem localização, mostramos resultados em {city}.",
     "useMyLocation": "Usar a minha localização",
     "locating": "A obter a sua localização…",
     "locationDenied": "Permita o acesso à localização no navegador ou escreva uma cidade.",
