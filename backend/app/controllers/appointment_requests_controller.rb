@@ -42,7 +42,7 @@ class AppointmentRequestsController < ApplicationController
 
   # The guest picks a day and a time in Portugal; the model only sees starts_at.
   def appointment_request_params
-    attributes = params.expect(appointment_request: %i[service_id guest_name guest_email date time online])
+    attributes = params.expect(appointment_request: %i[service_id guest_name guest_email date time online language])
     attributes.except(:date, :time).merge(starts_at: BookingSchedule.starts_at(attributes[:date], attributes[:time]))
   end
 end

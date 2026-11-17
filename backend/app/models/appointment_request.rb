@@ -6,6 +6,8 @@ class AppointmentRequest < ApplicationRecord
   # URI::MailTo::EMAIL_REGEXP accepts a domain without a dot, like user@com,
   # which no guest can receive mail at. The lookahead requires one.
   GUEST_EMAIL_FORMAT = /(?=[^@]*@[^@]+\.)#{URI::MailTo::EMAIL_REGEXP}/
+  # The languages answer emails are written in. The first is the fallback.
+  LANGUAGES = %w[en-GB pt-PT].freeze
 
   # The request can no longer take the answer. The message is a code for why:
   # it was already_accepted, already_rejected, or superseded, or accepting it
@@ -31,6 +33,7 @@ class AppointmentRequest < ApplicationRecord
 
   normalizes :guest_email, with: ->(email) { email.strip.downcase }
   normalizes :guest_name, with: ->(name) { name.squish }
+  normalizes :language, with: ->(tag) { supported_language(tag) }, apply_to_nil: true
 
   before_validation :derive_from_service, if: :booking_changed?
 
@@ -40,6 +43,17 @@ class AppointmentRequest < ApplicationRecord
   validates :starts_at, presence: true
   validate :online_offered
   validate :bookable_time, on: :create
+
+  # The language the guest booked in, which their answer email uses. Another
+  # variant of a supported language, like pt-BR, gets that language, and
+  # anything else gets English, so a booking never fails over its email.
+  def self.supported_language(tag)
+    primary = ->(language) { language.to_s.split("-").first.to_s.downcase }
+
+    LANGUAGES.find { |language| language.casecmp?(tag.to_s) } ||
+      LANGUAGES.find { |language| primary.(language) == primary.(tag) } ||
+      LANGUAGES.first
+  end
 
   # Saves a new request in place of the guest's pending one. The advisory lock
   # serialises submissions from the same email, so the newest always wins and

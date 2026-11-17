@@ -381,6 +381,13 @@ components:
             online:
               type: boolean
               description: Only allowed when the nutritionist offers online appointments.
+            language:
+              type: string
+              description: >
+                The language the guest booked in, which the answer email uses:
+                en-GB or pt-PT. Another variant of either language, such as
+                pt-BR, gets that language. Any other value, or none, means en-GB.
+              example: pt-PT
     AppointmentRequest:
       type: object
       additionalProperties: false
