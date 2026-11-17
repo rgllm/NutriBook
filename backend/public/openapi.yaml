@@ -4,10 +4,8 @@ info:
   version: 1.0.0
   description: >
     JSON API behind the NutriBook frontend. Guests search nutritionists by
-    name, service, and location. Backend request assertions and frontend
-    contract-checked fixtures validate the exercised requests and JSON responses
-    against this file. Untested behavior and fixtures that explicitly opt out
-    are not covered.
+    name, service, and location. Backend request tests and frontend fixtures
+    validate the requests and responses they exercise against this file.
 servers:
   - url: /
     description: This server
@@ -18,24 +16,19 @@ paths:
       summary: Search nutritionists
       description: >
         Searches nutritionist names and the names of services offered at the
-        location. Typed queries use Meilisearch with typo tolerance, token matching,
-        prefix matching on the last word, and relevance ranking. The requested name sort
-        applies at Meilisearch's sort ranking rule, after earlier relevance
-        rules; it does not guarantee globally alphabetical results.
-        Without a query, or if Meilisearch is unavailable, SQL uses case- and
-        accent-insensitive substring matching and orders by name then id.
-        SQL has no typo tolerance, so fallback results can differ.
-        A blank or unknown location searches Braga, and `location.source` says
-        which case applied. Results contain five nutritionists per page.
-        A page past the end returns the last page, and a missing or invalid
-        page returns the first. Each nutritionist lists only the services offered
-        at the searched location,
-        ordered by street address and then by name.
+        location. A typed query uses Meilisearch, which tolerates typos and
+        ranks by relevance. Without a query, or when Meilisearch is unavailable,
+        SQL matches part of a name, ignoring case and accents, and orders by
+        name. A blank or unknown location searches Braga, and `location.source`
+        says which case applied. Results contain five nutritionists per page. A
+        page past the end returns the last page, and a missing or invalid page
+        returns the first. Each nutritionist lists only the services offered at
+        the searched location, ordered by street address and then by name.
       tags: [Nutritionists]
       parameters:
         - name: q
           in: query
-          description: Nutritionist or service search text. Matching depends on the search engine described above.
+          description: Part of a nutritionist's name or of a service name.
           schema:
             type: string
           example: follow

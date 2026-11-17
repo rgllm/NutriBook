@@ -101,8 +101,8 @@ names offered there. Rails resolves the city first, retrieves ranked IDs, then
 loads the records from PostgreSQL. Searches without a query use SQL directly.
 If Meilisearch is unavailable, times out, or has no index, Rails falls back to
 case- and accent-insensitive SQL matching. The fallback has no typo tolerance
-and orders by name then id. Meilisearch uses its relevance ranking before the requested name sort, so typed results need not
-be globally alphabetical and can differ from SQL results.
+and orders by name, while Meilisearch ranks by relevance first, so the two can
+return different results.
 The index rebuilds at startup and after seeding because the app has no interface
 for editing nutritionists or services.
 
@@ -381,18 +381,8 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 | API contract | Frontend `stubApi` and backend request assertions | Exercised requests and JSON responses checked against the same `openapi.yaml` |
 | End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, and language persistence |
 
-Contract checks cover the calls exercised by these tests, not every possible
-request or response. Frontend checks validate path and query parameters, request
-bodies, and JSON replies. All currently documented URL parameters are strings,
-including page numbers and coordinates; decoded URL values stay strings, empty
-values stay empty, and repeated scalar query parameters use the last value as
-Rails does. Required query parameters must be present. Unknown query parameters
-are ignored, as they are by Rails. Intentionally malformed response fixtures
-explicitly opt out through `checkContract: false`. Backend malformed-envelope
-tests validate only the response because their requests deliberately violate
-the input schema. Missing, empty, or non-object appointment request envelopes
-return JSON `400` with `error: "invalid_request"` and `parameter: "appointment_request"`.
-Field validation within a nonempty envelope continues to return `422`.
+Contract checks cover the calls these tests make, not every possible request.
+Fixtures that are malformed on purpose opt out with `checkContract: false`.
 
 Backend search tests use a stand-in index. The end-to-end suite exercises the
 real Meilisearch service, including typo tolerance. Playwright checks Lisbon
