@@ -8,11 +8,11 @@ export async function PrefilledSearchForm({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const { query, location } = parseSearchParams(await searchParams)
+  const { query, location, near } = parseSearchParams(await searchParams)
   // The form still works without suggestions; the results explain the outage.
   const locations = await fetchLocations().catch((error: unknown) => {
     if (error instanceof ApiUnavailableError) return undefined
     throw error
   })
-  return <SearchForm query={query} location={location} locations={locations} />
+  return <SearchForm query={query} location={location} near={near} locations={locations} />
 }

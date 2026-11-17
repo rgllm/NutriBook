@@ -20,4 +20,12 @@ class CityTest < ActiveSupport::TestCase
     assert_not cities(:braga).destroy
     assert City.exists?(name: "Braga")
   end
+
+  test "the nearest city is the one with the nearest located service" do
+    porto = Coordinates.new(latitude: 41.12, longitude: -8.61)
+    assert_equal [ "Porto" ], City.nearest_to(porto).pluck(:name)
+
+    services(:ana_sports_nutrition).update!(latitude: nil, longitude: nil)
+    assert_equal [ "Braga" ], City.nearest_to(porto).pluck(:name)
+  end
 end

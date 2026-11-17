@@ -2,7 +2,7 @@
 # Viana do Castelo, a city the demo seeds leave empty, so a search there returns
 # exactly these six. Each spec answers or books with its own nutritionist. The
 # coordinates are each street's, from OpenStreetMap; Sofia Leal's practice has
-# none, so a nearby search lists her after everyone with a distance.
+# none, so a search by distance lists her after everyone with one.
 
 CITY = "Viana do Castelo"
 

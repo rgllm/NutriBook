@@ -26,8 +26,15 @@ paths:
         says which case applied. Results contain five nutritionists per page. A
         page past the end returns the last page, and a missing or invalid page
         returns the first. Each nutritionist lists only the services offered at
-        the searched location, ordered by street address and then by name, and
-        `distance_km` and `nearest_service_id` are null.
+        the searched location, ordered by street address and then by name.
+
+        With `latitude` and `longitude`, results are ordered instead by the
+        great-circle distance to each nutritionist's nearest service that
+        matches the query, then by name. Services without coordinates have no
+        distance and come last. Each nutritionist's services are then listed
+        nearest first, and `nearest_service_id` names the matching service
+        that ranked them. Without a position, `distance_km` and
+        `nearest_service_id` are null.
       tags: [Nutritionists]
       parameters:
         - name: q
@@ -48,6 +55,18 @@ paths:
           schema:
             type: string
           example: "1"
+        - name: latitude
+          in: query
+          description: The guest's latitude. Send it with `longitude` to order results by distance.
+          schema:
+            type: string
+          example: "41.551"
+        - name: longitude
+          in: query
+          description: The guest's longitude. Send it with `latitude` to order results by distance.
+          schema:
+            type: string
+          example: "-8.428"
       responses:
         "200":
           description: One page of matching nutritionists.
@@ -55,36 +74,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NutritionistSearch"
-  /nutritionists/nearby:
-    post:
-      operationId: searchNearbyNutritionists
-      summary: Search nutritionists nearest a point
-      description: >
-        The same search, measured from the guest's position, which the body
-        carries so it stays out of URLs and logs. Results are ordered by the
-        great-circle distance to each nutritionist's nearest service that
-        matches the query, then by name. Services without coordinates have no
-        distance and come last. A blank location searches every city, and
-        `location` is then `{ city: null, source: nearby }`; a typed location
-        still limits results to that city. Each nutritionist lists their
-        services there, or everywhere when nearby, nearest first, and
-        `nearest_service_id` names the matching service that ranked them.
-      tags: [Nutritionists]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NearbySearchInput"
-      responses:
-        "200":
-          description: One page of matching nutritionists, nearest first.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NutritionistSearch"
         "422":
-          description: A coordinate is missing, not a number, or out of range.
+          description: Only one coordinate was sent, or one is not a number or out of range.
           content:
             application/json:
               schema:
@@ -243,6 +234,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Locations"
+  /locations/nearest:
+    get:
+      operationId: nearestLocation
+      summary: Find the searchable city nearest a point
+      description: >
+        The city of the service with coordinates closest to the point, by
+        great-circle distance. The search form uses it to fill the location
+        from the browser's position.
+      tags: [Locations]
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "41.551"
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "-8.428"
+      responses:
+        "200":
+          description: The nearest city.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NearestLocation"
+        "404":
+          description: No service has coordinates yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFound"
+        "422":
+          description: A coordinate is missing, not a number, or out of range.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrors"
 components:
   schemas:
     NutritionistSearch:
@@ -285,8 +317,8 @@ components:
           type: integer
           nullable: true
           description: >
-            From a nearby search, the nearest listed service that matches the
-            query, which booking starts from. Null for a city search.
+            With a position, the nearest listed service that matches the query,
+            which booking starts from. Null without a position.
           example: 1
     Service:
       type: object
@@ -320,8 +352,8 @@ components:
           nullable: true
           minimum: 0
           description: >
-            Great-circle kilometres from the guest's position in a nearby
-            search. Null for a city search, or when the service has no coordinates.
+            Great-circle kilometres from the guest's position. Null without a
+            position, or when the service has no coordinates.
           example: 1.2
     ResolvedLocation:
       type: object
@@ -330,16 +362,14 @@ components:
       properties:
         city:
           type: string
-          nullable: true
-          description: The city that was searched, or null when a nearby search covers every city.
+          description: The city that was searched.
           example: Braga
         source:
           type: string
           description: >
             `input` when the requested location was known, `default` when it was
-            blank, `fallback` when it was unknown, and `nearby` when a nearby
-            search had no location and searched every city.
-          enum: [input, default, fallback, nearby]
+            blank, `fallback` when it was unknown.
+          enum: [input, default, fallback]
     Pagination:
       type: object
       additionalProperties: false
@@ -370,33 +400,14 @@ components:
         default:
           type: string
           example: Braga
-    NearbySearchInput:
+    NearestLocation:
       type: object
       additionalProperties: false
-      required: [latitude, longitude]
+      required: [city]
       properties:
-        latitude:
-          type: number
-          minimum: -90
-          maximum: 90
-          example: 41.551
-        longitude:
-          type: number
-          minimum: -180
-          maximum: 180
-          example: -8.428
-        q:
+        city:
           type: string
-          description: Part of a nutritionist's name or of a service name.
-          example: sports
-        location:
-          type: string
-          description: A city to search instead of every city.
           example: Braga
-        page:
-          type: integer
-          minimum: 1
-          example: 1
     AppointmentRequestInput:
       type: object
       additionalProperties: false

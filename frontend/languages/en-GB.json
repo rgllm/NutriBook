@@ -19,6 +19,7 @@
     "locating": "Finding your location…",
     "locationDenied": "Allow location access in your browser, or type a city.",
     "locationUnavailable": "We couldn't find your location. Try again or type a city.",
+    "nearestCityUnavailable": "We couldn't look up the nearest city. Try again or type a city.",
     "submit": "Search",
     "heading": "{count, plural, one {# nutritionist} other {# nutritionists}} in {city}",
     "matching": "Matching “{query}”",
@@ -33,11 +34,9 @@
     "pagination": "Pagination",
     "previousPage": "Go to previous page",
     "nextPage": "Go to next page",
-    "headingNearby": "{count, plural, one {# nutritionist} other {# nutritionists}} near you",
-    "nearestFirst": "Nearest to you first.",
-    "stopNearby": "Stop using my location",
-    "noMatchNearby": "Nobody matches “{query}”. Try another name or service.",
-    "noneNearby": "There are no nutritionists yet."
+    "sortLabel": "Sort by",
+    "sortRelevance": "Relevance",
+    "sortDistance": "Distance"
   },
   "nutritionist": {
     "title": "{title, select, Dietitian {Dietitian} other {Nutritionist}}",

@@ -7,8 +7,7 @@ class NutritionistSearch
 
   attr_reader :location, :location_source
 
-  # The guest's position, the origin, orders results nearest first. Without a
-  # typed location it also lifts the city filter, so every city takes part.
+  # The guest's position, the origin, orders results nearest first.
   def initialize(query:, location:, page:, origin: nil)
     @query = query.to_s.unicode_normalize(:nfc).downcase.tr("áàâãäåéèêëíìîïóòôõöúùûüçñýÿ", "aaaaaaeeeeiiiiooooouuuucnyy").squish
     @requested_page = Integer(page.to_s, 10, exception: false).to_i.clamp(1..)
@@ -44,7 +43,7 @@ class NutritionistSearch
 
   def resolve_location(input)
     key = location_key(input)
-    return @origin ? [ nil, "nearby" ] : [ DEFAULT_LOCATION, "default" ] if key.empty?
+    return [ DEFAULT_LOCATION, "default" ] if key.empty?
 
     city = known_locations[location_key(LOCATION_ALIASES.fetch(key, key))]
     city ? [ city, "input" ] : [ DEFAULT_LOCATION, "fallback" ]
@@ -129,17 +128,16 @@ class NutritionistSearch
     ])
   end
 
-  # Each card lists the nutritionist's services at the location, or everywhere
-  # when nearby, nearest first when there is an origin.
+  # Each card lists the nutritionist's services at the location, nearest first
+  # when there is an origin.
   def listed_services
     distance = @origin ? @origin.distance_km_sql("services") : "NULL::float"
     services_in_location.select("services.*", "#{distance} AS distance_km")
       .order(Arel.sql("distance_km NULLS LAST"), :street_address, :name, :id)
   end
 
-  # A nearby search without a location covers every city.
   def services_in_location
-    location ? Service.where(city: location) : Service.all
+    Service.where(city: location)
   end
 
   def page_count(total)

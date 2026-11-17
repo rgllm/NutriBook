@@ -1,10 +1,6 @@
-"use client"
-
-import type { FormEvent } from "react"
 import Form from "next/form"
 import { useTranslations } from "next-intl"
 
-import { useNearbySearch } from "@/components/search/nearby-search"
 import { UseMyLocationButton } from "@/components/search/use-my-location-button"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
@@ -14,42 +10,32 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import type { Locations } from "@/lib/api/locations"
+import type { Position } from "@/lib/search-params"
 
 const FIELD_ON_BAND = "h-12 border-transparent bg-card text-foreground"
 
 export function SearchForm({
   query = "",
   location = "",
+  near = null,
   locations,
   disabled = false,
 }: {
   query?: string
   location?: string
+  near?: Position | null
   locations?: Locations
   disabled?: boolean
 }) {
   const t = useTranslations("search")
-  const { nearby, searchNear } = useNearbySearch()
-
-  // While searching from the guest's position, a new query or a typed city
-  // searches from there too, without putting the position in the URL.
-  function searchNearby(event: FormEvent<HTMLFormElement>) {
-    if (!nearby) return
-
-    event.preventDefault()
-    const data = new FormData(event.currentTarget)
-    const text = (key: string) => String(data.get(key) ?? "").trim()
-    searchNear(nearby.position, { query: text("q"), location: text("location"), page: 1 })
-  }
 
   return (
     <Form
       // The form survives client navigations, and inputs ignore a new
       // defaultValue once mounted. A new key per search remounts them, so the
       // logo, back, and "Clear search" show the URL's values.
-      key={`${query}|${location}`}
+      key={`${query}|${location}|${near?.latitude},${near?.longitude}`}
       action="/"
-      onSubmit={searchNearby}
       role="search"
       className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start"
     >
@@ -99,6 +85,13 @@ export function SearchForm({
           </datalist>
         )}
       </Field>
+      {/* A new search keeps the distance order. */}
+      {near && (
+        <>
+          <input type="hidden" name="latitude" value={near.latitude} />
+          <input type="hidden" name="longitude" value={near.longitude} />
+        </>
+      )}
       <Button type="submit" variant="brand-soft" size="lg" className="sm:px-10">
         {t("submit")}
       </Button>

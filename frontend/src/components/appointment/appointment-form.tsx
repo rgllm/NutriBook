@@ -85,7 +85,7 @@ export function AppointmentForm({
       minutes: service.durationMinutes,
     }),
   }))
-  // A nearby search names the matching service that ranked the nutritionist.
+  // A search from the guest's position names the matching service that ranked the nutritionist.
   const [serviceId, setServiceId] = useState(
     nutritionist.nearestServiceId ?? (services.length === 1 ? services[0].id : undefined),
   )

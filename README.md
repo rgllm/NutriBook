@@ -119,9 +119,9 @@ The main endpoints are:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/nutritionists?q=&location=&page=` | Search nutritionists, five per page |
+| GET | `/nutritionists?q=&location=&page=&latitude=&longitude=` | Search nutritionists, five per page, nearest first when given a position |
 | GET | `/locations` | List cities with services and the default city |
-| POST | `/nutritionists/nearby` | The same search from the guest's position, nearest first |
+| GET | `/locations/nearest?latitude=&longitude=` | The city of the nearest service with coordinates |
 | POST | `/appointment_requests` | Submit a guest's appointment request |
 | GET | `/nutritionists/:id/appointment_requests` | List a nutritionist's pending requests |
 | PATCH | `/nutritionists/:nutritionist_id/appointment_requests/:id` | Accept or reject a request |
@@ -315,18 +315,20 @@ job skips the send if `answer_notified_at` is already set.
   All query words must match, so a common word alone does not select a service.
 - **Default unknown locations to Braga.** Blank locations also use Braga.
   Matching ignores case and accents, and `Lisbon` and `Oporto` are aliases.
-- **Sort by real distance from the guest.** "Use my location" searches every
-  city, nearest first, with no radius, and keeps the typed query and its typo
-  tolerance. Each nutritionist appears once, ranked by their nearest service
-  that matches the query. The card lists that practice first with its
-  distance, and booking starts from that service. A typed city stays a filter,
-  still ordered by distance. Services without coordinates come last, without
-  a distance.
-- **Keep the guest's position out of URLs and storage.** The browser rounds it
-  to three decimals, about 100 m, and keeps it only in memory, so a refresh,
-  a shared link, or any navigation drops it. A Server Action sends it to Rails
-  in a POST body; Rails filters it from the logs and never stores it.
-  Pagination in this mode reruns the search instead of following its link.
+- **Sort by real distance from the guest, within the city.** The city is
+  always a filter and always shows in the location field. A "Sort by" select
+  beside the results switches between relevance and distance. Distance asks
+  for the browser's position; "Use my location" also fills the city of the
+  nearest practice. Each nutritionist appears once, ranked by their nearest
+  service that matches the query. The card lists that practice first with its
+  distance, and booking starts from that service. Services without
+  coordinates come last, without a distance.
+- **Keep the position in the URL, rounded.** Distance order is search state
+  like the query and the city, so `latitude` and `longitude` live in the URL.
+  Results stay server-rendered, and pagination, refresh, back, and shared links
+  keep the order. The browser rounds the position to three decimals, about
+  100 m, before it leaves the page. Rails filters it from the logs and never
+  stores it.
 - **Geocode demo addresses once.** The seeds use public streets and squares,
   resolved with OpenStreetMap's Nominatim and committed with their
   coordinates, so setup and tests need no network or API key. A
@@ -374,7 +376,8 @@ Try these flows after a fresh setup:
 | Default location | <http://localhost:3000> | Braga results and pagination |
 | Service search | <http://localhost:3000/?q=first&location=Braga> | Nutritionists offering First appointment in Braga |
 | Another city | <http://localhost:3000/?location=Leiria> | Leiria results |
-| Search near you | Select the crosshair in the location field and allow location access | Nutritionists from every city, nearest first, with distances |
+| Search near you | Select the crosshair in the location field and allow location access | The nearest city's nutritionists, nearest first, with distances |
+| Sort by distance | <http://localhost:3000/?location=Braga&latitude=41.551&longitude=-8.42> | Braga results nearest that point first, with distances; "Sort by" switches back to relevance |
 | Unknown city | <http://localhost:3000/?location=Mars> | Braga results with a fallback notice |
 | Empty results | <http://localhost:3000/?q=zzzznomatch&location=Braga> | Empty state with a way to clear the search |
 | Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |

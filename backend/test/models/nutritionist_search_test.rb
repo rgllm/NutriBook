@@ -1,7 +1,7 @@
 require "test_helper"
 
 class NutritionistSearchTest < ActiveSupport::TestCase
-  # Rua do Souto, Braga, where Mary Jane works. Ana Ferreira is in Porto.
+  # Rua do Souto, Braga, where Mary Jane works, and Ana Ferreira's practice in Porto.
   BRAGA = Coordinates.new(latitude: 41.5506, longitude: -8.4260)
   PORTO = Coordinates.new(latitude: 41.1504, longitude: -8.6056)
 
@@ -221,44 +221,44 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     assert_empty search.nearest_service_ids
   end
 
-  test "nearby without a location searches every city, nearest first" do
-    search = search(origin: PORTO)
+  test "a position orders the city's nutritionists nearest first, with distances" do
+    near = create_nutritionist("Zé Perto", location: "Braga", coordinates: [ 41.5513, -8.4230 ])
 
-    assert_nil search.location
-    assert_equal "nearby", search.location_source
-    assert_equal [ nutritionists(:ana_ferreira), nutritionists(:mary_jane) ], search.nutritionists
-    assert_in_delta 0.0, search.nutritionists.first.services.first.distance_km, 0.1
-    assert_in_delta 46.96, search.nutritionists.second.services.first.distance_km, 0.01
+    search = search(location: "Braga", origin: Coordinates.new(latitude: 41.5513, longitude: -8.4229))
 
-    assert_equal [ nutritionists(:mary_jane), nutritionists(:ana_ferreira) ], search(origin: BRAGA).nutritionists
+    assert_equal "Braga", search.location
+    assert_equal [ near, nutritionists(:mary_jane) ], search.nutritionists
+    assert_in_delta 0.01, search.nutritionists.first.services.first.distance_km, 0.01
   end
 
-  test "nearby, a nutritionist appears once, ranked by their nearest practice, listing all of them nearest first" do
+  test "a nutritionist appears once, ranked by their nearest practice, listing all of them nearest first" do
+    origin = Coordinates.new(latitude: 41.5600, longitude: -8.4000)
     mary = nutritionists(:mary_jane)
-    porto = mary.services.create!(name: "Weight loss", price: 30, city: "Porto", street_address: "Rua de Cedofeita 9",
-      duration_minutes: 45, latitude: 41.1534, longitude: -8.6184)
+    central = mary.services.create!(name: "Weight loss", price: 30, city: "Braga", street_address: "Avenida Central 1",
+      duration_minutes: 45, latitude: origin.latitude, longitude: origin.longitude)
+    ze = create_nutritionist("Zé Perto", location: "Braga", coordinates: [ 41.5590, -8.4000 ])
 
-    search = search(origin: PORTO)
+    search = search(location: "Braga", origin:)
 
-    assert_equal [ nutritionists(:ana_ferreira), mary ], search.nutritionists
-    assert_equal [ "Rua de Cedofeita 9", "Rua do Souto 45", "Rua do Souto 45" ], search.nutritionists.second.services.map(&:street_address)
-    assert_equal porto.id, search.nearest_service_ids[mary.id]
+    assert_equal [ mary, ze ], search.nutritionists
+    assert_equal [ "Avenida Central 1", "Rua do Souto 45", "Rua do Souto 45" ], search.nutritionists.first.services.map(&:street_address)
+    assert_equal central.id, search.nearest_service_ids[mary.id]
   end
 
-  test "nearby, a service query ranks by the nearest practice offering that service" do
+  test "a service query ranks by the nearest practice offering that service" do
     mary = nutritionists(:mary_jane)
-    sports = mary.services.create!(name: "Sports nutrition", price: 30, city: "Faro", street_address: "Rua de Santo António",
-      duration_minutes: 45, latitude: 37.0161, longitude: -7.9332)
+    sports = mary.services.create!(name: "Sports nutrition", price: 30, city: "Braga", street_address: "Avenida da Liberdade 9",
+      duration_minutes: 45, latitude: 41.6000, longitude: -8.4000)
+    ze = create_nutritionist("Zé Perto", location: "Braga", services: [ "Sports nutrition" ], coordinates: [ 41.5600, -8.4260 ])
 
-    search = search(query: "sports", origin: BRAGA)
+    search = search(query: "sports", location: "Braga", origin: BRAGA)
 
-    assert_equal [ nutritionists(:ana_ferreira), mary ], search.nutritionists
+    assert_equal [ ze, mary ], search.nutritionists
     assert_equal sports.id, search.nearest_service_ids[mary.id]
-    assert_equal services(:ana_sports_nutrition).id, search.nearest_service_ids[nutritionists(:ana_ferreira).id]
   end
 
-  test "nearby uses typo tolerant matching and selects the matching booking service" do
-    result = search(query: "sprts nutrition", origin: PORTO)
+  test "with a position, matching stays typo tolerant and selects the matching booking service" do
+    result = search(query: "sprts nutrition", location: "Porto", origin: PORTO)
 
     assert_equal [ nutritionists(:ana_ferreira) ], result.nutritionists
     assert_equal services(:ana_sports_nutrition).id, result.nearest_service_ids[nutritionists(:ana_ferreira).id]
@@ -268,51 +268,43 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     mary = nutritionists(:mary_jane)
     sports = mary.services.create!(name: "Sports nutrition", price: 30, city: "Braga", street_address: "Rua do Souto 45",
       duration_minutes: 45, latitude: BRAGA.latitude, longitude: BRAGA.longitude)
-    services(:ana_sports_nutrition).update!(name: "Sprts nutrition")
+    exact = create_nutritionist("Zé Exato", location: "Braga", services: [ "Sprts nutrition" ], coordinates: [ 41.6000, -8.4000 ])
 
-    result = search(query: "sprts nutrition", origin: BRAGA)
+    assert_equal [ exact, mary ], search(query: "sprts nutrition", location: "Braga").nutritionists
 
-    assert_equal [ mary, nutritionists(:ana_ferreira) ], result.nutritionists
+    result = search(query: "sprts nutrition", location: "Braga", origin: BRAGA)
+    assert_equal [ mary, exact ], result.nutritionists
     assert_equal sports.id, result.nearest_service_ids[mary.id]
   end
 
-  test "nearby, a typed location stays a filter and is ordered by distance" do
-    near = create_nutritionist("Zé Perto", location: "Braga", coordinates: [ 41.5513, -8.4230 ])
-
-    search = search(location: "Braga", origin: Coordinates.new(latitude: 41.5513, longitude: -8.4229))
-
-    assert_equal "Braga", search.location
-    assert_equal [ near, nutritionists(:mary_jane) ], search.nutritionists
-  end
-
-  test "nearby, services without coordinates come last, without a distance" do
+  test "services without coordinates come last, without a distance" do
     unknown = create_nutritionist("Aaron Unknown", location: "Braga")
 
-    search = search(origin: BRAGA)
+    search = search(location: "Braga", origin: BRAGA)
 
-    assert_equal [ nutritionists(:mary_jane), nutritionists(:ana_ferreira), unknown ], search.nutritionists
+    assert_equal [ nutritionists(:mary_jane), unknown ], search.nutritionists
     assert_nil search.nutritionists.last.services.first.distance_km
   end
 
-  test "nearby results are paged in distance order" do
+  test "results with a position are paged in distance order" do
     created = 5.times.map do |i|
       create_nutritionist("Nutri #{i}", location: "Braga", coordinates: [ 41.5506 + (i + 1) * 0.01, -8.4260 ])
     end
 
-    first = search(origin: BRAGA)
-    second = search(origin: BRAGA, page: "2")
+    first = search(location: "Braga", origin: BRAGA)
+    second = search(location: "Braga", origin: BRAGA, page: "2")
 
-    assert_equal 7, first.total_count
+    assert_equal 6, first.total_count
     assert_equal [ nutritionists(:mary_jane), *created.first(4) ], first.nutritionists
-    assert_equal [ created.last, nutritionists(:ana_ferreira) ], second.nutritionists
+    assert_equal [ created.last ], second.nutritionists
   end
 
-  test "the nearby query count does not grow with the number of results" do
-    one = count_queries { load_page(search(origin: BRAGA)) }
+  test "the query count with a position does not grow with the number of results" do
+    one = count_queries { load_page(search(location: "Braga", origin: BRAGA)) }
 
-    4.times { |i| create_nutritionist("Nutri #{i}", location: "Porto", coordinates: [ 41.15, -8.6 ]) }
+    4.times { |i| create_nutritionist("Nutri #{i}", location: "Braga", coordinates: [ 41.56, -8.42 ]) }
     many = nil
-    queries = count_queries { many = load_page(search(origin: BRAGA)) }
+    queries = count_queries { many = load_page(search(location: "Braga", origin: BRAGA)) }
 
     assert_equal 5, many.size
     assert_equal one, queries

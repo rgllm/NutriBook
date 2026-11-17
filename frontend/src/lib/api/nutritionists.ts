@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { apiGet, apiWrite } from "@/lib/api/http"
+import { apiGet } from "@/lib/api/http"
 import { searchQuery, type SearchState } from "@/lib/search-params"
 
 const serviceSchema = z
@@ -59,15 +59,13 @@ const nutritionistSchema = z
     }
   })
 
-const locationSchema = z.discriminatedUnion("source", [
-  z.object({ source: z.literal("nearby"), city: z.null() }),
-  z.object({ source: z.enum(["input", "default", "fallback"]), city: z.string() }),
-])
-
 const searchResponseSchema = z
   .object({
     nutritionists: z.array(nutritionistSchema),
-    location: locationSchema,
+    location: z.object({
+      city: z.string(),
+      source: z.enum(["input", "default", "fallback"]),
+    }),
     pagination: z.object({
       page: z.number(),
       total_count: z.number(),
@@ -88,20 +86,7 @@ export type SearchResults = z.infer<typeof searchResponseSchema>
 export type Nutritionist = SearchResults["nutritionists"][number]
 export type Service = Nutritionist["services"][number]
 
-export type Position = { latitude: number; longitude: number }
-
 export function searchNutritionists(search: SearchState) {
   return apiGet("/nutritionists", searchResponseSchema, searchQuery(search))
 }
 
-// The position travels in the body, never in a URL.
-export async function searchNutritionistsNear(search: SearchState, position: Position) {
-  const result = await apiWrite(
-    "POST",
-    "/nutritionists/nearby",
-    { q: search.query, location: search.location, page: search.page, ...position },
-    searchResponseSchema,
-  )
-  if (!result.ok) throw new Error(`POST /nutritionists/nearby refused the position: ${JSON.stringify(result.errors)}`)
-  return result.data
-}

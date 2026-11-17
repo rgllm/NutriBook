@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { searchNutritionists, searchNutritionistsNear } from "@/lib/api/nutritionists"
+import { searchNutritionists } from "@/lib/api/nutritionists"
 import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
 
-const search = { query: "follow", location: "porto", page: 2 }
+const search = { query: "follow", location: "porto", page: 2, near: null }
 
 const payload = {
   nutritionists: [
@@ -111,13 +111,12 @@ describe("searchNutritionists", () => {
   })
 })
 
-describe("searchNutritionistsNear", () => {
-  const position = { latitude: 41.551, longitude: -8.428 }
+describe("searchNutritionists from a position", () => {
+  const near = { latitude: 41.151, longitude: -8.61 }
   const [nutritionist] = payload.nutritionists
   const [, followUp, sports] = nutritionist.services
-  const nearbyPayload = {
+  const nearPayload = {
     ...payload,
-    location: { city: null, source: "nearby" },
     nutritionists: [
       {
         ...nutritionist,
@@ -131,23 +130,21 @@ describe("searchNutritionistsNear", () => {
     ],
   }
 
-  it("sends the position in the body, never the URL", async () => {
-    const fetch = stubApi(Response.json(nearbyPayload))
+  it("sends the position with the search", async () => {
+    const fetch = stubApi(Response.json(nearPayload))
 
-    await searchNutritionistsNear({ query: "sports", location: "", page: 1 }, position)
+    await searchNutritionists({ query: "sports", location: "Porto", page: 1, near })
 
-    const [url, init] = fetch.mock.calls[0]
-    expect(String(url)).toBe("http://api.test/nutritionists/nearby")
-    expect(init.method).toBe("POST")
-    expect(JSON.parse(String(init.body))).toEqual({ q: "sports", location: "", page: 1, ...position })
+    expect(String(fetch.mock.calls[0][0])).toBe(
+      "http://api.test/nutritionists?q=sports&location=Porto&latitude=41.151&longitude=-8.61",
+    )
   })
 
   it("lists the practice that ranked the nutritionist first, with its distance", async () => {
-    stubApi(Response.json(nearbyPayload))
+    stubApi(Response.json(nearPayload))
 
-    const { nutritionists, location } = await searchNutritionistsNear({ query: "sports", location: "", page: 1 }, position)
+    const { nutritionists } = await searchNutritionists({ query: "sports", location: "Porto", page: 1, near })
 
-    expect(location).toEqual({ city: null, source: "nearby" })
     expect(nutritionists[0].nearestServiceId).toBe(sports.id)
     expect(nutritionists[0].addresses).toEqual([
       { streetAddress: "Rua de Cedofeita, 9", city: "Porto", distanceKm: 4.5 },

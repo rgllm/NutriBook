@@ -1,20 +1,10 @@
 class NutritionistsController < ApplicationController
+  # A position orders the results nearest first; the parameter filter keeps it out of the logs.
   def index
-    render_search
-  end
+    located = params.key?(:latitude) || params.key?(:longitude)
+    origin = Coordinates.parse(params[:latitude], params[:longitude]) if located
+    return render_invalid_coordinates if located && !origin
 
-  # The same search from the guest's position. The coordinates travel in the
-  # body, so they stay out of URLs, and the parameter filter keeps them out of logs.
-  def nearby
-    origin = Coordinates.parse(params[:latitude], params[:longitude])
-    return render json: { errors: { coordinates: [ "invalid" ] } }, status: :unprocessable_content unless origin
-
-    render_search(origin:)
-  end
-
-  private
-
-  def render_search(origin: nil)
     search = NutritionistSearch.new(query: params[:q], location: params[:location], page: params[:page], origin:)
 
     render json: {

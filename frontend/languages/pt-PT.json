@@ -19,6 +19,7 @@
     "locating": "A obter a sua localização…",
     "locationDenied": "Permita o acesso à localização no navegador ou escreva uma cidade.",
     "locationUnavailable": "Não foi possível obter a sua localização. Tente de novo ou escreva uma cidade.",
+    "nearestCityUnavailable": "Não foi possível encontrar a cidade mais próxima. Tente de novo ou escreva uma cidade.",
     "submit": "Pesquisar",
     "heading": "{count, plural, one {# nutricionista} other {# nutricionistas}} em {city}",
     "matching": "Resultados para “{query}”",
@@ -33,11 +34,9 @@
     "pagination": "Paginação",
     "previousPage": "Ir para a página anterior",
     "nextPage": "Ir para a página seguinte",
-    "headingNearby": "{count, plural, one {# nutricionista} other {# nutricionistas}} perto de si",
-    "nearestFirst": "Os mais próximos de si primeiro.",
-    "stopNearby": "Deixar de usar a minha localização",
-    "noMatchNearby": "Ninguém corresponde a “{query}”. Experimente outro nome ou serviço.",
-    "noneNearby": "Ainda não há nutricionistas."
+    "sortLabel": "Ordenar por",
+    "sortRelevance": "Relevância",
+    "sortDistance": "Distância"
   },
   "nutritionist": {
     "title": "{title, select, Dietitian {Dietista} other {Nutricionista}}",

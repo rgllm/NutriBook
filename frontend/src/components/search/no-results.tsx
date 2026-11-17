@@ -17,7 +17,7 @@ export function NoResults({
   query,
   clearHref,
 }: {
-  city: string | null
+  city: string
   query: string
   clearHref: string
 }) {
@@ -31,11 +31,7 @@ export function NoResults({
         </EmptyMedia>
         <EmptyTitle>{t("noResultsTitle")}</EmptyTitle>
         <EmptyDescription>
-          {city === null
-            ? t(query ? "noMatchNearby" : "noneNearby", { query })
-            : query
-              ? t("noMatch", { city, query })
-              : t("noneInCity", { city })}
+          {query ? t("noMatch", { city, query }) : t("noneInCity", { city })}
         </EmptyDescription>
       </EmptyHeader>
       {query && (
