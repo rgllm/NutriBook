@@ -16,10 +16,6 @@ class NutritionistSearch
     @location, @location_source = resolve_location(location)
   end
 
-  def per_page
-    PER_PAGE
-  end
-
   def total_count
     result.total
   end

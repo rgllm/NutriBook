@@ -402,7 +402,7 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 | --- | --- | --- |
 | Domain and database | Minitest in `backend/test/models/` | Booking rules, replacement, overlap rejection, search, constraints, and concurrent submissions and answers |
 | HTTP API integration | `ActionDispatch::IntegrationTest` in `backend/test/controllers/` | Real routing and JSON responses, validation errors, conflicts, and OpenAPI compliance through `committee-rails` |
-| Email and jobs | `backend/test/mailers/` and `backend/test/jobs/` | Email content in English and Portuguese, retry exhaustion, repeat-send protection, and transactional job enqueue |
+| Email and jobs | `backend/test/mailers/` and `backend/test/jobs/` | Email content in English and Portuguese, retry exhaustion, and repeat-send protection |
 | Seeds | `backend/test/seeds_test.rb` | Demo data and idempotence |
 | Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
 | Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |

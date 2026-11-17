@@ -35,7 +35,8 @@ class AppointmentRequest < ApplicationRecord
   normalizes :guest_name, with: ->(name) { name.squish }
   normalizes :language, with: ->(tag) { supported_language(tag) }, apply_to_nil: true
 
-  before_validation :derive_from_service, if: :booking_changed?
+  # Only on create: a saved request keeps the interval it was booked with.
+  before_validation :derive_from_service, on: :create, if: -> { service && starts_at }
 
   validates :guest_name, presence: true, length: { maximum: GUEST_NAME_MAX_LENGTH }
   validates :guest_email, presence: true, length: { maximum: GUEST_EMAIL_MAX_LENGTH }
@@ -110,14 +111,6 @@ class AppointmentRequest < ApplicationRecord
     overlapping.lock.pluck(:id).tap do |ids|
       AppointmentRequest.where(id: ids).update_all(status: "rejected", rejection_reason: "overlap", answered_at: now, updated_at: now)
     end
-  end
-
-  # Derive only when the booking itself is new or changes. A saved request keeps
-  # the interval it was booked with, even if the service's duration is edited
-  # later, so answering or editing it never moves the appointment.
-  def booking_changed?
-    service && starts_at &&
-      (new_record? || will_save_change_to_service_id? || will_save_change_to_starts_at?)
   end
 
   # Rails derives the nutritionist and booked end time from the service, never

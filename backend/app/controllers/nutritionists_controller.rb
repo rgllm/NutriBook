@@ -10,7 +10,7 @@ class NutritionistsController < ApplicationController
       location: { city: search.location, source: search.location_source },
       pagination: {
         page: search.page,
-        per_page: search.per_page,
+        per_page: NutritionistSearch::PER_PAGE,
         total_count: search.total_count,
         total_pages: search.total_pages
       }
