@@ -386,7 +386,7 @@ booking behavior from a browser configured in Los Angeles.
 end-to-end lint and typecheck. It does not run the Playwright suite. It needs
 the development stack running and the frontend and end-to-end dependencies
 installed. Stop a local frontend development server first because the build
-writes `frontend/.next`, as described under end-to-end tests below.
+writes `frontend/.next`.
 
 ```sh
 pnpm --dir e2e install --frozen-lockfile
@@ -441,8 +441,8 @@ are 3100 for Next.js, 3101 for Rails, and 8125 for Mailpit. Override them with
 The suite runs one worker with no retries because the tests share a database.
 Fixtures assign separate nutritionists to the flows, guests use unique emails,
 and test dates remain in the future. Do not run two suites against the same
-end-to-end stack at once. The production build also writes `frontend/.next`,
-so stop a local frontend development server before running the suite.
+end-to-end stack at once. The suite builds into `frontend/.next-e2e`, so a
+local frontend development server can keep running during it.
 
 Failures retain screenshots and traces in `e2e/test-results/`. Open the HTML
 report with:
