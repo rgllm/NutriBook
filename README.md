@@ -10,7 +10,7 @@ request automatically rejects every pending request that overlaps it.
 ### What to install
 
 - Docker
-- Node.js
+- Node.js 24, at the exact version in `.node-version`. CI reads the same file.
 - pnpm
 
 Ruby, PostgreSQL, Meilisearch, and Mailpit run in Docker. You do not need to
