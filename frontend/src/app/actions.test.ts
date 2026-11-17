@@ -21,6 +21,7 @@ const filledIn = {
   date: "2026-12-07",
   time: "10:00",
   online: "true",
+  language: "pt-PT",
 }
 
 describe("requestAppointment", () => {
@@ -60,6 +61,7 @@ describe("requestAppointment", () => {
         date: "2026-12-07",
         time: "10:00",
         online: true,
+        language: "pt-PT",
       },
     })
   })
