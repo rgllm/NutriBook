@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "docker compose up --build -d --wait && pnpm --dir frontend dev",
     "stop": "docker compose down",
-    "test": "pnpm backend:test",
+    "test": "pnpm backend:test && pnpm frontend:test",
+    "check": "pnpm backend:ci && pnpm frontend:lint && pnpm frontend:typecheck && pnpm frontend:test && pnpm frontend:build && pnpm e2e:lint && pnpm e2e:typecheck",
     "lint": "pnpm backend:lint && pnpm frontend:lint && pnpm e2e:lint",
     "rails": "docker compose exec backend bin/rails",
     "backend:test": "docker compose exec backend bin/rails test",
@@ -20,6 +21,7 @@
     "db:psql": "docker compose exec db psql -U nutribook -d nutribook_development",
     "frontend:lint": "pnpm --dir frontend lint",
     "frontend:typecheck": "pnpm --dir frontend typecheck",
+    "frontend:test": "pnpm --dir frontend test",
     "frontend:build": "pnpm --dir frontend build",
     "e2e": "pnpm --dir e2e test",
     "e2e:ui": "pnpm --dir e2e test:ui",

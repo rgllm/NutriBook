@@ -26,7 +26,7 @@ export default defineConfig({
   webServer: {
     command: `pnpm --dir ../frontend build && pnpm --dir ../frontend start --port ${FRONTEND_PORT}`,
     url: FRONTEND_URL,
-    env: { API_URL },
+    env: { API_URL, NEXT_DIST_DIR: ".next-e2e" },
     reuseExistingServer: false,
     timeout: 240_000,
   },

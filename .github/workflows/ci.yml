@@ -33,6 +33,7 @@ jobs:
             frontend:
               - "frontend/**"
               - "backend/public/openapi.yaml"
+              - ".nvmrc"
               - ".github/workflows/ci.yml"
 
   backend:
@@ -84,7 +85,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
@@ -101,7 +102,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: |
             frontend/pnpm-lock.yaml

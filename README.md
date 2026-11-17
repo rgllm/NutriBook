@@ -10,8 +10,11 @@ request automatically rejects every pending request that overlaps it.
 ### What to install
 
 - Docker
-- Node.js
+- Node.js 24, at the exact version in `.nvmrc`. CI reads the same file.
 - pnpm
+
+With nvm, run `nvm install` in the repository root to install and select this
+Node version.
 
 Ruby, PostgreSQL, Meilisearch, and Mailpit run in Docker. You do not need to
 install them on your machine. The frontend runs locally with pnpm.
@@ -62,9 +65,11 @@ Backend commands require the development Compose stack to be running.
 | `pnpm db:seed` | Add missing demo records, rebuild the search index, and print the demo request URLs |
 | `pnpm db:psql` | Open PostgreSQL against the development database |
 | `pnpm rails search:reindex` | Rebuild Meilisearch after manual data changes |
-| `pnpm backend:test` or `pnpm test` | Run the Rails test suite |
+| `pnpm check` | Run the backend and frontend checks and the end-to-end lint and typecheck, without Playwright |
+| `pnpm test` | Run the Rails and frontend test suites |
+| `pnpm backend:test` | Run the Rails test suite |
 | `pnpm backend:ci` | Run backend setup, lint, security audits, tests, and a test-database seed replant |
-| `pnpm --dir frontend test` | Run frontend unit and component tests |
+| `pnpm frontend:test` | Run frontend unit and component tests |
 | `pnpm lint` | Run backend, frontend, and end-to-end lint |
 | `pnpm frontend:typecheck` | Generate Next.js types and run TypeScript checks |
 | `pnpm frontend:build` | Build the frontend for production |
@@ -380,15 +385,30 @@ booking behavior from a browser configured in Los Angeles.
 
 ### Run backend and frontend checks
 
-With the development stack running:
+`pnpm check` runs the same backend and frontend checks as CI, plus the
+end-to-end lint and typecheck. It does not run the Playwright suite. It needs
+the development stack running and the frontend and end-to-end dependencies
+installed. Stop a local frontend development server first because the build
+writes `frontend/.next`.
+
+```sh
+pnpm --dir e2e install --frozen-lockfile
+pnpm check
+```
+
+It runs these commands in order and stops at the first failure:
 
 ```sh
 pnpm backend:ci
 pnpm frontend:lint
 pnpm frontend:typecheck
-pnpm --dir frontend test
+pnpm frontend:test
 pnpm frontend:build
+pnpm e2e:lint
+pnpm e2e:typecheck
 ```
+
+`pnpm backend:ci` replants only the test database.
 
 For a focused backend run:
 
@@ -424,8 +444,8 @@ are 3100 for Next.js, 3101 for Rails, and 8125 for Mailpit. Override them with
 The suite runs one worker with no retries because the tests share a database.
 Fixtures assign separate nutritionists to the flows, guests use unique emails,
 and test dates remain in the future. Do not run two suites against the same
-end-to-end stack at once. The production build also writes `frontend/.next`,
-so stop a local frontend development server before running the suite.
+end-to-end stack at once. The suite builds into `frontend/.next-e2e`, so a
+local frontend development server can keep running during it.
 
 Failures retain screenshots and traces in `e2e/test-results/`. Open the HTML
 report with:
