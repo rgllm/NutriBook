@@ -4,9 +4,10 @@ import { getTranslations } from "next-intl/server"
 
 import { toMessageKey } from "@/i18n/message-key"
 import { createAppointmentRequest } from "@/lib/api/appointment-requests"
-import { ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
-import { fetchNearestCity } from "@/lib/api/locations"
+import { ApiUnavailableError } from "@/lib/api/http"
+import { searchNutritionistsNear, type Position, type SearchResults } from "@/lib/api/nutritionists"
 import { toAppointmentErrors, type RequestAppointmentState } from "@/lib/appointment-request"
+import type { SearchState } from "@/lib/search-params"
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "")
 
@@ -48,13 +49,15 @@ export async function requestAppointment(
   }
 }
 
-export type NearestCityResult = { status: "found"; city: string } | { status: "unavailable" }
+export type NearbySearchResult = { status: "found"; results: SearchResults } | { status: "unavailable" }
 
-export async function findNearestCity(latitude: number, longitude: number): Promise<NearestCityResult> {
+// A Server Action rather than a page, so the guest's position reaches Rails in
+// a request body and never in a URL.
+export async function searchNearby(search: SearchState, position: Position): Promise<NearbySearchResult> {
   try {
-    return { status: "found", city: await fetchNearestCity(latitude, longitude) }
+    return { status: "found", results: await searchNutritionistsNear(search, position) }
   } catch (error) {
-    if (error instanceof ApiUnavailableError || error instanceof ApiNotFoundError) return { status: "unavailable" }
+    if (error instanceof ApiUnavailableError) return { status: "unavailable" }
     throw error
   }
 }

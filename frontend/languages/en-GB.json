@@ -19,7 +19,6 @@
     "locating": "Finding your location…",
     "locationDenied": "Allow location access in your browser, or type a city.",
     "locationUnavailable": "We couldn't find your location. Try again or type a city.",
-    "nearestCityUnavailable": "We couldn't look up the nearest city. Try again or type a city.",
     "submit": "Search",
     "heading": "{count, plural, one {# nutritionist} other {# nutritionists}} in {city}",
     "matching": "Matching “{query}”",
@@ -33,7 +32,12 @@
     "unavailableDescription": "We couldn't reach the nutritionist directory. <retry>Try again</retry>.",
     "pagination": "Pagination",
     "previousPage": "Go to previous page",
-    "nextPage": "Go to next page"
+    "nextPage": "Go to next page",
+    "headingNearby": "{count, plural, one {# nutritionist} other {# nutritionists}} near you",
+    "nearestFirst": "Nearest to you first.",
+    "stopNearby": "Stop using my location",
+    "noMatchNearby": "Nobody matches “{query}”. Try another name or service.",
+    "noneNearby": "There are no nutritionists yet."
   },
   "nutritionist": {
     "title": "{title, select, Dietitian {Dietitian} other {Nutritionist}}",
@@ -44,7 +48,8 @@
     "scheduleAppointment": "Schedule appointment",
     "scheduleAppointmentWith": "Schedule appointment with {name}",
     "personalPageOf": "Personal page of {name}",
-    "close": "Close"
+    "close": "Close",
+    "distance": "{distance} away"
   },
   "appointment": {
     "title": "Schedule an appointment",
@@ -54,6 +59,7 @@
     "service": "Service",
     "servicePlaceholder": "Choose a service",
     "serviceOption": "{name} · {price, number, price} · {minutes} min",
+    "serviceOptionAt": "{name} · {address}, {city} · {price, number, price} · {minutes} min",
     "online": "Online appointment",
     "dateAndTime": "Date and time",
     "time": "Time",

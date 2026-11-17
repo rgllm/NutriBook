@@ -74,16 +74,20 @@ export function AppointmentForm({
   const format = useFormatter()
   const locale = useLocale()
   const { services } = nutritionist
+  // With several practices, each option says where the service is given.
   const serviceItems = services.map((service) => ({
     value: service.id,
-    label: t("serviceOption", {
+    label: t(nutritionist.addresses.length > 1 ? "serviceOptionAt" : "serviceOption", {
       name: service.name,
+      address: service.streetAddress,
+      city: service.city,
       price: service.priceEur,
       minutes: service.durationMinutes,
     }),
   }))
+  // A nearby search names the matching service that ranked the nutritionist.
   const [serviceId, setServiceId] = useState(
-    services.length === 1 ? services[0].id : undefined,
+    nutritionist.nearestServiceId ?? (services.length === 1 ? services[0].id : undefined),
   )
   const [online, setOnline] = useState(false)
   const [date, setDate] = useState<Date>()

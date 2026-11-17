@@ -1,6 +1,10 @@
+"use client"
+
+import type { FormEvent } from "react"
 import Form from "next/form"
 import { useTranslations } from "next-intl"
 
+import { useNearbySearch } from "@/components/search/nearby-search"
 import { UseMyLocationButton } from "@/components/search/use-my-location-button"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
@@ -25,6 +29,19 @@ export function SearchForm({
   disabled?: boolean
 }) {
   const t = useTranslations("search")
+  const nearbySearch = useNearbySearch()
+
+  // While searching from the guest's position, a new query or a typed city
+  // searches from there too, without putting the position in the URL.
+  function searchNearby(event: FormEvent<HTMLFormElement>) {
+    const nearby = nearbySearch?.nearby
+    if (!nearby) return
+
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const text = (key: string) => String(data.get(key) ?? "").trim()
+    nearbySearch.searchNear(nearby.position, { query: text("q"), location: text("location"), page: 1 })
+  }
 
   return (
     <Form
@@ -33,6 +50,7 @@ export function SearchForm({
       // logo, back, and "Clear search" show the URL's values.
       key={`${query}|${location}`}
       action="/"
+      onSubmit={searchNearby}
       role="search"
       className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start"
     >
@@ -66,7 +84,7 @@ export function SearchForm({
             aria-describedby={locations && "search-location-hint"}
           />
           <InputGroupAddon align="inline-end">
-            <UseMyLocationButton inputId="search-location" />
+            <UseMyLocationButton />
           </InputGroupAddon>
         </InputGroup>
         {locations && (

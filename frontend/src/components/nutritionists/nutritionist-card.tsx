@@ -42,7 +42,7 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
 
           <div className="grid gap-6 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <CardSection title={t("location")}>
-              <NutritionistLocation addresses={nutritionist.addresses} city={nutritionist.city} />
+              <NutritionistLocation addresses={nutritionist.addresses} />
             </CardSection>
             <CardSection title={t("services")}>
               <ServicePriceList services={nutritionist.services} />

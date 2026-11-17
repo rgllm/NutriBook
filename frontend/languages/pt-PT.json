@@ -19,7 +19,6 @@
     "locating": "A obter a sua localização…",
     "locationDenied": "Permita o acesso à localização no navegador ou escreva uma cidade.",
     "locationUnavailable": "Não foi possível obter a sua localização. Tente de novo ou escreva uma cidade.",
-    "nearestCityUnavailable": "Não foi possível encontrar a cidade mais próxima. Tente de novo ou escreva uma cidade.",
     "submit": "Pesquisar",
     "heading": "{count, plural, one {# nutricionista} other {# nutricionistas}} em {city}",
     "matching": "Resultados para “{query}”",
@@ -33,7 +32,12 @@
     "unavailableDescription": "Não foi possível aceder à lista de nutricionistas. <retry>Tentar de novo</retry>.",
     "pagination": "Paginação",
     "previousPage": "Ir para a página anterior",
-    "nextPage": "Ir para a página seguinte"
+    "nextPage": "Ir para a página seguinte",
+    "headingNearby": "{count, plural, one {# nutricionista} other {# nutricionistas}} perto de si",
+    "nearestFirst": "Os mais próximos de si primeiro.",
+    "stopNearby": "Deixar de usar a minha localização",
+    "noMatchNearby": "Ninguém corresponde a “{query}”. Experimente outro nome ou serviço.",
+    "noneNearby": "Ainda não há nutricionistas."
   },
   "nutritionist": {
     "title": "{title, select, Dietitian {Dietista} other {Nutricionista}}",
@@ -44,7 +48,8 @@
     "scheduleAppointment": "Marcar consulta",
     "scheduleAppointmentWith": "Marcar consulta com {name}",
     "personalPageOf": "Página pessoal de {name}",
-    "close": "Fechar"
+    "close": "Fechar",
+    "distance": "a {distance}"
   },
   "appointment": {
     "title": "Marcar uma consulta",
@@ -54,6 +59,7 @@
     "service": "Serviço",
     "servicePlaceholder": "Escolha um serviço",
     "serviceOption": "{name} · {price, number, price} · {minutes} min",
+    "serviceOptionAt": "{name} · {address}, {city} · {price, number, price} · {minutes} min",
     "online": "Consulta online",
     "dateAndTime": "Data e hora",
     "time": "Hora",

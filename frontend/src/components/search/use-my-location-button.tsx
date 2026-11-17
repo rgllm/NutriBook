@@ -1,14 +1,14 @@
 "use client"
 
-import { useSyncExternalStore, useTransition } from "react"
+import { useSyncExternalStore, useTransition, type MouseEvent } from "react"
 import { LoaderCircleIcon, LocateFixedIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
-import { findNearestCity } from "@/app/actions"
+import { useNearbySearch } from "@/components/search/nearby-search"
 import { InputGroupButton } from "@/components/ui/input-group"
 
-// A position up to ten minutes old is still the same city.
+// A position up to ten minutes old is still where the guest is.
 const POSITION_OPTIONS: PositionOptions = { maximumAge: 600_000, timeout: 10_000 }
 
 function currentPosition() {
@@ -24,16 +24,20 @@ const subscribe = () => () => {}
 const supportsGeolocation = () => "geolocation" in navigator
 const beforeHydration = () => false
 
-// Two decimals is about a kilometre: enough to pick a city, and all the
-// server needs to know about where the guest is.
-const coarse = (degrees: number) => Math.round(degrees * 100) / 100
+// Three decimals is about a hundred metres: enough to order practices in a
+// city, and all the server needs to know about where the guest is.
+const coarse = (degrees: number) => Math.round(degrees * 1000) / 1000
 
-export function UseMyLocationButton({ inputId }: { inputId: string }) {
+export function UseMyLocationButton() {
   const t = useTranslations("search")
+  const nearbySearch = useNearbySearch()
   const canLocate = useSyncExternalStore(subscribe, supportsGeolocation, beforeHydration)
   const [locating, startLocating] = useTransition()
 
-  function fillNearestCity() {
+  // Searches every city for the typed query, nearest first. The location
+  // field empties because a typed city would limit the search to it.
+  function searchNearMe(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form
     startLocating(async () => {
       let position: GeolocationPosition
       try {
@@ -44,19 +48,13 @@ export function UseMyLocationButton({ inputId }: { inputId: string }) {
         return
       }
 
-      const result = await findNearestCity(coarse(position.coords.latitude), coarse(position.coords.longitude))
-      if (result.status === "unavailable") {
-        toast.error(t("nearestCityUnavailable"))
-        return
-      }
-
-      // The input is uncontrolled, so the guest can still edit the city before
-      // searching. Focus moves there so the new value is seen and announced.
-      const input = document.getElementById(inputId)
-      if (input instanceof HTMLInputElement) {
-        input.value = result.city
-        input.focus()
-      }
+      const location = form?.elements.namedItem("location")
+      if (location instanceof HTMLInputElement) location.value = ""
+      const query = String((form && new FormData(form).get("q")) ?? "").trim()
+      nearbySearch?.searchNear(
+        { latitude: coarse(position.coords.latitude), longitude: coarse(position.coords.longitude) },
+        { query, location: "", page: 1 },
+      )
     })
   }
 
@@ -65,7 +63,7 @@ export function UseMyLocationButton({ inputId }: { inputId: string }) {
   return (
     <InputGroupButton
       size="icon-sm"
-      onClick={fillNearestCity}
+      onClick={searchNearMe}
       disabled={!canLocate || locating}
       aria-label={label}
       title={label}

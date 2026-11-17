@@ -62,6 +62,30 @@ afterEach(() => {
 })
 
 describe("AppointmentForm", () => {
+  it("starts from the service that ranked a nearby result, and says where each service is", () => {
+    const sports = { ...nutritionist.services[0], id: 382, name: "Sports nutrition", streetAddress: "Rua de Cedofeita, 9", city: "Porto", distanceKm: 4.5 }
+    const twoPractices = {
+      ...nutritionist,
+      nearestServiceId: sports.id,
+      services: [{ ...nutritionist.services[0], distanceKm: 1.2 }, sports],
+      addresses: [
+        { streetAddress: "Rua de Cedofeita, 9", city: "Porto", distanceKm: 4.5 },
+        { streetAddress: "Rua do Souto 45", city: "Braga", distanceKm: 1.2 },
+      ],
+    }
+
+    render(
+      <Dialog open>
+        <DialogContent>
+          <AppointmentForm nutritionist={twoPractices} state={{ status: "editing", errors: {}, values: { name: "", email: "" } }} action={vi.fn()} />
+        </DialogContent>
+      </Dialog>,
+    )
+
+    expect(screen.getByRole("combobox", { name: "Service" })).toHaveTextContent("Sports nutrition · Rua de Cedofeita, 9, Porto · €40 · 60 min")
+  })
+
+
   it("shows each of the API's messages on its field", () => {
     renderForm(refused)
 

@@ -31,19 +31,6 @@ describe("contractViolations", () => {
   })
 
   it.each([
-    ["", ["latitude", "longitude"]],
-    ["?latitude=41.55", ["longitude"]],
-    ["?longitude=-8.43", ["latitude"]],
-  ])("reports missing required coordinates for %s", (query, missing) => {
-    expect(
-      contractViolations({ method: "GET", url: new URL(`http://api.test/locations/nearest${query}`) }),
-    ).toEqual(missing.map((name) => `nearestLocation query ${name} is required`))
-  })
-
-  it.each([
-    "/locations/nearest?latitude=41.55&longitude=-8.43",
-    "/locations/nearest?latitude=&longitude=invalid",
-    "/locations/nearest?latitude=bad&latitude=41.55&longitude=-8.43",
     "/nutritionists?q=Jo%C3%A3o+Silva&location=Braga&page=01",
     "/nutritionists?q=123&location=&page=invalid",
     "/nutritionists?unknown=ignored",

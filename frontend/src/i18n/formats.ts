@@ -12,5 +12,6 @@ export const formats = {
   },
   number: {
     price: { style: "currency", currency: "EUR", trailingZeroDisplay: "stripIfInteger" },
+    distance: { style: "unit", unit: "kilometer", maximumFractionDigits: 1 },
   },
 } satisfies Formats
