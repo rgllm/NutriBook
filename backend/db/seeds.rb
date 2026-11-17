@@ -2,7 +2,7 @@
 #
 # Faker runs with a fixed random seed, so every run generates the same people
 # and services. Records are looked up by their natural keys before creating
-# them, which keeps this file idempotent: running it twice changes nothing.
+# them. Reruns preserve existing data except overdue pending demo dates.
 #
 # Braga, the default search location, gets enough nutritionists to fill more
 # than one results page.
@@ -125,11 +125,17 @@ ActiveRecord::Base.transaction do
 
     # Each demo guest gets one seeded request, so the email identifies it
     # whatever its status. Once answered in the app, reseeding leaves it alone.
-    AppointmentRequest.find_or_create_by!(guest_email: guest_email) do |request|
-      request.service = service
-      request.guest_name = guest_name
-      request.starts_at = BookingSchedule.starts_at(date.iso8601, time)
+    request = AppointmentRequest.find_or_create_by!(guest_email: guest_email) do |record|
+      record.service = service
+      record.guest_name = guest_name
+      record.starts_at = BookingSchedule.starts_at(date.iso8601, time)
     end
+    request.with_lock do
+      if request.pending? && request.starts_at <= Time.current && request.service_id == service.id && request.guest_name == guest_name
+        request.update!(starts_at: BookingSchedule.starts_at(date.iso8601, time))
+      end
+    end
+    request
   end
 end
 
@@ -137,21 +143,23 @@ puts "Seeded #{Nutritionist.count} nutritionists, #{Service.count} services, " \
   "and #{AppointmentRequest.pending.count} pending requests."
 puts NutritionistIndex.refresh
 
-# IDs move when the database is reseeded, so print where to try the
-# pending-requests page. This describes the seeded scenario: answering requests
-# in the app changes what the first link shows.
+# Print current records because answering requests changes the demo scenario.
 frontend_url = ENV.fetch("FRONTEND_URL", "http://localhost:3000")
 requests_url = ->(id) { "#{frontend_url}/nutritionists/#{id}/requests" }
-booked, overlapping, *free = demo_requests.map(&:guest_name)
 busy, idle = nutritionists.first(2)
+pending_demo = demo_requests.select(&:pending?)
+booked, overlapping = demo_requests.first(2)
 
-puts <<~GUIDE
-
-  Try the pending-requests page:
-  - #{busy.name}, with #{demo_requests.size} seeded requests: #{requests_url.(busy.id)}
-    - Accepting #{booked} also rejects #{overlapping}'s request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
-    - #{free.to_sentence} don't overlap anyone, so accepting or rejecting either one removes only that card.
-  - #{idle.name}, with no requests: #{requests_url.(idle.id)} shows the empty state.
-  - An ID with no nutritionist: #{requests_url.([ 999_999, Nutritionist.maximum(:id) + 1 ].max)} shows the 404 page.
-  - A malformed ID: #{requests_url.("1abc")} returns a real 404.
-GUIDE
+puts "\nTry the pending-requests page:"
+puts "- #{busy.name}, with #{pending_demo.size} pending demo #{"request".pluralize(pending_demo.size)}: #{requests_url.(busy.id)}"
+demo_requests.each do |request|
+  local_start = request.starts_at.in_time_zone(BookingSchedule::TIME_ZONE).strftime("%Y-%m-%d %H:%M")
+  puts "  - #{request.guest_name}: #{request.status}, #{local_start} (Europe/Lisbon)."
+end
+if booked.pending? && overlapping.pending? && booked.starts_at < overlapping.ends_at && booked.ends_at > overlapping.starts_at
+  puts "  - Accepting #{booked.guest_name} also rejects #{overlapping.guest_name}'s request, which overlaps it."
+end
+idle_count = idle.appointment_requests.pending.count
+puts "- #{idle.name}, with #{idle_count} pending #{"request".pluralize(idle_count)}: #{requests_url.(idle.id)}#{' shows the empty state.' if idle_count.zero?}"
+puts "- An ID with no nutritionist: #{requests_url.([ 999_999, Nutritionist.maximum(:id) + 1 ].max)} shows the 404 page."
+puts "- A malformed ID: #{requests_url.("1abc")} returns a real 404."

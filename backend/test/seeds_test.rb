@@ -33,6 +33,7 @@ class SeedsTest < ActiveSupport::TestCase
       future.update!(starts_at: BookingSchedule.starts_at("2026-12-07", "14:00"))
       preserved = [ accepted, rejected, future ].map(&:attributes)
       unrelated = appointment_requests(:pending)
+      unrelated.update!(starts_at: BookingSchedule.starts_at("2026-10-20", "09:00"))
       unrelated_before = unrelated.attributes
 
       travel_to BookingSchedule::TIME_ZONE.local(2026, 11, 17, 12)
@@ -82,6 +83,36 @@ class SeedsTest < ActiveSupport::TestCase
     seeded.each do |request|
       assert_includes out, request.starts_at.in_time_zone(BookingSchedule::TIME_ZONE).strftime("%Y-%m-%d %H:%M")
     end
+  end
+
+  test "reseeding leaves superseded demo requests and mismatched identities alone" do
+    travel_to BookingSchedule::TIME_ZONE.local(2026, 10, 12, 12) do
+      existing_ids = AppointmentRequest.ids
+      load_seeds
+      seeded = AppointmentRequest.where.not(id: existing_ids).order(:id).to_a
+      seeded.first.update!(status: "superseded")
+      seeded.second.update!(guest_name: "Another guest")
+      seeded.third.update!(service: services(:ana_sports_nutrition))
+      preserved = seeded.first(3).map(&:attributes)
+
+      travel_to BookingSchedule::TIME_ZONE.local(2026, 11, 17, 12)
+      load_seeds
+
+      assert_equal preserved, seeded.first(3).map { |request| request.reload.attributes }
+    end
+  end
+
+  test "printed empty-state link counts requests created through the app" do
+    load_seeds
+    idle = Nutritionist.find_by!(name: "Silas Saraiva")
+    AppointmentRequest.submit(service: idle.services.first, guest_name: "New Guest",
+      guest_email: "new.guest@example.com", starts_at: BookingSchedule.starts_at(
+        BookingSchedule::TIME_ZONE.today.next_occurring(:monday).iso8601, "09:00"))
+
+    out, = capture_io { silence_warnings { Rails.application.load_seed } }
+
+    assert_includes out, "#{idle.name}, with 1 pending request:"
+    assert_not_includes out, "#{idle.id}/requests shows the empty state"
   end
 
   test "reports what it seeded" do

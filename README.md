@@ -311,8 +311,8 @@ fictional.
 
 Braga has eight nutritionists for pagination. Three also offer services in
 Porto, and one works at two Braga addresses. The first seeded nutritionist has
-four pending requests for the next Monday and Tuesday. Two start at the same
-time, so accepting either demonstrates automatic overlap rejection.
+four pending requests for the next Monday and Tuesday on first setup. Two start
+at the same time, so accepting either demonstrates automatic overlap rejection.
 
 Try these flows after a fresh setup:
 
@@ -333,25 +333,22 @@ Try these flows after a fresh setup:
 Nutritionist IDs change when the database is reseeded, because PostgreSQL does
 not reset its sequences, so the pending-request pages have no fixed URL. The
 seeds end by printing them with the current IDs, and running `pnpm db:seed`
-again is safe whenever you need them:
+again is safe whenever you need them.
 
-```text
-Try the pending-requests page:
-- Aline Moreira, with 4 seeded requests: http://localhost:3000/nutritionists/242/requests
-  - Accepting Danilo Santos also rejects Nataniel Batista's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
-  - Hugo Estéves and Eduarda Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
-- Silas Saraiva, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
-- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the 404 page.
-- A malformed ID: http://localhost:3000/nutritionists/1abc/requests returns a real 404.
-```
+The guide lists each demo request's current status and date in `Europe/Lisbon`,
+counts only pending demo requests, and prints the overlap hint only while both
+requests are pending and still overlap. The empty-state link reports its actual
+pending count, including requests created through the app.
 
-The list describes the seeded scenario. Requests you answer in the app stay
-answered, so the first page then shows fewer cards.
+Reseeding moves only overdue pending demo requests to their corresponding slots
+on the next Monday and Tuesday. Future pending demo requests keep their dates.
+Answered and superseded demo requests stay unchanged, and non-demo requests are
+left alone. Demo requests are identified by their deterministic guest email,
+name, and service before their dates can move. Reseeding sends no answer emails.
 
-`pnpm db:seed` adds missing demo records and preserves answered requests. It does
-not restore the original pending list. To erase development records and rebuild
-the demo data, stop the backend first so its job worker does not poll queue
-tables while they are reset:
+`pnpm db:seed` does not restore the original pending list. To erase development
+records and rebuild the demo data, stop the backend first so its job worker does
+not poll queue tables while they are reset:
 
 ```sh
 docker compose stop backend
