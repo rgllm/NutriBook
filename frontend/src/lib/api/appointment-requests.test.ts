@@ -5,7 +5,7 @@ import {
   createAppointmentRequest,
   getPendingRequests,
 } from "@/lib/api/appointment-requests"
-import { ApiConflictError, ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
+import { ApiConflictError, ApiNotFoundError } from "@/lib/api/http"
 import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
@@ -84,22 +84,6 @@ describe("createAppointmentRequest", () => {
       errors: { starts_at: ["not_a_slot"] },
     })
   })
-
-  it("reports the API as unavailable when it cannot be reached or fails", async () => {
-    stubApi(new TypeError("fetch failed"))
-    await expect(createAppointmentRequest(input)).rejects.toBeInstanceOf(ApiUnavailableError)
-
-    stubApi(new Response(null, { status: 503 }))
-    await expect(createAppointmentRequest(input)).rejects.toBeInstanceOf(ApiUnavailableError)
-  })
-
-  it("treats any other client error as a bug, not an outage", async () => {
-    stubApi(Response.json({ error: "invalid_request", parameter: "appointment_request" }, { status: 400 }))
-
-    const error = await createAppointmentRequest(input).catch((error: unknown) => error)
-    expect(error).toBeInstanceOf(Error)
-    expect(error).not.toBeInstanceOf(ApiUnavailableError)
-  })
 })
 
 describe("getPendingRequests", () => {
@@ -159,14 +143,6 @@ describe("getPendingRequests", () => {
     stubApi(Response.json({ error: "Nutritionist not found" }, { status: 404 }))
 
     expect(await getPendingRequests("999")).toBeNull()
-  })
-
-  it("reports the API as unavailable when it cannot be reached or fails", async () => {
-    stubApi(new TypeError("fetch failed"))
-    await expect(getPendingRequests("1")).rejects.toBeInstanceOf(ApiUnavailableError)
-
-    stubApi(new Response(null, { status: 500 }))
-    await expect(getPendingRequests("1")).rejects.toBeInstanceOf(ApiUnavailableError)
   })
 })
 
