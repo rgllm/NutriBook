@@ -120,6 +120,9 @@ export function AppointmentForm({
       <input type="hidden" name="date" value={date ? toBookingDay(date) : ""} />
       <input type="hidden" name="time" value={time ?? ""} />
       <input type="hidden" name="online" value={String(online)} />
+      {/* The answer email follows the language this form was shown in, even if
+          another tab switches the site's language before it is sent. */}
+      <input type="hidden" name="language" value={locale} />
 
       <DialogHeader>
         <DialogTitle className="text-subheading">

@@ -112,6 +112,20 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     }, response.parsed_body)
   end
 
+  test "stores the language the guest booked in" do
+    post appointment_requests_url, params: request_params(language: "pt-PT"), as: :json
+
+    assert_schema_conform(201)
+    assert_equal "pt-PT", AppointmentRequest.find(response.parsed_body["id"]).language
+  end
+
+  test "a request without a language is in English" do
+    post appointment_requests_url, params: request_params, as: :json
+
+    assert_schema_conform(201)
+    assert_equal "en-GB", AppointmentRequest.find(response.parsed_body["id"]).language
+  end
+
   test "a new request supersedes the guest's pending one" do
     post appointment_requests_url, params: request_params(guest_email: "rita.gomes@example.com"), as: :json
 

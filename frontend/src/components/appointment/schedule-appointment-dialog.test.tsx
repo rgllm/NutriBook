@@ -56,6 +56,7 @@ describe("ScheduleAppointmentDialog", () => {
         date: "2026-11-23",
         time: "10:00",
         online: false,
+        language: "en-GB",
       },
     })
   })

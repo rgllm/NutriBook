@@ -25,6 +25,19 @@ class AppointmentAnswerEmailJobTest < ActiveJob::TestCase
     assert_equal Time.current, request.reload.answer_notified_at
   end
 
+  test "each guest is answered in the language they booked in, overlap rejections included" do
+    english = submit("english@example.com", "en-GB", "First appointment", "10:00")
+    portuguese = submit("portuguese@example.com", "pt-PT", "Follow-up", "10:00")
+
+    english.answer!("accepted")
+    perform_enqueued_jobs
+
+    assert_equal "Your appointment with Mary Jane is confirmed", email_to(english).subject
+    rejection = email_to(portuguese)
+    assert_equal "O seu pedido de consulta com Mary Jane não foi aceite", rejection.subject
+    assert_includes rejection.text_part.decoded, "Mary Jane aceitou outra consulta à mesma hora"
+  end
+
   test "a retry after a successful send emails no one" do
     request = appointment_requests(:rejected)
     AppointmentAnswerEmailJob.perform_now(request.id)
@@ -54,6 +67,18 @@ class AppointmentAnswerEmailJobTest < ActiveJob::TestCase
   ensure
     AppointmentRequestMailer.delivery_method = :test
     AppointmentRequestMailer.failing_settings = {}
+  end
+
+  private
+
+  def submit(guest_email, language, service_name, time)
+    service = nutritionists(:mary_jane).services.find_by!(name: service_name)
+    AppointmentRequest.submit(service:, guest_name: guest_email.split("@").first.capitalize, guest_email:, language:,
+      starts_at: BookingSchedule.starts_at("2026-12-07", time)).tap { |request| assert request.persisted? }
+  end
+
+  def email_to(request)
+    ActionMailer::Base.deliveries.find { |email| email.to == [ request.guest_email ] }
   end
 end
 

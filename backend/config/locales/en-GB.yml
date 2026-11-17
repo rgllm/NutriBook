@@ -1,0 +1,26 @@
+# Answer emails in British English, for requests booked in en-GB. The day and
+# month names live here too, so this file and pt-PT.yml hold the same keys.
+en-GB:
+  date:
+    day_names: [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday]
+    month_names: [~, January, February, March, April, May, June, July, August, September, October, November, December]
+  time:
+    formats:
+      appointment_day: "%A, %-d %B %Y"
+  appointment_request_mailer:
+    greeting: "Hi %{name},"
+    appointment_time: "%{day}, %{starts} to %{ends} (Lisbon time)"
+    online: Online
+    details:
+      nutritionist: Nutritionist
+      service: Service
+      when: When
+      where: Where
+    accepted:
+      subject: "Your appointment with %{nutritionist} is confirmed"
+      body: "%{nutritionist} accepted your appointment request. See you then."
+    rejected:
+      subject: "Your appointment request with %{nutritionist} was not accepted"
+      declined: "%{nutritionist} can't take this appointment request."
+      overlap: "%{nutritionist} accepted another appointment at the same time, so this time is no longer available."
+      request_again: You can request another time on NutriBook.

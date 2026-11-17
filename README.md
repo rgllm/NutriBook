@@ -149,7 +149,8 @@ typography, component rules, and semantic tokens in `frontend/src/app/theme.css`
 `next-intl` provides English and Portuguese messages from `frontend/languages/`.
 The saved `NEXT_LOCALE` cookie takes priority over the browser's language,
 with English as the fallback. Language selection does not change the URL.
-Dates and times always use `Europe/Lisbon`.
+Dates and times always use `Europe/Lisbon`. The booking form sends the
+language it is shown in, and the guest's answer email uses it.
 
 ### Database design
 
@@ -195,6 +196,7 @@ erDiagram
         datetime answered_at
         string rejection_reason
         datetime answer_notified_at
+        string language
     }
 ```
 
@@ -216,6 +218,7 @@ PostgreSQL backs the domain rules with constraints:
 | No overlapping accepted appointments for a nutritionist | GiST exclusion constraint on `nutritionist_id` and `tsrange(starts_at, ends_at)`, using `btree_gist` |
 | A request's service belongs to its nutritionist | Composite foreign key to `services(nutritionist_id, id)` |
 | Valid state and answer metadata | Checks on status, rejection reason, answer timestamp, and notification timestamp |
+| Answer emails in a supported language | Check that `language` is `en-GB` or `pt-PT` |
 | Valid sizes and values | Checks on guest input lengths, positive durations, nonnegative prices, ordered times, and coordinate ranges |
 
 Time ranges are half-open. An appointment ending at 11:00 does not overlap one
@@ -307,9 +310,17 @@ job skips the send if `answer_notified_at` is already set.
   Geolocation rounds coordinates before sending them and fills the nearest
   supported city. The guest still presses Search. It does not sort results
   by distance to individual practices.
-- **Keep translations in the frontend.** English and Portuguese share typed
-  message keys. User-entered service names and addresses remain as written.
-  Answer emails remain in English because requests do not store a locale.
+- **Keep translations where they are rendered.** The frontend's English and
+  Portuguese share typed message keys. Answer emails are rendered by Rails, so
+  their copy lives in `backend/config/locales/en-GB.yml` and `pt-PT.yml`, which
+  a test keeps in step. User-entered service names and addresses remain as
+  written.
+- **Answer each guest in the language they booked in.** The form sends the
+  language it was shown in, so switching the site's language in another tab
+  before submitting changes nothing. The request keeps it in `language`, and
+  every email that answers it uses it, automatic overlap rejections included.
+  Another variant of a supported language, such as `pt-BR`, gets that language.
+  Requests from before the column, and any other value, get English.
 - **Follow the reference with deliberate accessibility adjustments.** The
   design uses a darker green for readable text and flat fills instead of
   gradients. Outfit replaces the commercial reference font. The full choices
@@ -348,6 +359,7 @@ Try these flows after a fresh setup:
 | Automatic rejection | Accept one of the seeded 10:00 requests | Both overlapping cards leave the list, and each guest gets an email |
 | Read answer emails | <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
 | Change language | Use the language selector above the header | Translated UI that persists across visits |
+| Answer in the guest's language | Book in Português, then answer the request | The answer email arrives in Portuguese |
 
 Nutritionist IDs change when the database is reseeded, because PostgreSQL does
 not reset its sequences, so the pending-request pages have no fixed URL. The
@@ -390,12 +402,12 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 | --- | --- | --- |
 | Domain and database | Minitest in `backend/test/models/` | Booking rules, replacement, overlap rejection, search, constraints, and concurrent submissions and answers |
 | HTTP API integration | `ActionDispatch::IntegrationTest` in `backend/test/controllers/` | Real routing and JSON responses, validation errors, conflicts, and OpenAPI compliance through `committee-rails` |
-| Email and jobs | `backend/test/mailers/` and `backend/test/jobs/` | Email content, retry exhaustion, repeat-send protection, and transactional job enqueue |
+| Email and jobs | `backend/test/mailers/` and `backend/test/jobs/` | Email content in English and Portuguese, retry exhaustion, repeat-send protection, and transactional job enqueue |
 | Seeds | `backend/test/seeds_test.rb` | Demo data and idempotence |
 | Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
 | Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |
 | API contract | Frontend `stubApi` and backend request assertions | Exercised requests and JSON responses checked against the same `openapi.yaml` |
-| End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, and language persistence |
+| End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, language persistence, and answer emails in the booking's language |
 
 Contract checks cover the calls these tests make, not every possible request.
 Fixtures that are malformed on purpose opt out with `checkContract: false`.

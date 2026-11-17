@@ -1,3 +1,3 @@
-<p>Hi <%= appointment_request.guest_name %>,</p>
-<p><%= nutritionist_name %> accepted your appointment request. See you then.</p>
+<p><%= t("appointment_request_mailer.greeting", name: appointment_request.guest_name) %></p>
+<p><%= t(".body", nutritionist: nutritionist_name) %></p>
 <%= render "details" %>
