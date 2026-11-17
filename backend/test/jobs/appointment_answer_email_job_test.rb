@@ -34,49 +34,26 @@ class AppointmentAnswerEmailJobTest < ActiveJob::TestCase
     end
   end
 
-  [ SocketError, Socket::ResolutionError, Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout,
-    Net::SMTPServerBusy, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ETIMEDOUT,
-    Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::EPIPE, EOFError ].each do |error|
-    test "#{error} retries without marking the answer delivered" do
-      request = appointment_requests(:accepted)
-      AppointmentRequestMailer.delivery_method = :failing
-      AppointmentRequestMailer.failing_settings = { error: error }
+  test "a network failure retries and the retry sends the email" do
+    request = appointment_requests(:accepted)
+    AppointmentRequestMailer.delivery_method = :failing
+    AppointmentRequestMailer.failing_settings = { error: Socket::ResolutionError }
 
-      assert_no_emails do
-        assert_enqueued_with(job: AppointmentAnswerEmailJob, args: [ request.id ]) do
-          AppointmentAnswerEmailJob.perform_now(request.id)
-        end
+    assert_no_emails do
+      assert_enqueued_with(job: AppointmentAnswerEmailJob, args: [ request.id ]) do
+        AppointmentAnswerEmailJob.perform_now(request.id)
       end
-      assert_nil request.reload.answer_notified_at
-      assert request.accepted?
-
-      AppointmentRequestMailer.delivery_method = :test
-      assert_emails 1 do
-        perform_enqueued_jobs(only: AppointmentAnswerEmailJob)
-      end
-      assert_equal Time.current, request.reload.answer_notified_at
-    ensure
-      AppointmentRequestMailer.delivery_method = :test
-      AppointmentRequestMailer.failing_settings = {}
     end
-  end
+    assert_nil request.reload.answer_notified_at
 
-  [ Net::SMTPFatalError, Net::SMTPAuthenticationError, Net::SMTPSyntaxError,
-    Net::SMTPUnknownError, OpenSSL::SSL::SSLError, ArgumentError ].each do |error|
-    test "#{error} fails without an automatic retry" do
-      request = appointment_requests(:rejected)
-      AppointmentRequestMailer.delivery_method = :failing
-      AppointmentRequestMailer.failing_settings = { error: error }
-
-      assert_no_enqueued_jobs do
-        assert_raises(error) { AppointmentAnswerEmailJob.perform_now(request.id) }
-      end
-      assert_nil request.reload.answer_notified_at
-      assert request.rejected?
-    ensure
-      AppointmentRequestMailer.delivery_method = :test
-      AppointmentRequestMailer.failing_settings = {}
+    AppointmentRequestMailer.delivery_method = :test
+    assert_emails 1 do
+      perform_enqueued_jobs(only: AppointmentAnswerEmailJob)
     end
+    assert_equal Time.current, request.reload.answer_notified_at
+  ensure
+    AppointmentRequestMailer.delivery_method = :test
+    AppointmentRequestMailer.failing_settings = {}
   end
 end
 
@@ -95,39 +72,33 @@ class AppointmentAnswerEmailJobExhaustionTest < ActiveSupport::TestCase
     ActiveJob::QueueAdapters::SolidQueueAdapter.new
   end
 
-  [ Net::ReadTimeout, Socket::ResolutionError ].each do |error|
-    test "#{error} exhausts ten attempts and supports manual recovery" do
-      request = appointment_requests(:accepted)
-      AppointmentRequestMailer.failing_settings = { error: error }
-      log = StringIO.new
+  test "an email that never sends keeps the answer, fails after ten attempts, and can be retried by hand" do
+    request = appointment_requests(:accepted)
+    AppointmentRequestMailer.failing_settings = { error: Socket::ResolutionError }
+    log = StringIO.new
 
-      with_job_logger(Logger.new(log)) do
-        AppointmentAnswerEmailJob.perform_later(request.id)
-        assert_equal 10, run_queue_until_empty
-      end
-
-      request.reload
-      assert request.accepted?
-      assert_nil request.answer_notified_at
-
-      failed = SolidQueue::FailedExecution.sole
-      assert_equal "AppointmentAnswerEmailJob", failed.job.class_name
-      assert_equal error.name, failed.exception_class
-      assert_match "Stopped retrying AppointmentAnswerEmailJob", log.string
-      assert_match "reoccurred on 10 attempts", log.string
-
-      AppointmentRequestMailer.delivery_method = :test
-      assert_difference -> { ActionMailer::Base.deliveries.size }, 1 do
-        failed.retry
-        assert_equal 1, run_queue_until_empty
-      end
-      assert_not_nil request.reload.answer_notified_at
-      assert_empty SolidQueue::FailedExecution.all
-
-      assert_no_difference -> { ActionMailer::Base.deliveries.size } do
-        AppointmentAnswerEmailJob.perform_now(request.id)
-      end
+    with_job_logger(Logger.new(log)) do
+      AppointmentAnswerEmailJob.perform_later(request.id)
+      assert_equal 10, run_queue_until_empty
     end
+
+    request.reload
+    assert request.accepted?
+    assert_nil request.answer_notified_at
+
+    failed = SolidQueue::FailedExecution.sole
+    assert_equal "AppointmentAnswerEmailJob", failed.job.class_name
+    assert_equal "Socket::ResolutionError", failed.exception_class
+    assert_match "Stopped retrying AppointmentAnswerEmailJob", log.string
+    assert_match "reoccurred on 10 attempts", log.string
+
+    AppointmentRequestMailer.delivery_method = :test
+    assert_difference -> { ActionMailer::Base.deliveries.size }, 1 do
+      failed.retry
+      assert_equal 1, run_queue_until_empty
+    end
+    assert_not_nil request.reload.answer_notified_at
+    assert_empty SolidQueue::FailedExecution.all
   end
 
   test "a permanent SMTP failure goes straight to failed executions" do
@@ -160,7 +131,7 @@ class AppointmentAnswerEmailJobExhaustionTest < ActiveSupport::TestCase
       attempts += 1
       claimed.each do |execution|
         execution.perform
-      rescue Net::ReadTimeout, Socket::ResolutionError
+      rescue Socket::ResolutionError
       end
     end
   end

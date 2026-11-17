@@ -221,46 +221,12 @@ starting at 11:00. Indexes on `services(city, nutritionist_id)` and
 `appointment_requests(nutritionist_id, status, starts_at)` support city searches
 and pending lists. Solid Queue uses additional tables in the same database.
 
-## Inspect and retry failed answer emails
+## Retry a failed answer email
 
-In development, open the Rails console with `pnpm backend:console`. In a
-production deployment, run `bin/rails console` in the backend environment.
-List failed answer-email jobs with their request IDs and failure details:
-
-```ruby
-SolidQueue::FailedExecution.joins(:job)
-  .where(solid_queue_jobs: { class_name: "AppointmentAnswerEmailJob" })
-  .includes(:job).find_each do |failed|
-    pp id: failed.id, request_id: failed.job.arguments["arguments"].first,
-      error: failed.exception_class, message: failed.message
-  end
-```
-
-Inspect one failure using its ID from that output:
-
-```ruby
-failed = SolidQueue::FailedExecution.find(123)
-pp failed.job.class_name, failed.job.arguments, failed.backtrace
-request = AppointmentRequest.find(failed.job.arguments["arguments"].first)
-pp request.status, request.answer_notified_at
-```
-
-Fix the SMTP configuration or restore the network before retrying. If the
-provider might already have accepted the email, inspect its delivery logs first.
-A missing marker does not prove that no email was sent.
-
-To retry the selected failed job, run:
-
-```ruby
-failed.retry
-```
-
-Solid Queue removes the failed execution and queues that job with fresh retry
-counters. Keep the worker running, then check `request.reload.answer_notified_at`
-and the development Mailpit inbox or production provider logs. A job whose
-marker is already set skips the send. A permanent error fails again immediately
-unless its cause has been fixed. Exhausting the retries does not undo the
-nutritionist's answer.
+An answer email that still fails after its retries stays in Solid Queue. In
+`pnpm backend:console`, `SolidQueue::FailedExecution` lists those jobs with
+their errors, and `failed.retry` queues one again once the cause is fixed. The
+job skips the send if `answer_notified_at` is already set.
 
 ## Main decisions
 
@@ -312,17 +278,11 @@ nutritionist's answer.
   database, so a rollback also removes the jobs. A Redis-backed queue would
   need an outbox to give the same atomic enqueue guarantee.
 - **Make delivery retries safe where possible.** The email job locks the request
-  and checks `answer_notified_at` before sending. DNS failures, connection
-  failures, timeouts, broken pipes, unexpected connection closure, and temporary
-  SMTP server errors (`Net::SMTPServerBusy`) retry with polynomial backoff, up to
-  ten total attempts. Permanent
-  SMTP errors, authentication failures, and TLS errors fail without automatic
-  retry. Exhausted jobs remain in Solid Queue for inspection and manual retry.
-  The marker records a successful SMTP send, not delivery to the guest's inbox.
-  Delivery is best effort with bounded retries, not exactly once. A crash or
-  lost connection after SMTP accepts an email but before the marker commits
-  can still duplicate delivery. Provider-supported idempotency would be needed
-  to close that gap.
+  and checks `answer_notified_at` before sending. Transient network and SMTP
+  errors retry with backoff, up to ten attempts. Permanent SMTP, authentication,
+  and TLS errors fail at once. A crash after SMTP accepts an email but before
+  the marker is saved can still duplicate delivery. A provider with an
+  idempotency key would be needed to close that gap.
 - **Book in the practice's time zone.** Guests submit a date and time as picked.
   Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
   permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
