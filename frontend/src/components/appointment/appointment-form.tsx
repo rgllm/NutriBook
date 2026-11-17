@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useFormatter, useLocale, useTranslations } from "next-intl"
 import { enGB, pt } from "react-day-picker/locale"
 
@@ -51,6 +51,16 @@ type EditingState = Extract<RequestAppointmentState, { status: "editing" }>
 
 const CALENDAR_LOCALES = { "en-GB": enGB, "pt-PT": pt } satisfies Record<Locale, unknown>
 
+// The control each field's error belongs to, in the order the form shows them,
+// so focus lands on the first problem the guest has to fix.
+const FOCUS_TARGETS = [
+  ["name", "guest-name"],
+  ["email", "guest-email"],
+  ["service", "service"],
+  ["online", "online"],
+  ["when", "time-slots"],
+] as const satisfies ReadonlyArray<readonly [AppointmentField, string]>
+
 export function AppointmentForm({
   nutritionist,
   state,
@@ -86,6 +96,11 @@ export function AppointmentForm({
     setAnsweredState(state)
     setErrors(state.errors)
   }
+
+  useEffect(() => {
+    const target = FOCUS_TARGETS.find(([field]) => state.errors[field])
+    if (target) document.getElementById(target[1])?.focus()
+  }, [state])
 
   const clearError = (key: keyof AppointmentErrors) =>
     setErrors((current) => ({ ...current, [key]: undefined }))
@@ -143,6 +158,7 @@ export function AppointmentForm({
           <Input
             id="guest-name"
             name="name"
+            required
             autoComplete="name"
             defaultValue={state.values.name}
             onChange={() => clearError("name")}
@@ -157,6 +173,7 @@ export function AppointmentForm({
             id="guest-email"
             name="email"
             type="email"
+            required
             autoComplete="email"
             inputMode="email"
             defaultValue={state.values.email}
@@ -179,6 +196,7 @@ export function AppointmentForm({
             <SelectTrigger
               id="service"
               className="w-full"
+              aria-required
               aria-invalid={Boolean(errors.service)}
               aria-describedby={describedBy("service")}
             >
@@ -227,6 +245,8 @@ export function AppointmentForm({
               {date ? format.dateTime(bookingDayInstant(date), "appointmentDay") : t("time")}
             </FieldLabel>
             <ToggleGroup
+              id="time-slots"
+              tabIndex={-1}
               aria-labelledby="time-label"
               aria-describedby={describedBy("when")}
               variant="outline"

@@ -42,6 +42,8 @@
     "services": "Services",
     "personalPage": "Personal page",
     "scheduleAppointment": "Schedule appointment",
+    "scheduleAppointmentWith": "Schedule appointment with {name}",
+    "personalPageOf": "Personal page of {name}",
     "close": "Close"
   },
   "appointment": {

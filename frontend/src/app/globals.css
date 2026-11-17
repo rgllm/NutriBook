@@ -70,3 +70,12 @@
     @apply font-sans;
   }
 }
+
+/* Components drop the outline and draw focus with a box-shadow ring, which
+   forced-colors mode removes. Unlayered, so it beats their `outline-none`. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}

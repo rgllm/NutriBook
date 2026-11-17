@@ -29,7 +29,7 @@ test("a guest requests an appointment and the nutritionist sees it", async ({ pa
   await page.clock.setFixedTime(lisbonInstant(tuesday, "12:30"))
 
   await page.goto(`/?${new URLSearchParams({ q: nutritionist.name, location: E2E_CITY })}`)
-  await page.getByRole("button", { name: "Schedule appointment" }).click()
+  await page.getByRole("button", { name: `Schedule appointment with ${nutritionist.name}` }).click()
   const dialog = page.getByRole("dialog")
   await expect(dialog).toHaveAccessibleName("Schedule an appointment")
 
@@ -38,6 +38,7 @@ test("a guest requests an appointment and the nutritionist sees it", async ({ pa
   await expect(dialog).toContainText("Enter your email.")
   await expect(dialog).toContainText("Choose a service.")
   await expect(dialog).toContainText("Pick a day and time.")
+  await expect(dialog.getByLabel("Your name")).toBeFocused()
 
   await dialog.getByLabel("Your name").fill(guest.name)
   await dialog.getByLabel("Email").fill(guest.email)

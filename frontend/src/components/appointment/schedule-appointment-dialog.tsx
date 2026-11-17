@@ -17,7 +17,10 @@ export function ScheduleAppointmentDialog({
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button variant="coral-soft" className="w-full" />}>
+      <DialogTrigger
+        render={<Button variant="coral-soft" className="w-full" />}
+        aria-label={t("scheduleAppointmentWith", { name: nutritionist.name })}
+      >
         <CalendarPlusIcon data-icon="inline-start" />
         {t("scheduleAppointment")}
       </DialogTrigger>

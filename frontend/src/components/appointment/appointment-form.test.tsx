@@ -77,6 +77,51 @@ describe("AppointmentForm", () => {
     expect(screen.getByText("Something else went wrong.")).toHaveRole("alert")
   })
 
+  it("marks the fields a request needs as required", () => {
+    renderForm({ status: "editing", errors: {}, values: { name: "", email: "" } })
+
+    expect(screen.getByLabelText("Your name")).toBeRequired()
+    expect(screen.getByLabelText("Email")).toBeRequired()
+    expect(screen.getByRole("combobox", { name: "Service" })).toBeRequired()
+    expect(screen.getByRole("checkbox", { name: "Online appointment" })).not.toBeRequired()
+  })
+
+  it("moves focus to the first field the API refused", async () => {
+    const user = userEvent.setup()
+    render(
+      <FormWithAction
+        answer={(formData) => ({
+          status: "editing",
+          errors: { email: "Enter a valid email, like name@example.com.", when: "Pick a time." },
+          values: { name: String(formData.get("name")), email: String(formData.get("email")) },
+        })}
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Request appointment" }))
+
+    await screen.findByText("Enter a valid email, like name@example.com.")
+    expect(screen.getByLabelText("Email")).toHaveFocus()
+  })
+
+  it("moves focus to the time slots when only the time was refused", async () => {
+    const user = userEvent.setup()
+    render(
+      <FormWithAction
+        answer={() => ({
+          status: "editing",
+          errors: { when: "Pick one of the available times." },
+          values: { name: "Joana Silva", email: "joana@example.com" },
+        })}
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Request appointment" }))
+
+    await screen.findByText("Pick one of the available times.")
+    expect(screen.getByRole("group", { name: "Time" })).toHaveFocus()
+  })
+
   it("clears a field's message once the guest changes that field", async () => {
     const user = userEvent.setup()
     renderForm(refused)

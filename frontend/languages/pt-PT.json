@@ -42,6 +42,8 @@
     "services": "Serviços",
     "personalPage": "Página pessoal",
     "scheduleAppointment": "Marcar consulta",
+    "scheduleAppointmentWith": "Marcar consulta com {name}",
+    "personalPageOf": "Página pessoal de {name}",
     "close": "Fechar"
   },
   "appointment": {
