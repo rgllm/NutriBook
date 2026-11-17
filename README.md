@@ -100,7 +100,9 @@ Meilisearch indexes one document per nutritionist and city, including the servic
 names offered there. Rails resolves the city first, retrieves ranked IDs, then
 loads the records from PostgreSQL. Searches without a query use SQL directly.
 If Meilisearch is unavailable, times out, or has no index, Rails falls back to
-case- and accent-insensitive SQL matching. The fallback has no typo tolerance.
+case- and accent-insensitive SQL matching. The fallback has no typo tolerance
+and orders by name, while Meilisearch ranks by relevance first, so the two can
+return different results.
 The index rebuilds at startup and after seeding because the app has no interface
 for editing nutritionists or services.
 
@@ -392,8 +394,11 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 | Seeds | `backend/test/seeds_test.rb` | Demo data and idempotence |
 | Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
 | Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |
-| API contract | Frontend `stubApi` and backend request assertions | Requests and responses checked against the same `openapi.yaml` |
+| API contract | Frontend `stubApi` and backend request assertions | Exercised requests and JSON responses checked against the same `openapi.yaml` |
 | End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, and language persistence |
+
+Contract checks cover the calls these tests make, not every possible request.
+Fixtures that are malformed on purpose opt out with `checkContract: false`.
 
 Backend search tests use a stand-in index. The end-to-end suite exercises the
 real Meilisearch service, including typo tolerance. Playwright checks Lisbon

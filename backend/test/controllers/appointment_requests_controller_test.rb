@@ -71,6 +71,23 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_equal one, many
   end
 
+  [ nil, {}, "invalid" ].each do |envelope|
+    test "rejects a request whose appointment_request is #{envelope.inspect}" do
+      pending = appointment_requests(:pending)
+
+      assert_no_difference -> { AppointmentRequest.count } do
+        assert_no_enqueued_jobs do
+          post appointment_requests_url, params: { appointment_request: envelope }, as: :json
+          assert_invalid_request
+          patch nutritionist_appointment_request_url(nutritionists(:mary_jane), pending),
+            params: { appointment_request: envelope }, as: :json
+          assert_invalid_request
+        end
+      end
+      assert pending.reload.pending?
+    end
+  end
+
   test "creates a pending request at the chosen time in Portugal" do
     service = services(:mary_first_appointment)
 
@@ -259,6 +276,12 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def assert_invalid_request
+    assert_response :bad_request
+    assert_equal({ "error" => "invalid_request", "parameter" => "appointment_request" }, response.parsed_body)
+    assert_response_schema_confirm(400)
+  end
 
   def answer(status)
     { appointment_request: { status: } }

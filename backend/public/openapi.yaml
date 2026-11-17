@@ -4,8 +4,8 @@ info:
   version: 1.0.0
   description: >
     JSON API behind the NutriBook frontend. Guests search nutritionists by
-    name, service, and location. The request tests validate every documented
-    response against this file, so it cannot drift from the code.
+    name, service, and location. Backend request tests and frontend fixtures
+    validate the requests and responses they exercise against this file.
 servers:
   - url: /
     description: This server
@@ -15,13 +15,15 @@ paths:
       operationId: searchNutritionists
       summary: Search nutritionists
       description: >
-        Matches part of a nutritionist's name or the name of one of their
-        services at the location, ignoring case and accents. A blank or unknown
-        location searches Braga, and `location.source` says which case applied.
-        Results are ordered by name, five per page. A page past the end returns
-        the last page, and a missing or invalid page returns the first. Each
-        nutritionist lists only the services offered at the searched location,
-        ordered by street address and then by name.
+        Searches nutritionist names and the names of services offered at the
+        location. A typed query uses Meilisearch, which tolerates typos and
+        ranks by relevance. Without a query, or when Meilisearch is unavailable,
+        SQL matches part of a name, ignoring case and accents, and orders by
+        name. A blank or unknown location searches Braga, and `location.source`
+        says which case applied. Results contain five nutritionists per page. A
+        page past the end returns the last page, and a missing or invalid page
+        returns the first. Each nutritionist lists only the services offered at
+        the searched location, ordered by street address and then by name.
       tags: [Nutritionists]
       parameters:
         - name: q
@@ -74,6 +76,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentRequest"
+        "400":
+          description: The appointment_request envelope is missing, empty, or not an object with permitted fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
         "422":
           description: The request was not created. Error codes are keyed by field; the client words them for the guest.
           content:
@@ -170,6 +178,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AnswerConflict"
+        "400":
+          description: The appointment_request envelope is missing, empty, or not an object with permitted fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
         "422":
           description: The status is not `accepted` or `rejected`.
           content:
@@ -551,6 +565,17 @@ components:
             name:
               type: string
               example: First appointment
+    InvalidRequest:
+      type: object
+      additionalProperties: false
+      required: [error, parameter]
+      properties:
+        error:
+          type: string
+          enum: [invalid_request]
+        parameter:
+          type: string
+          example: appointment_request
     NotFound:
       type: object
       additionalProperties: false
