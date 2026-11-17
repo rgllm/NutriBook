@@ -1,18 +1,27 @@
+import { Suspense } from "react"
+
+import { LocationSuggestions } from "@/components/search/location-suggestions"
 import { SearchForm } from "@/components/search/search-form"
-import { ApiUnavailableError } from "@/lib/api/http"
-import { fetchLocations } from "@/lib/api/locations"
 import { parseSearchParams, type SearchParams } from "@/lib/search-params"
 
+// Reading searchParams has to happen inside the page's Suspense boundary, so
+// this wrapper does it and hands the values to the plain form. Suggestions
+// load on their own, so a slow API never holds up the fields.
 export async function PrefilledSearchForm({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>
 }) {
   const { query, location } = parseSearchParams(await searchParams)
-  // The form still works without suggestions; the results explain the outage.
-  const locations = await fetchLocations().catch((error: unknown) => {
-    if (error instanceof ApiUnavailableError) return undefined
-    throw error
-  })
-  return <SearchForm query={query} location={location} locations={locations} />
+  return (
+    <SearchForm
+      query={query}
+      location={location}
+      suggestions={
+        <Suspense>
+          <LocationSuggestions />
+        </Suspense>
+      }
+    />
+  )
 }

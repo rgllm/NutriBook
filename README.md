@@ -127,11 +127,17 @@ Next.js App Router pages fetch Rails data in Server Components. The server-only
 API client in `frontend/src/lib/api/` validates responses with Zod, converts
 snake_case keys to camelCase, and parses decimal prices. Requests use
 `cache: "no-store"` and a five-second timeout, so appointment lists stay fresh.
+The city list behind the location suggestions is the one exception: it changes
+only when services are seeded, so `"use cache"` keeps it for hours (tag
+`locations`). Failed requests are not cached. After reseeding while the
+frontend runs, restart it to see new cities straight away.
 
 Search state lives in `q`, `location`, and `page` URL parameters. The search
 form submits with `next/form`, which makes results shareable and supports GET
 submission without JavaScript. Suspense boundaries stream results and request
-lists with skeletons while their data loads.
+lists with skeletons while their data loads. The search fields render from the
+URL alone; the city hint and suggestions stream in after them, so a slow or
+missing `/locations` never blocks typing.
 
 Booking and answer forms call Server Actions. Client components handle the
 dialog, calendar, pending states, field errors, and toasts. `useActionState`

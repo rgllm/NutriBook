@@ -1,27 +1,28 @@
+import type { ReactNode } from "react"
 import Form from "next/form"
 import { useTranslations } from "next-intl"
 
 import { UseMyLocationButton } from "@/components/search/use-my-location-button"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import type { Locations } from "@/lib/api/locations"
 
 const FIELD_ON_BAND = "h-12 border-transparent bg-card text-foreground"
 
 export function SearchForm({
   query = "",
   location = "",
-  locations,
+  suggestions,
   disabled = false,
 }: {
   query?: string
   location?: string
-  locations?: Locations
+  // The city hint and datalist, which stream in after the fields.
+  suggestions?: ReactNode
   disabled?: boolean
 }) {
   const t = useTranslations("search")
@@ -59,28 +60,19 @@ export function SearchForm({
           <InputGroupInput
             id="search-location"
             name="location"
-            list={locations && "known-cities"}
+            // Both ids resolve once the suggestions arrive; until then the
+            // browser ignores them.
+            list="known-cities"
             autoComplete="address-level2"
             defaultValue={location}
             placeholder={t("locationPlaceholder")}
-            aria-describedby={locations && "search-location-hint"}
+            aria-describedby="search-location-hint"
           />
           <InputGroupAddon align="inline-end">
             <UseMyLocationButton inputId="search-location" />
           </InputGroupAddon>
         </InputGroup>
-        {locations && (
-          <FieldDescription id="search-location-hint" className="px-3 text-xs text-brand-soft">
-            {t("locationHint", { city: locations.default })}
-          </FieldDescription>
-        )}
-        {locations && (
-          <datalist id="known-cities">
-            {locations.locations.map((city) => (
-              <option key={city} value={city} />
-            ))}
-          </datalist>
-        )}
+        {suggestions}
       </Field>
       <Button type="submit" variant="brand-soft" size="lg" className="sm:px-10">
         {t("submit")}

@@ -68,6 +68,8 @@ test("searches Braga when no location is given", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/ in Braga$/)
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0)
+  // The hint streams in after the fields and describes the location input.
+  await expect(locationInput(page)).toHaveAccessibleDescription("If no location is provided we default to Braga.")
 })
 
 test("falls back to Braga for an unknown location and says so", async ({ page }) => {
