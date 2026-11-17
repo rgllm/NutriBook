@@ -14,5 +14,6 @@ export async function PrefilledSearchForm({
     if (error instanceof ApiUnavailableError) return undefined
     throw error
   })
-  return <SearchForm query={query} location={location} near={near} locations={locations} />
+  // A blank location searches the default city, so the field shows it.
+  return <SearchForm query={query} location={location || locations?.default} near={near} locations={locations} />
 }

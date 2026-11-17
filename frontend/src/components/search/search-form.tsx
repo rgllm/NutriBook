@@ -1,3 +1,6 @@
+"use client"
+
+import type { FormEvent } from "react"
 import Form from "next/form"
 import { useTranslations } from "next-intl"
 
@@ -29,6 +32,13 @@ export function SearchForm({
 }) {
   const t = useTranslations("search")
 
+  // A blank location searches the default city. Naming it here keeps the field
+  // showing it, since the resulting search may not remount the form.
+  function fillDefaultLocation(event: FormEvent<HTMLFormElement>) {
+    const input = event.currentTarget.elements.namedItem("location")
+    if (locations && input instanceof HTMLInputElement && !input.value.trim()) input.value = locations.default
+  }
+
   return (
     <Form
       // The form survives client navigations, and inputs ignore a new
@@ -36,6 +46,7 @@ export function SearchForm({
       // logo, back, and "Clear search" show the URL's values.
       key={`${query}|${location}|${near?.latitude},${near?.longitude}`}
       action="/"
+      onSubmit={fillDefaultLocation}
       role="search"
       className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start"
     >

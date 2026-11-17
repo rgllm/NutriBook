@@ -74,6 +74,7 @@ test("searches Braga when no location is given", async ({ page }) => {
   await search(page, {})
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/ in Braga$/)
+  await expect(locationInput(page)).toHaveValue("Braga")
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0)
 })
 

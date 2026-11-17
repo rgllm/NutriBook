@@ -49,6 +49,18 @@ describe("SearchForm", () => {
     for (const control of controls()) expect(control).toBeDisabled()
   })
 
+  it("searches the default city when the location is left blank, and shows it", async () => {
+    render(<SearchForm locations={{ locations: ["Braga", "Porto"], default: "Braga" }} />)
+    const form = screen.getByRole("search") as HTMLFormElement
+    const submitted = vi.fn((event: SubmitEvent) => event.preventDefault())
+    form.addEventListener("submit", submitted)
+
+    await userEvent.click(screen.getByRole("button", { name: "Search" }))
+
+    expect(submitted).toHaveBeenCalledOnce()
+    expect(screen.getByLabelText("Location")).toHaveValue("Braga")
+  })
+
   it("searches the nearest city from the guest's rounded position", async () => {
     vi.mocked(findNearestCity).mockResolvedValue({ status: "found", city: "Braga" })
     render(<SearchForm query="diabetes" location="Porto" />)
