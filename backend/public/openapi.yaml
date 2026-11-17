@@ -4,8 +4,10 @@ info:
   version: 1.0.0
   description: >
     JSON API behind the NutriBook frontend. Guests search nutritionists by
-    name, service, and location. The request tests validate every documented
-    response against this file, so it cannot drift from the code.
+    name, service, and location. Backend request assertions and frontend
+    contract-checked fixtures validate the exercised requests and JSON responses
+    against this file. Untested behavior and fixtures that explicitly opt out
+    are not covered.
 servers:
   - url: /
     description: This server
@@ -15,18 +17,25 @@ paths:
       operationId: searchNutritionists
       summary: Search nutritionists
       description: >
-        Matches part of a nutritionist's name or the name of one of their
-        services at the location, ignoring case and accents. A blank or unknown
-        location searches Braga, and `location.source` says which case applied.
-        Results are ordered by name, five per page. A page past the end returns
-        the last page, and a missing or invalid page returns the first. Each
-        nutritionist lists only the services offered at the searched location,
+        Searches nutritionist names and the names of services offered at the
+        location. Typed queries use Meilisearch with typo tolerance, token matching,
+        prefix matching on the last word, and relevance ranking. The requested name sort
+        applies at Meilisearch's sort ranking rule, after earlier relevance
+        rules; it does not guarantee globally alphabetical results.
+        Without a query, or if Meilisearch is unavailable, SQL uses case- and
+        accent-insensitive substring matching and orders by name then id.
+        SQL has no typo tolerance, so fallback results can differ.
+        A blank or unknown location searches Braga, and `location.source` says
+        which case applied. Results contain five nutritionists per page.
+        A page past the end returns the last page, and a missing or invalid
+        page returns the first. Each nutritionist lists only the services offered
+        at the searched location,
         ordered by street address and then by name.
       tags: [Nutritionists]
       parameters:
         - name: q
           in: query
-          description: Part of a nutritionist's name or of a service name.
+          description: Nutritionist or service search text. Matching depends on the search engine described above.
           schema:
             type: string
           example: follow
@@ -74,6 +83,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentRequest"
+        "400":
+          description: The appointment_request envelope is missing, empty, or not an object with permitted fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
         "422":
           description: The request was not created. Error codes are keyed by field; the client words them for the guest.
           content:
@@ -170,6 +185,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AnswerConflict"
+        "400":
+          description: The appointment_request envelope is missing, empty, or not an object with permitted fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
         "422":
           description: The status is not `accepted` or `rejected`.
           content:
@@ -551,6 +572,17 @@ components:
             name:
               type: string
               example: First appointment
+    InvalidRequest:
+      type: object
+      additionalProperties: false
+      required: [error, parameter]
+      properties:
+        error:
+          type: string
+          enum: [invalid_request]
+        parameter:
+          type: string
+          example: appointment_request
     NotFound:
       type: object
       additionalProperties: false

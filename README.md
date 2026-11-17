@@ -100,7 +100,9 @@ Meilisearch indexes one document per nutritionist and city, including the servic
 names offered there. Rails resolves the city first, retrieves ranked IDs, then
 loads the records from PostgreSQL. Searches without a query use SQL directly.
 If Meilisearch is unavailable, times out, or has no index, Rails falls back to
-case- and accent-insensitive SQL matching. The fallback has no typo tolerance.
+case- and accent-insensitive SQL matching. The fallback has no typo tolerance
+and orders by name then id. Meilisearch uses its relevance ranking before the requested name sort, so typed results need not
+be globally alphabetical and can differ from SQL results.
 The index rebuilds at startup and after seeding because the app has no interface
 for editing nutritionists or services.
 
@@ -376,8 +378,21 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 | Seeds | `backend/test/seeds_test.rb` | Demo data and idempotence |
 | Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
 | Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |
-| API contract | Frontend `stubApi` and backend request assertions | Requests and responses checked against the same `openapi.yaml` |
+| API contract | Frontend `stubApi` and backend request assertions | Exercised requests and JSON responses checked against the same `openapi.yaml` |
 | End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, and language persistence |
+
+Contract checks cover the calls exercised by these tests, not every possible
+request or response. Frontend checks validate path and query parameters, request
+bodies, and JSON replies. All currently documented URL parameters are strings,
+including page numbers and coordinates; decoded URL values stay strings, empty
+values stay empty, and repeated scalar query parameters use the last value as
+Rails does. Required query parameters must be present. Unknown query parameters
+are ignored, as they are by Rails. Intentionally malformed response fixtures
+explicitly opt out through `checkContract: false`. Backend malformed-envelope
+tests validate only the response because their requests deliberately violate
+the input schema. Missing, empty, or non-object appointment request envelopes
+return JSON `400` with `error: "invalid_request"` and `parameter: "appointment_request"`.
+Field validation within a nonempty envelope continues to return `422`.
 
 Backend search tests use a stand-in index. The end-to-end suite exercises the
 real Meilisearch service, including typo tolerance. Playwright checks Lisbon

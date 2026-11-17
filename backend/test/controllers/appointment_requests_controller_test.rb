@@ -71,6 +71,49 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_equal one, many
   end
 
+  [ nil, {}, "invalid", [], [ { status: "accepted" } ], false, 42 ].each do |envelope|
+    test "rejects a malformed create envelope #{envelope.inspect}" do
+      assert_no_difference -> { AppointmentRequest.count } do
+        assert_no_enqueued_jobs do
+          post appointment_requests_url, params: { appointment_request: envelope }, as: :json
+        end
+      end
+
+      assert_response :bad_request
+      assert_equal "application/json", response.media_type
+      assert_equal({ "error" => "invalid_request", "parameter" => "appointment_request" }, response.parsed_body)
+      assert_response_schema_confirm(400)
+    end
+
+    test "rejects a malformed answer envelope #{envelope.inspect}" do
+      request = appointment_requests(:pending)
+      assert_no_enqueued_jobs do
+        patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request),
+          params: { appointment_request: envelope }, as: :json
+      end
+
+      assert_response :bad_request
+      assert_equal "application/json", response.media_type
+      assert_equal({ "error" => "invalid_request", "parameter" => "appointment_request" }, response.parsed_body)
+      assert_response_schema_confirm(400)
+      assert request.reload.pending?
+      assert_nil request.answered_at
+    end
+  end
+
+  test "rejects missing create and answer envelopes" do
+    post appointment_requests_url, params: {}, as: :json
+    assert_response :bad_request
+    assert_equal({ "error" => "invalid_request", "parameter" => "appointment_request" }, response.parsed_body)
+    assert_response_schema_confirm(400)
+
+    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), appointment_requests(:pending)),
+      params: {}, as: :json
+    assert_response :bad_request
+    assert_equal({ "error" => "invalid_request", "parameter" => "appointment_request" }, response.parsed_body)
+    assert_response_schema_confirm(400)
+  end
+
   test "creates a pending request at the chosen time in Portugal" do
     service = services(:mary_first_appointment)
 

@@ -92,7 +92,7 @@ describe("createAppointmentRequest", () => {
   })
 
   it("treats any other client error as a bug, not an outage", async () => {
-    stubApi(new Response(null, { status: 400 }))
+    stubApi(Response.json({ error: "invalid_request", parameter: "appointment_request" }, { status: 400 }))
 
     const error = await createAppointmentRequest(input).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)
