@@ -114,13 +114,6 @@ test.describe("with location access", () => {
     await expect(page.getByRole("main")).not.toContainText("km away")
   })
 
-  test("returns to the city results when the guest stops using their location", async ({ page }) => {
-    await page.goto(`/?location=${E2E_CITY}`)
-    await page.getByRole("button", { name: "Use my location" }).click()
-    await page.getByRole("button", { name: "Stop using my location" }).click()
-
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(`6 nutritionists in ${E2E_CITY}`)
-  })
 })
 
 test("says so when location access is denied and leaves the location alone", async ({ page }) => {

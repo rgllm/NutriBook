@@ -100,7 +100,7 @@ class NutritionistSearch
   # The services a query matches: by the index's ids, or by part of the
   # nutritionist's or the service's name. A name match counts every service.
   def matching_services
-    services = location ? Service.where(city: location) : Service.all
+    services = services_in_location
     return services if @query.empty?
     return services.where(id: indexed_ids) if indexed_ids
 
@@ -123,10 +123,14 @@ class NutritionistSearch
   # Each card lists the nutritionist's services at the location, or everywhere
   # when nearby, nearest first when there is an origin.
   def listed_services
-    services = location ? Service.where(city: location) : Service.all
     distance = @origin ? @origin.distance_km_sql("services") : "NULL::float"
-    services.select("services.*", "#{distance} AS distance_km")
+    services_in_location.select("services.*", "#{distance} AS distance_km")
       .order(Arel.sql("distance_km NULLS LAST"), :street_address, :name, :id)
+  end
+
+  # A nearby search without a location covers every city.
+  def services_in_location
+    location ? Service.where(city: location) : Service.all
   end
 
   def page_count(total)

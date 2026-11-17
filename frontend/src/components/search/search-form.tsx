@@ -29,18 +29,17 @@ export function SearchForm({
   disabled?: boolean
 }) {
   const t = useTranslations("search")
-  const nearbySearch = useNearbySearch()
+  const { nearby, searchNear } = useNearbySearch()
 
   // While searching from the guest's position, a new query or a typed city
   // searches from there too, without putting the position in the URL.
   function searchNearby(event: FormEvent<HTMLFormElement>) {
-    const nearby = nearbySearch?.nearby
     if (!nearby) return
 
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const text = (key: string) => String(data.get(key) ?? "").trim()
-    nearbySearch.searchNear(nearby.position, { query: text("q"), location: text("location"), page: 1 })
+    searchNear(nearby.position, { query: text("q"), location: text("location"), page: 1 })
   }
 
   return (

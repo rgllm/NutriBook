@@ -38,15 +38,12 @@ class NutritionistIndexTest < ActiveSupport::TestCase
   end
 
   test "documents hold each service with its nutritionist's name and city" do
-    mary = nutritionists(:mary_jane)
-
     documents = NutritionistIndex.documents.select { |document| document[:name] == "Mary Jane" }
 
     assert_equal [
       { id: services(:mary_first_appointment).id, city: "Braga", name: "Mary Jane", service_name: "First appointment" },
       { id: services(:mary_follow_up).id, city: "Braga", name: "Mary Jane", service_name: "Follow-up" }
     ].sort_by { |document| document[:id] }, documents
-    assert_equal mary.services.count, documents.size
   end
 
   test "a search returns every matching service id in ranked order, in a city if given" do

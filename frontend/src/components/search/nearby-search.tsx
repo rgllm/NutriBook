@@ -18,7 +18,13 @@ type NearbySearch = {
   stop: () => void
 }
 
-const NearbySearchContext = createContext<NearbySearch | null>(null)
+// Outside the provider, the search form works as a plain city search.
+const NearbySearchContext = createContext<NearbySearch>({
+  nearby: null,
+  pending: false,
+  searchNear: () => {},
+  stop: () => {},
+})
 
 export const useNearbySearch = () => use(NearbySearchContext)
 

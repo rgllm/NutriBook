@@ -14,10 +14,7 @@ import { searchHref } from "@/lib/search-params"
 // server-rendered city results passed as children.
 export function NearbyResults({ children }: { children: ReactNode }) {
   const t = useTranslations("search")
-  const nearbySearch = useNearbySearch()
-  if (!nearbySearch) return children
-
-  const { nearby, pending, searchNear, stop } = nearbySearch
+  const { nearby, pending, searchNear, stop } = useNearbySearch()
   if (!nearby) return pending ? <ResultsSkeleton /> : children
   if (nearby.result.status === "unavailable") return <SearchUnavailable retryHref={searchHref(nearby.search)} />
 

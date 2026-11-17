@@ -30,7 +30,7 @@ const coarse = (degrees: number) => Math.round(degrees * 1000) / 1000
 
 export function UseMyLocationButton() {
   const t = useTranslations("search")
-  const nearbySearch = useNearbySearch()
+  const { searchNear } = useNearbySearch()
   const canLocate = useSyncExternalStore(subscribe, supportsGeolocation, beforeHydration)
   const [locating, startLocating] = useTransition()
 
@@ -51,7 +51,7 @@ export function UseMyLocationButton() {
       const location = form?.elements.namedItem("location")
       if (location instanceof HTMLInputElement) location.value = ""
       const query = String((form && new FormData(form).get("q")) ?? "").trim()
-      nearbySearch?.searchNear(
+      searchNear(
         { latitude: coarse(position.coords.latitude), longitude: coarse(position.coords.longitude) },
         { query, location: "", page: 1 },
       )
