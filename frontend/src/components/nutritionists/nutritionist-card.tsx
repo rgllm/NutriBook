@@ -52,7 +52,11 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
 
         <div className="flex flex-col gap-2 sm:w-52 sm:self-center">
           <ScheduleAppointmentDialog nutritionist={nutritionist} />
-          <Button variant="brand-soft" className="w-full">
+          <Button
+            variant="brand-soft"
+            className="w-full"
+            aria-label={t("personalPageOf", { name: nutritionist.name })}
+          >
             <UserRoundIcon data-icon="inline-start" />
             {t("personalPage")}
           </Button>

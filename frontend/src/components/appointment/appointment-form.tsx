@@ -147,12 +147,11 @@ export function AppointmentForm({
             city: nutritionist.city,
           })}
         </DialogDescription>
-        <p className="text-sm text-muted-foreground">{t("requiredHint")}</p>
       </DialogHeader>
 
       <FieldGroup className="sm:flex-row">
         <Field data-invalid={Boolean(errors.name)}>
-          <FieldLabel htmlFor="guest-name" required>{t("name")}</FieldLabel>
+          <FieldLabel htmlFor="guest-name">{t("name")}</FieldLabel>
           <Input
             id="guest-name"
             name="name"
@@ -166,7 +165,7 @@ export function AppointmentForm({
           <FieldError id={errorId("name")}>{errors.name}</FieldError>
         </Field>
         <Field data-invalid={Boolean(errors.email)}>
-          <FieldLabel htmlFor="guest-email" required>{t("email")}</FieldLabel>
+          <FieldLabel htmlFor="guest-email">{t("email")}</FieldLabel>
           <Input
             id="guest-email"
             name="email"
@@ -185,7 +184,7 @@ export function AppointmentForm({
 
       <FieldGroup>
         <Field data-invalid={Boolean(errors.service)}>
-          <FieldLabel htmlFor="service" required>{t("service")}</FieldLabel>
+          <FieldLabel htmlFor="service">{t("service")}</FieldLabel>
           <Select
             items={serviceItems}
             value={serviceId ?? null}
@@ -226,7 +225,7 @@ export function AppointmentForm({
       </FieldGroup>
 
       <FieldSet>
-        <FieldLegend required>{t("dateAndTime")}</FieldLegend>
+        <FieldLegend>{t("dateAndTime")}</FieldLegend>
         <div className="flex flex-col gap-6 sm:flex-row">
           <Field className="sm:w-auto">
             <Calendar

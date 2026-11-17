@@ -62,8 +62,8 @@ describe("AppointmentForm", () => {
   it("shows each of the API's messages on its field", () => {
     renderForm(refused)
 
-    expect(screen.getByRole("textbox", { name: "Your name" })).toHaveAccessibleDescription("Enter your name.")
-    expect(screen.getByRole("textbox", { name: "Email" })).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
+    expect(screen.getByLabelText("Your name")).toHaveAccessibleDescription("Enter your name.")
+    expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
     expect(screen.getByRole("combobox", { name: "Service" })).toHaveAccessibleDescription("Choose a service.")
     expect(screen.getByRole("checkbox", { name: "Online appointment" })).toHaveAccessibleDescription(
       "Mary Jane does not offer online appointments.",
@@ -77,8 +77,8 @@ describe("AppointmentForm", () => {
   it("marks the fields a request needs as required", () => {
     renderForm({ status: "editing", errors: {}, values: { name: "", email: "" } })
 
-    expect(screen.getByRole("textbox", { name: "Your name" })).toBeRequired()
-    expect(screen.getByRole("textbox", { name: "Email" })).toBeRequired()
+    expect(screen.getByLabelText("Your name")).toBeRequired()
+    expect(screen.getByLabelText("Email")).toBeRequired()
     expect(screen.getByRole("combobox", { name: "Service" })).toBeRequired()
     expect(screen.getByRole("checkbox", { name: "Online appointment" })).not.toBeRequired()
   })
@@ -98,7 +98,7 @@ describe("AppointmentForm", () => {
     await user.click(screen.getByRole("button", { name: "Request appointment" }))
 
     await screen.findByText("Enter a valid email, like name@example.com.")
-    expect(screen.getByRole("textbox", { name: "Email" })).toHaveFocus()
+    expect(screen.getByLabelText("Email")).toHaveFocus()
   })
 
   it("moves focus to the time slots when only the time was refused", async () => {
@@ -123,14 +123,14 @@ describe("AppointmentForm", () => {
     const user = userEvent.setup()
     renderForm(refused)
 
-    await user.type(screen.getByRole("textbox", { name: "Your name" }), "Joana Silva")
+    await user.type(screen.getByLabelText("Your name"), "Joana Silva")
     await user.click(screen.getByRole("checkbox", { name: "Online appointment" }))
     await user.click(screen.getByRole("button", { name: /Monday, 23 November 2026/ }))
 
-    expect(screen.getByRole("textbox", { name: "Your name" })).not.toHaveAccessibleDescription()
+    expect(screen.getByLabelText("Your name")).not.toHaveAccessibleDescription()
     expect(screen.getByRole("checkbox", { name: "Online appointment" })).not.toHaveAccessibleDescription()
     expect(screen.getByRole("group", { name: "Monday 23 November" })).not.toHaveAccessibleDescription()
-    expect(screen.getByRole("textbox", { name: "Email" })).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
+    expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
     expect(screen.queryByText("Enter your name.")).not.toBeInTheDocument()
   })
 
@@ -146,13 +146,13 @@ describe("AppointmentForm", () => {
       />,
     )
 
-    await user.type(screen.getByRole("textbox", { name: "Your name" }), "Joana Silva")
-    await user.type(screen.getByRole("textbox", { name: "Email" }), "joana@example")
+    await user.type(screen.getByLabelText("Your name"), "Joana Silva")
+    await user.type(screen.getByLabelText("Email"), "joana@example")
     await user.click(screen.getByRole("button", { name: "Request appointment" }))
 
     await screen.findByText("Enter a valid email, like name@example.com.")
-    expect(screen.getByRole("textbox", { name: "Email" })).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
-    expect(screen.getByRole("textbox", { name: "Your name" })).toHaveValue("Joana Silva")
-    expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("joana@example")
+    expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
+    expect(screen.getByLabelText("Your name")).toHaveValue("Joana Silva")
+    expect(screen.getByLabelText("Email")).toHaveValue("joana@example")
   })
 })

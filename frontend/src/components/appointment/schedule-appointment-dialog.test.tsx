@@ -36,8 +36,8 @@ describe("ScheduleAppointmentDialog", () => {
     render(<ScheduleAppointmentDialog nutritionist={nutritionist} />)
 
     await user.click(screen.getByRole("button", { name: "Schedule appointment with Mary Jane" }))
-    await user.type(screen.getByRole("textbox", { name: "Your name" }), "Joana Silva")
-    await user.type(screen.getByRole("textbox", { name: "Email" }), "Joana.Silva@example.com")
+    await user.type(screen.getByLabelText("Your name"), "Joana Silva")
+    await user.type(screen.getByLabelText("Email"), "Joana.Silva@example.com")
     await user.click(screen.getByRole("button", { name: /Monday, 23 November 2026/ }))
     await user.click(screen.getByRole("button", { name: "10:00" }))
     await user.click(screen.getByRole("button", { name: "Request appointment" }))
