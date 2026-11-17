@@ -12,9 +12,11 @@ import type { PendingRequest } from "@/lib/api/appointment-requests"
 export function RequestCard({
   nutritionistId,
   request,
+  overlaps,
 }: {
   nutritionistId: string
   request: PendingRequest
+  overlaps: PendingRequest[]
 }) {
   const t = useTranslations("requests")
   const format = useFormatter()
@@ -38,6 +40,12 @@ export function RequestCard({
           <Badge variant="brand">{request.online ? t("online") : t("inPerson")}</Badge>
           {request.overdue && <Badge variant="destructive">{t("overdue")}</Badge>}
         </div>
+
+        {overlaps.length > 0 && (
+          <p className="rounded-lg bg-coral-soft p-3 text-sm text-coral-ink">
+            {t("overlapWarning", { guests: format.list(overlaps.map((other) => other.guestName)) })}
+          </p>
+        )}
 
         <dl className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -81,6 +89,7 @@ export function RequestCard({
         <AnswerRequestForm
           action={answerRequest.bind(null, nutritionistId, request.id)}
           guestName={request.guestName}
+          overlappingGuests={overlaps.map((other) => other.guestName)}
         />
       </CardFooter>
     </Card>

@@ -326,7 +326,7 @@ Try these flows after a fresh setup:
 | Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
 | Replace a request | Book again with the same email, including with another nutritionist | Previous pending request disappears from its list |
 | Answer requests | The links `pnpm db:seed` prints | Pending cards with Accept and Reject actions |
-| Automatic rejection | Accept one of the seeded 10:00 requests | Both overlapping cards leave the list, and each guest gets an email |
+| Automatic rejection | Accept one of the seeded 10:00 requests, review the overlapping guest names, and confirm | Overlapping cards are marked before acceptance. Both cards leave the list, and each guest gets an email. The preview reflects the loaded list; the toast reports the API result |
 | Read answer emails | <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
 | Change language | Use the language selector above the header | Translated UI that persists across visits |
 

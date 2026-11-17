@@ -15,9 +15,11 @@ const ANSWERS = {
 export function AnswerRequestButton({
   answer,
   guestName,
+  className = "w-full",
 }: {
   answer: RequestAnswer
   guestName: string
+  className?: string
 }) {
   const { pending, data } = useFormStatus()
   const t = useTranslations("requests")
@@ -32,7 +34,7 @@ export function AnswerRequestButton({
       variant={variant}
       disabled={pending}
       aria-label={t(ariaLabel, { guest: guestName })}
-      className="w-full"
+      className={className}
     >
       {isRunning ? (
         <LoaderCircleIcon data-icon="inline-start" className="animate-spin" />

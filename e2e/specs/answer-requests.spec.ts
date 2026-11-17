@@ -20,7 +20,25 @@ test("accepting a request rejects the requests it overlaps and emails every gues
   await api.requestAppointment(nutritionist, { service: "Follow-up", guest: adjacent, day, time: "11:00" })
 
   await page.goto(`/nutritionists/${nutritionist.id}/requests`)
-  await page.getByRole("button", { name: `Accept the request from ${accepted.name}` }).click()
+  for (const guest of [accepted, sameStart, longerEarlier]) {
+    await expect(pendingRequest(page, guest).getByText(/Overlaps requests from/)).toBeVisible()
+  }
+  await expect(pendingRequest(page, adjacent).getByText(/Overlaps requests from/)).toHaveCount(0)
+  await pendingRequest(page, accepted).getByRole("button", { name: `Accept the request from ${accepted.name}` }).click()
+
+  const dialog = page.getByRole("dialog")
+  await expect(dialog).toContainText(sameStart.name)
+  await expect(dialog).toContainText(longerEarlier.name)
+  await expect(dialog).not.toContainText(adjacent.name)
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused()
+  await dialog.getByRole("button", { name: "Cancel" }).click()
+  await expect(dialog).toBeHidden()
+  for (const guest of [accepted, sameStart, longerEarlier, adjacent]) {
+    await expect(pendingRequest(page, guest)).toBeVisible()
+    await mailbox.emailsTo(guest, 0)
+  }
+  await pendingRequest(page, accepted).getByRole("button", { name: `Accept the request from ${accepted.name}` }).click()
+  await dialog.getByRole("button", { name: `Accept the request from ${accepted.name}` }).click()
 
   await expect(page.getByText(`Accepted ${accepted.name}'s request. 2 overlapping requests were rejected.`)).toBeVisible()
   for (const answered of [accepted, sameStart, longerEarlier]) {
@@ -36,6 +54,10 @@ test("accepting a request rejects the requests it overlaps and emails every gues
     expect(rejection.text).toContain("accepted another appointment at the same time")
   }
   await mailbox.emailsTo(adjacent, 0)
+  await expect(pendingRequest(page, adjacent).getByText(/Overlaps requests from/)).toHaveCount(0)
+  await page.getByRole("button", { name: `Accept the request from ${adjacent.name}` }).click()
+  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(page.getByText(`Accepted ${adjacent.name}'s request.`, { exact: true })).toBeVisible()
 })
 
 test("rejecting a request emails the guest that it was declined", async ({ page, api, mailbox }) => {
