@@ -1,4 +1,3 @@
-import { cacheLife } from "next/cache"
 import { z } from "zod"
 
 import { apiGet } from "@/lib/api/http"
@@ -14,12 +13,6 @@ export type Locations = z.infer<typeof locationsSchema>
 
 export function fetchLocations() {
   return apiGet("/locations", locationsSchema)
-}
-
-export async function cachedLocations() {
-  "use cache"
-  cacheLife("hours")
-  return fetchLocations()
 }
 
 export async function fetchNearestCity(latitude: number, longitude: number) {

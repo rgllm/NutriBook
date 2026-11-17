@@ -165,8 +165,6 @@ pnpm e2e:typecheck
   - Stream with `<Suspense>` and `loading.tsx`; handle failures with `error.tsx`
     and `not-found.tsx`.
   - `params` and `searchParams` are async; await them.
-  - Use Next.js caching (`"use cache"` and cache tags) deliberately. Appointment
-    request lists must always be fresh.
 - This project runs Next.js 16 and React 19, which are newer than most examples
   online. Check the documentation for the installed versions before using an
   API, and do not use deprecated ones (Pages Router patterns,

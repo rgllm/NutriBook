@@ -9,11 +9,6 @@ import { Toaster } from "@/components/ui/sonner"
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
 
-// <html lang> needs the locale cookie before any shell can render. Allow this
-// blocking layout by disabling instant-navigation and static-shell validation.
-// The cookie read makes it dynamic; this export only configures validation.
-export const instant = false
-
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata")
   return { title: t("title"), description: t("description") }

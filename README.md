@@ -127,10 +127,6 @@ Next.js App Router pages fetch Rails data in Server Components. The server-only
 API client in `frontend/src/lib/api/` validates responses with Zod, converts
 snake_case keys to camelCase, and parses decimal prices. Requests use
 `cache: "no-store"` and a five-second timeout, so appointment lists stay fresh.
-The location directory is the exception. `cachedLocations()` caches its parsed
-result with `"use cache"` and `cacheLife("hours")`, which starts a background
-refresh on the first request after an hour. The cache lives in each server
-process. Restart the frontend after reseeding to see new cities immediately.
 
 Search state lives in `q`, `location`, and `page` URL parameters. The search
 form submits with `next/form`, which makes results shareable and supports GET
@@ -227,17 +223,14 @@ and pending lists. Solid Queue uses additional tables in the same database.
 
 ## Main decisions
 
-- **Use Cache Components for the location directory.** The city list changes
-  only when services change; searches and pending lists still fetch fresh data.
-  `partialPrefetching: true` enables the matching navigation behavior. Leaving
-  it unset with Cache Components enabled produces a Next.js warning.
-  The locale cookie determines `<html lang>` before a shell can render, so the
-  root layout exports `instant = false` to disable instant-navigation and
-  static-shell validation. This export does not force dynamic rendering.
-  The cookie read does. Suspense still streams page data.
+- **Render every page per request, without Cache Components.** The locale
+  cookie sets `<html lang>`, so no page can be prerendered in a single
+  language, and appointment lists must always be fresh. The Rails API answers
+  locally in milliseconds, so no data was worth caching. Suspense still
+  streams page data.
 - **Let request pages handle missing nutritionists.** Malformed and unknown IDs
-  show the not-found page with `noindex`. Because the page shell streams before
-  the missing ID is resolved, the HTTP status remains 200, a soft 404. There is
+  show the not-found page with `noindex`. The page shell streams before the
+  missing ID is resolved, so the HTTP status remains 200, a soft 404. There is
   no proxy that duplicates backend ID validation to change the status code.
 - **Keep business rules in Rails.** The UI renders API results and translates
   field error codes. Backend validation protects every caller, including
