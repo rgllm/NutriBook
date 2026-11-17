@@ -33,6 +33,7 @@ export async function requestAppointment(
       date: text(formData, "date"),
       time: text(formData, "time"),
       online: formData.get("online") === "true",
+      language: text(formData, "language"),
     })
     return result.ok
       ? { status: "sent", request: result.data }

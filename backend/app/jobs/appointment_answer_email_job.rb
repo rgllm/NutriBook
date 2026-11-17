@@ -3,12 +3,13 @@ require "net/smtp"
 # Emails the guest how their request was answered. AppointmentRequest#answer!
 # enqueues it in the transaction that answers the request.
 #
-# Solid Queue runs a job at least once, so a retry can follow a send that
-# succeeded. answer_notified_at, set under the row lock, turns that retry into a
-# no-op. The one gap left is a crash between the SMTP server accepting the
-# email and that column being written.
+# A job can run again after a successful send. answer_notified_at, set under
+# the row lock, turns that retry into a no-op. A crash or connection loss after
+# SMTP acceptance but before the marker commits can still duplicate delivery.
 class AppointmentAnswerEmailJob < ApplicationJob
-  retry_on Net::OpenTimeout, Net::ReadTimeout, Net::SMTPServerBusy, Errno::ECONNREFUSED, Errno::ECONNRESET,
+  retry_on SocketError, Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, Net::SMTPServerBusy,
+    Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ETIMEDOUT, Errno::EHOSTUNREACH, Errno::ENETUNREACH,
+    Errno::EPIPE, EOFError,
     wait: :polynomially_longer, attempts: 10
 
   def perform(appointment_request_id)

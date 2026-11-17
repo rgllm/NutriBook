@@ -1,6 +1,9 @@
-# Tells a guest how a nutritionist answered their appointment request.
+# Tells a guest how a nutritionist answered their appointment request, in the
+# language they booked in.
 class AppointmentRequestMailer < ApplicationMailer
   helper_method :appointment_request, :nutritionist_name, :appointment_time, :appointment_place
+
+  around_action :use_booking_language
 
   # The email for the answer the request holds: accepted or rejected.
   def self.answer(appointment_request)
@@ -12,11 +15,11 @@ class AppointmentRequestMailer < ApplicationMailer
   end
 
   def accepted
-    mail to: recipient, subject: "Your appointment with #{nutritionist_name} is confirmed"
+    mail to: recipient, subject: default_i18n_subject(nutritionist: nutritionist_name)
   end
 
   def rejected
-    mail to: recipient, subject: "Your appointment request with #{nutritionist_name} was not accepted"
+    mail to: recipient, subject: default_i18n_subject(nutritionist: nutritionist_name)
   end
 
   private
@@ -25,6 +28,10 @@ class AppointmentRequestMailer < ApplicationMailer
 
   def nutritionist_name = appointment_request.nutritionist.name
 
+  def use_booking_language(&)
+    I18n.with_locale(appointment_request.language, &)
+  end
+
   def recipient
     email_address_with_name(appointment_request.guest_email, appointment_request.guest_name)
   end
@@ -32,11 +39,12 @@ class AppointmentRequestMailer < ApplicationMailer
   # Guests book in Portuguese wall-clock time, so the email uses it too.
   def appointment_time
     starts_at, ends_at = appointment_request.values_at(:starts_at, :ends_at).map { |time| time.in_time_zone(BookingSchedule::TIME_ZONE) }
-    "#{starts_at.strftime("%A, %-d %B %Y, %H:%M")} to #{ends_at.strftime("%H:%M")} (Lisbon time)"
+    t("appointment_request_mailer.appointment_time",
+      day: I18n.l(starts_at, format: :appointment_day), starts: starts_at.strftime("%H:%M"), ends: ends_at.strftime("%H:%M"))
   end
 
   def appointment_place
-    return "Online" if appointment_request.online?
+    return t("appointment_request_mailer.online") if appointment_request.online?
 
     service = appointment_request.service
     "#{service.street_address}, #{service.city}"

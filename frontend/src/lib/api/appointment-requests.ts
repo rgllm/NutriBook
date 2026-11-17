@@ -24,7 +24,9 @@ const appointmentRequestSchema = z
 export type CreatedAppointmentRequest = z.infer<typeof appointmentRequestSchema>
 
 // The day and time are the guest's picks in Portuguese time, as typed; the API
-// turns them into a UTC timestamp. With no service, the API asks for one.
+// turns them into a UTC timestamp. With no service, the API asks for one. The
+// language is the one the guest booked in; the API writes the answer email in
+// it, or in English when it does not write that language.
 export type AppointmentRequestInput = {
   serviceId?: number
   guestName: string
@@ -32,6 +34,7 @@ export type AppointmentRequestInput = {
   date: string
   time: string
   online: boolean
+  language: string
 }
 
 export function createAppointmentRequest(input: AppointmentRequestInput) {
@@ -46,6 +49,7 @@ export function createAppointmentRequest(input: AppointmentRequestInput) {
         date: input.date,
         time: input.time,
         online: input.online,
+        language: input.language,
       },
     },
     appointmentRequestSchema,

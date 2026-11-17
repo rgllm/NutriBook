@@ -1,10 +1,13 @@
 import { useActionState } from "react"
-import { screen } from "@testing-library/react"
+import { render as renderComponent, screen } from "@testing-library/react"
+import { NextIntlClientProvider } from "next-intl"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { AppointmentForm } from "@/components/appointment/appointment-form"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { formats, PRACTICE_TIME_ZONE } from "@/i18n/formats"
+import { MESSAGES } from "@/i18n/messages"
 import type { RequestAppointmentState } from "@/lib/appointment-request"
 import { nutritionist } from "@/test/nutritionist"
 import { render } from "@/test/render"
@@ -154,5 +157,26 @@ describe("AppointmentForm", () => {
     expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Enter a valid email, like name@example.com.")
     expect(screen.getByLabelText("Your name")).toHaveValue("Joana Silva")
     expect(screen.getByLabelText("Email")).toHaveValue("joana@example")
+  })
+
+  it("sends the language the form is shown in, for the answer email", async () => {
+    const user = userEvent.setup()
+    const answer = vi.fn<(formData: FormData) => EditingState>(() => ({
+      status: "editing",
+      errors: {},
+      values: { name: "", email: "" },
+    }))
+    renderComponent(<FormWithAction answer={answer} />, {
+      wrapper: ({ children }) => (
+        <NextIntlClientProvider locale="pt-PT" messages={MESSAGES["pt-PT"]} formats={formats} timeZone={PRACTICE_TIME_ZONE}>
+          {children}
+        </NextIntlClientProvider>
+      ),
+    })
+
+    await user.click(screen.getByRole("button", { name: "Pedir consulta" }))
+
+    await vi.waitFor(() => expect(answer).toHaveBeenCalled())
+    expect(answer.mock.calls[0][0].get("language")).toBe("pt-PT")
   })
 })

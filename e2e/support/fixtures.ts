@@ -16,7 +16,8 @@ export function newGuest(firstName: string): Guest {
 
 export type Nutritionist = { id: number; name: string; serviceIds: Map<string, number> }
 
-export type Booking = { service: string; guest: Guest; day: IsoDay; time: Slot }
+// Without a language the API answers in English, as for any client that sends none.
+export type Booking = { service: string; guest: Guest; day: IsoDay; time: Slot; language?: "en-GB" | "pt-PT" }
 
 export class NutriBookApi {
   constructor(private readonly request: APIRequestContext) {}
@@ -52,6 +53,7 @@ export class NutriBookApi {
           date: booking.day,
           time: booking.time,
           online: false,
+          language: booking.language,
         },
       },
     })

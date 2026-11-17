@@ -9,7 +9,7 @@ type JsonContent = { content?: { "application/json"?: { schema: unknown } } }
 
 type Operation = {
   operationId: string
-  parameters?: { name: string; in: string }[]
+  parameters?: { name: string; in: "path" | "query"; required?: boolean }[]
   requestBody?: JsonContent
   responses: Record<string, JsonContent>
 }
@@ -55,15 +55,20 @@ export function contractViolations(call: ApiCall, reply?: { status: number; body
   const { path, method, operation, params } = found
   const label = operation.operationId
 
-  const problems = (operation.parameters ?? []).flatMap((parameter, index) =>
-    parameter.in === "path"
-      ? violations(
-          pointer("paths", path, method, "parameters", String(index), "schema"),
-          params[parameter.name],
-          `${label} path ${parameter.name}`,
-        )
-      : [],
-  )
+  const problems = (operation.parameters ?? []).flatMap((parameter, index) => {
+    const value = parameter.in === "path"
+      ? params[parameter.name]
+      : call.url.searchParams.getAll(parameter.name).at(-1)
+    const parameterLabel = `${label} ${parameter.in} ${parameter.name}`
+    if (value === undefined) {
+      return parameter.required ? [`${parameterLabel} is required`] : []
+    }
+    return violations(
+      pointer("paths", path, method, "parameters", String(index), "schema"),
+      value,
+      parameterLabel,
+    )
+  })
 
   if (operation.requestBody) {
     problems.push(

@@ -56,6 +56,35 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert_equal "Joana Silva", request.guest_name
   end
 
+  test "keeps the language the guest booked in" do
+    assert_equal "pt-PT", submit_request(language: "pt-PT").reload.language
+  end
+
+  test "a request booked without a language is in English" do
+    assert_equal "en-GB", submit_request.reload.language
+    assert_equal "en-GB", submit_request(guest_email: "nil@example.com", language: nil).reload.language
+  end
+
+  test "another variant of a supported language gets that language" do
+    assert_equal "pt-PT", build_request(language: "pt-BR").language
+    assert_equal "pt-PT", build_request(language: "PT").language
+    assert_equal "en-GB", build_request(language: "en-US").language
+    assert_equal "pt-PT", build_request(language: "pt-pt").language
+  end
+
+  test "a language NutriBook does not write is English" do
+    [ "fr-FR", "", "not a language" ].each do |language|
+      assert_equal "en-GB", build_request(language:).language, language.inspect
+    end
+  end
+
+  test "the database only stores supported languages" do
+    # Raw SQL, because the model would turn the value into English first.
+    assert_raises(ActiveRecord::CheckViolation) do
+      AppointmentRequest.where(id: appointment_requests(:pending)).update_all("language = 'fr-FR'")
+    end
+  end
+
   test "requires guest name, a valid email and a start time" do
     request = AppointmentRequest.new(service: @service, guest_email: "not-an-email")
 
@@ -269,6 +298,16 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert previous.reload.superseded?
   end
 
+  test "submit supersedes a pending request whose stored email differs in case" do
+    # Raw SQL, because the model would lowercase the stored email.
+    legacy = AppointmentRequest.find(insert_raw(guest_email: "Legacy.Guest@Example.com"))
+
+    request = AppointmentRequest.submit(request_attributes(guest_email: "legacy.guest@example.com"))
+
+    assert request.persisted?
+    assert legacy.reload.superseded?
+  end
+
   test "submit leaves other guests' pending requests alone" do
     request = AppointmentRequest.submit(request_attributes)
 
@@ -445,6 +484,6 @@ class AppointmentRequestTest < ActiveSupport::TestCase
         (service_id, nutritionist_id, guest_name, guest_email, starts_at, ends_at, status, created_at, updated_at)
       VALUES (?, ?, 'Rita Gomes', ?, '2026-12-05 10:00', '2026-12-05 11:00', 'pending', now(), now())
     SQL
-    AppointmentRequest.connection.execute(sql)
+    AppointmentRequest.connection.insert(sql)
   end
 end

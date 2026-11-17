@@ -4,7 +4,11 @@ import { upcomingMonday } from "../support/schedule"
 
 const NOT_ACCEPTED = /^Your appointment request with .+ was not accepted$/
 
-test("accepting a request rejects the requests it overlaps and emails every guest", async ({ page, api, mailbox }) => {
+test("accepting a request rejects the requests it overlaps and emails every guest in their language", async ({
+  page,
+  api,
+  mailbox,
+}) => {
   const nutritionist = await api.nutritionist("Rui Peixoto")
   const day = upcomingMonday(test.info().retry)
   const accepted = newGuest("Ana")
@@ -15,7 +19,13 @@ test("accepting a request rejects the requests it overlaps and emails every gues
   // 10:00 to 11:00 is accepted. The 30-minute request at 10:00 and the
   // 90-minute request from 09:00 overlap it; the one from 11:00 only touches it.
   await api.requestAppointment(nutritionist, { service: "First appointment", guest: accepted, day, time: "10:00" })
-  await api.requestAppointment(nutritionist, { service: "Follow-up", guest: sameStart, day, time: "10:00" })
+  await api.requestAppointment(nutritionist, {
+    service: "Follow-up",
+    guest: sameStart,
+    day,
+    time: "10:00",
+    language: "pt-PT",
+  })
   await api.requestAppointment(nutritionist, { service: "Extended assessment", guest: longerEarlier, day, time: "09:00" })
   await api.requestAppointment(nutritionist, { service: "Follow-up", guest: adjacent, day, time: "11:00" })
 
@@ -30,11 +40,12 @@ test("accepting a request rejects the requests it overlaps and emails every gues
 
   const [confirmation] = await mailbox.emailsTo(accepted, 1)
   expect(confirmation.subject).toBe(`Your appointment with ${nutritionist.name} is confirmed`)
-  for (const overlapping of [sameStart, longerEarlier]) {
-    const [rejection] = await mailbox.emailsTo(overlapping, 1)
-    expect(rejection.subject).toMatch(NOT_ACCEPTED)
-    expect(rejection.text).toContain("accepted another appointment at the same time")
-  }
+  const [englishRejection] = await mailbox.emailsTo(longerEarlier, 1)
+  expect(englishRejection.subject).toMatch(NOT_ACCEPTED)
+  expect(englishRejection.text).toContain("accepted another appointment at the same time")
+  const [portugueseRejection] = await mailbox.emailsTo(sameStart, 1)
+  expect(portugueseRejection.subject).toBe(`O seu pedido de consulta com ${nutritionist.name} não foi aceite`)
+  expect(portugueseRejection.text).toContain("aceitou outra consulta à mesma hora")
   await mailbox.emailsTo(adjacent, 0)
 })
 

@@ -17,6 +17,7 @@ const input = {
   date: "2026-12-07",
   time: "10:00",
   online: true,
+  language: "pt-PT",
 }
 
 afterEach(() => {
@@ -54,6 +55,7 @@ describe("createAppointmentRequest", () => {
         date: "2026-12-07",
         time: "10:00",
         online: true,
+        language: "pt-PT",
       },
     })
     expect(result).toEqual({
@@ -92,7 +94,7 @@ describe("createAppointmentRequest", () => {
   })
 
   it("treats any other client error as a bug, not an outage", async () => {
-    stubApi(new Response(null, { status: 400 }))
+    stubApi(Response.json({ error: "invalid_request", parameter: "appointment_request" }, { status: 400 }))
 
     const error = await createAppointmentRequest(input).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(Error)

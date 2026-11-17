@@ -30,6 +30,28 @@ describe("contractViolations", () => {
     ).toEqual([expect.stringContaining("listPendingAppointmentRequests path id must match pattern")])
   })
 
+  it.each([
+    ["", ["latitude", "longitude"]],
+    ["?latitude=41.55", ["longitude"]],
+    ["?longitude=-8.43", ["latitude"]],
+  ])("reports missing required coordinates for %s", (query, missing) => {
+    expect(
+      contractViolations({ method: "GET", url: new URL(`http://api.test/locations/nearest${query}`) }),
+    ).toEqual(missing.map((name) => `nearestLocation query ${name} is required`))
+  })
+
+  it.each([
+    "/locations/nearest?latitude=41.55&longitude=-8.43",
+    "/locations/nearest?latitude=&longitude=invalid",
+    "/locations/nearest?latitude=bad&latitude=41.55&longitude=-8.43",
+    "/nutritionists?q=Jo%C3%A3o+Silva&location=Braga&page=01",
+    "/nutritionists?q=123&location=&page=invalid",
+    "/nutritionists?unknown=ignored",
+    "/nutritionists",
+  ])("accepts decoded query strings as documented for %s", (path) => {
+    expect(contractViolations({ method: "GET", url: new URL(`http://api.test${path}`) })).toEqual([])
+  })
+
   it("reports a request body the spec does not describe", () => {
     expect(contractViolations(answer({ appointment_request: { answer: "accepted" } }))).toEqual([
       expect.stringContaining("answerAppointmentRequest request body/appointment_request must have required property 'status'"),
