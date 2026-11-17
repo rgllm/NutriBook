@@ -1,21 +1,25 @@
 require "test_helper"
 
 class NutritionistSearchTest < ActiveSupport::TestCase
-  # Answers like NutritionistIndex from canned pages of ids, and records each call.
+  # Answers like NutritionistIndex with canned service ids, and records each call.
   class FakeIndex
     attr_reader :calls
 
-    def initialize(pages = {}, total: pages.values.sum(&:size), unavailable_pages: [])
-      @pages, @total, @unavailable_pages, @calls = pages, total, unavailable_pages, []
+    def initialize(ids = [], unavailable: false)
+      @ids, @unavailable, @calls = ids, unavailable, []
     end
 
-    def search(query, city:, page:, per_page:)
-      @calls << { query:, city:, page:, per_page: }
-      raise NutritionistIndex::Unavailable, "connection refused" if @unavailable_pages.include?(page)
+    def search(query, city: nil)
+      @calls << { query:, city: }
+      raise NutritionistIndex::Unavailable, "connection refused" if @unavailable
 
-      NutritionistIndex::Hits.new(ids: @pages.fetch(page, []), total: @total, page:)
+      @ids
     end
   end
+
+  # Rua do Souto, Braga, where Mary Jane works. Ana Ferreira is in Porto.
+  BRAGA = Coordinates.new(latitude: 41.5506, longitude: -8.4260)
+  PORTO = Coordinates.new(latitude: 41.1504, longitude: -8.6056)
 
   test "a blank location defaults to Braga" do
     [ nil, "", "   " ].each do |input|
@@ -184,47 +188,36 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   test "a typed query is ranked by the search index in the resolved city" do
     other = create_nutritionist("Ana Jane", location: "Braga")
-    index = FakeIndex.new({ 1 => [ other.id, nutritionists(:mary_jane).id ] })
+    index = FakeIndex.new([ other.services.first.id, services(:mary_follow_up).id, services(:mary_first_appointment).id ])
 
     search = search(query: " jnae ", location: "braga", index:)
 
     assert_equal [ other, nutritionists(:mary_jane) ], search.nutritionists
     assert_equal 2, search.total_count
-    assert_equal [ { query: "jnae", city: "Braga", page: 1, per_page: 5 } ], index.calls
+    assert_equal [ { query: "jnae", city: "Braga" } ], index.calls
   end
 
   test "ranked results list only the services at the searched location" do
     mary = nutritionists(:mary_jane)
-    mary.services.create!(name: "Weight loss", price: 30, city: "Porto", street_address: "Rua de Cedofeita 9", duration_minutes: 45)
+    weight_loss = mary.services.create!(name: "Weight loss", price: 30, city: "Porto", street_address: "Rua de Cedofeita 9", duration_minutes: 45)
 
-    porto = search(query: "mary", location: "Porto", index: FakeIndex.new({ 1 => [ mary.id ] })).nutritionists
+    porto = search(query: "mary", location: "Porto", index: FakeIndex.new([ weight_loss.id ])).nutritionists
 
     assert_equal [ "Weight loss" ], porto.first.services.map(&:name)
   end
 
-  test "a ranked page past the end asks the index for the last page" do
-    index = FakeIndex.new({ 2 => [ nutritionists(:mary_jane).id ] }, total: 6)
+  test "a ranked page past the end returns the last page" do
+    created = 5.times.map { |i| create_nutritionist("Nutri #{i}", location: "Braga") }
+    index = FakeIndex.new([ *created, nutritionists(:mary_jane) ].map { |nutritionist| nutritionist.services.first.id })
 
     search = search(query: "nutri", location: "Braga", page: "9", index:)
 
     assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
     assert_equal 2, search.page
-    assert_equal [ 9, 2 ], index.calls.pluck(:page)
-  end
-
-  test "when the index fails on the last page the SQL match sets its own count and page" do
-    index = FakeIndex.new({ 2 => [ nutritionists(:mary_jane).id ] }, total: 6, unavailable_pages: [ 2 ])
-
-    search = search(query: "jane", location: "Braga", page: "9", index:)
-
-    assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
-    assert_equal 1, search.total_count
-    assert_equal 1, search.page
-    assert_equal 1, search.total_pages
   end
 
   test "an id the index still holds but PostgreSQL no longer does is left out" do
-    index = FakeIndex.new({ 1 => [ 0, nutritionists(:mary_jane).id ] })
+    index = FakeIndex.new([ 0, services(:mary_first_appointment).id ])
 
     assert_equal [ nutritionists(:mary_jane) ], search(query: "mary", location: "Braga", index:).nutritionists
   end
@@ -237,24 +230,119 @@ class NutritionistSearchTest < ActiveSupport::TestCase
   end
 
   test "when the index is unavailable the query is matched in SQL" do
-    search = search(query: "jane", location: "Braga", index: FakeIndex.new(unavailable_pages: [ 1 ]))
+    search = search(query: "jane", location: "Braga", index: FakeIndex.new(unavailable: true))
 
     assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
     assert_equal 1, search.total_count
   end
 
-  private
+  test "a city search reports no distances or nearest services" do
+    search = search(location: "Braga")
 
-  def search(query: nil, location: nil, page: nil, index: nil)
-    NutritionistSearch.new(query:, location:, page:, index:)
+    assert_equal [ nil, nil ], search.nutritionists.first.services.map(&:distance_km)
+    assert_empty search.nearest_service_ids
   end
 
-  def create_nutritionist(name, location:, services: [ "First appointment" ])
+  test "nearby without a location searches every city, nearest first" do
+    search = search(origin: PORTO)
+
+    assert_nil search.location
+    assert_equal "nearby", search.location_source
+    assert_equal [ nutritionists(:ana_ferreira), nutritionists(:mary_jane) ], search.nutritionists
+    assert_in_delta 0.0, search.nutritionists.first.services.first.distance_km, 0.1
+    assert_in_delta 46.96, search.nutritionists.second.services.first.distance_km, 0.01
+
+    assert_equal [ nutritionists(:mary_jane), nutritionists(:ana_ferreira) ], search(origin: BRAGA).nutritionists
+  end
+
+  test "nearby, a nutritionist appears once, ranked by their nearest practice, listing all of them nearest first" do
+    mary = nutritionists(:mary_jane)
+    porto = mary.services.create!(name: "Weight loss", price: 30, city: "Porto", street_address: "Rua de Cedofeita 9",
+      duration_minutes: 45, latitude: 41.1534, longitude: -8.6184)
+
+    search = search(origin: PORTO)
+
+    assert_equal [ nutritionists(:ana_ferreira), mary ], search.nutritionists
+    assert_equal [ "Rua de Cedofeita 9", "Rua do Souto 45", "Rua do Souto 45" ], search.nutritionists.second.services.map(&:street_address)
+    assert_equal porto.id, search.nearest_service_ids[mary.id]
+  end
+
+  test "nearby, a service query ranks by the nearest practice offering that service" do
+    mary = nutritionists(:mary_jane)
+    sports = mary.services.create!(name: "Sports nutrition", price: 30, city: "Faro", street_address: "Rua de Santo António",
+      duration_minutes: 45, latitude: 37.0161, longitude: -7.9332)
+
+    search = search(query: "sports", origin: BRAGA)
+
+    assert_equal [ nutritionists(:ana_ferreira), mary ], search.nutritionists
+    assert_equal sports.id, search.nearest_service_ids[mary.id]
+    assert_equal services(:ana_sports_nutrition).id, search.nearest_service_ids[nutritionists(:ana_ferreira).id]
+  end
+
+  test "nearby, a typed query keeps the index's typo tolerance" do
+    index = FakeIndex.new([ services(:mary_first_appointment).id, services(:ana_sports_nutrition).id ])
+
+    search = search(query: "sprts", origin: PORTO, index:)
+
+    assert_equal [ nutritionists(:ana_ferreira), nutritionists(:mary_jane) ], search.nutritionists
+    assert_equal [ { query: "sprts", city: nil } ], index.calls
+  end
+
+  test "nearby, a typed location stays a filter and is ordered by distance" do
+    near = create_nutritionist("Zé Perto", location: "Braga", coordinates: [ 41.5513, -8.4230 ])
+
+    search = search(location: "Braga", origin: Coordinates.new(latitude: 41.5513, longitude: -8.4229))
+
+    assert_equal "Braga", search.location
+    assert_equal [ near, nutritionists(:mary_jane) ], search.nutritionists
+  end
+
+  test "nearby, services without coordinates come last, without a distance" do
+    unknown = create_nutritionist("Aaron Unknown", location: "Braga")
+
+    search = search(origin: BRAGA)
+
+    assert_equal [ nutritionists(:mary_jane), nutritionists(:ana_ferreira), unknown ], search.nutritionists
+    assert_nil search.nutritionists.last.services.first.distance_km
+  end
+
+  test "nearby results are paged in distance order" do
+    created = 5.times.map do |i|
+      create_nutritionist("Nutri #{i}", location: "Braga", coordinates: [ 41.5506 + (i + 1) * 0.01, -8.4260 ])
+    end
+
+    first = search(origin: BRAGA)
+    second = search(origin: BRAGA, page: "2")
+
+    assert_equal 7, first.total_count
+    assert_equal [ nutritionists(:mary_jane), *created.first(4) ], first.nutritionists
+    assert_equal [ created.last, nutritionists(:ana_ferreira) ], second.nutritionists
+  end
+
+  test "the nearby query count does not grow with the number of results" do
+    one = count_queries { load_page(search(origin: BRAGA)) }
+
+    4.times { |i| create_nutritionist("Nutri #{i}", location: "Porto", coordinates: [ 41.15, -8.6 ]) }
+    many = nil
+    queries = count_queries { many = load_page(search(origin: BRAGA)) }
+
+    assert_equal 5, many.size
+    assert_equal one, queries
+  end
+
+  private
+
+  def search(query: nil, location: nil, page: nil, origin: nil, index: nil)
+    NutritionistSearch.new(query:, location:, page:, origin:, index:)
+  end
+
+  def create_nutritionist(name, location:, services: [ "First appointment" ], coordinates: [ nil, nil ])
     nutritionist = Nutritionist.create!(
       name:, title: "Nutritionist", license_number: "#{SecureRandom.hex(3)}N"
     )
     services.each do |service|
-      nutritionist.services.create!(name: service, price: 30, city: location, street_address: "Rua Nova 1", duration_minutes: 45)
+      nutritionist.services.create!(name: service, price: 30, city: location, street_address: "Rua Nova 1", duration_minutes: 45,
+        latitude: coordinates.first, longitude: coordinates.last)
     end
     nutritionist
   end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_100100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -40,7 +40,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
     t.check_constraint "char_length(guest_email::text) <= 254", name: "appointment_requests_guest_email_length"
     t.check_constraint "char_length(guest_name::text) <= 100", name: "appointment_requests_guest_name_length"
     t.check_constraint "ends_at > starts_at", name: "appointment_requests_ends_after_starts"
-    t.check_constraint "language::text = ANY (ARRAY['en-GB'::character varying, 'pt-PT'::character varying]::text[])", name: "appointment_requests_language_allowed"
+    t.check_constraint "language::text = ANY (ARRAY['en-GB'::character varying::text, 'pt-PT'::character varying::text])", name: "appointment_requests_language_allowed"
     t.check_constraint "rejection_reason::text = ANY (ARRAY['declined'::character varying::text, 'overlap'::character varying::text])", name: "appointment_requests_rejection_reason_allowed"
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'superseded'::character varying::text])", name: "appointment_requests_status_allowed"
     t.exclusion_constraint "nutritionist_id WITH =, tsrange(starts_at, ends_at) WITH &&", where: "(status)::text = 'accepted'::text", using: :gist, name: "appointment_requests_no_overlapping_accepted"
@@ -48,13 +48,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
 
   create_table "cities", force: :cascade do |t|
     t.string "name", null: false
-    t.decimal "latitude", precision: 8, scale: 6, null: false
-    t.decimal "longitude", precision: 9, scale: 6, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_cities_on_name", unique: true
-    t.check_constraint "latitude >= '-90'::integer::numeric AND latitude <= 90::numeric", name: "cities_latitude_in_range"
-    t.check_constraint "longitude >= '-180'::integer::numeric AND longitude <= 180::numeric", name: "cities_longitude_in_range"
   end
 
   create_table "nutritionists", force: :cascade do |t|
@@ -77,9 +73,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "street_address", null: false
+    t.decimal "latitude", precision: 8, scale: 6
+    t.decimal "longitude", precision: 9, scale: 6
     t.index ["city", "nutritionist_id"], name: "index_services_on_city_and_nutritionist_id"
     t.index ["nutritionist_id", "id"], name: "index_services_on_nutritionist_id_and_id", unique: true
+    t.check_constraint "(latitude IS NULL) = (longitude IS NULL)", name: "services_coordinates_paired"
     t.check_constraint "duration_minutes > 0", name: "services_duration_positive"
+    t.check_constraint "latitude >= '-90'::integer::numeric AND latitude <= 90::numeric", name: "services_latitude_in_range"
+    t.check_constraint "longitude >= '-180'::integer::numeric AND longitude <= 180::numeric", name: "services_longitude_in_range"
     t.check_constraint "price >= 0::numeric", name: "services_price_not_negative"
   end
 

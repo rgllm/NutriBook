@@ -5,6 +5,8 @@ mary_first_appointment:
   city: Braga
   street_address: Rua do Souto 45
   duration_minutes: 60
+  latitude: 41.550586
+  longitude: -8.426007
 
 mary_follow_up:
   nutritionist: mary_jane
@@ -13,6 +15,8 @@ mary_follow_up:
   city: Braga
   street_address: Rua do Souto 45
   duration_minutes: 30
+  latitude: 41.550586
+  longitude: -8.426007
 
 ana_sports_nutrition:
   nutritionist: ana_ferreira
@@ -21,3 +25,5 @@ ana_sports_nutrition:
   city: Porto
   street_address: Rua de Santa Catarina 120
   duration_minutes: 45
+  latitude: 41.150371
+  longitude: -8.605576

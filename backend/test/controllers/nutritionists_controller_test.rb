@@ -21,7 +21,8 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
             "price" => "25.0",
             "street_address" => "Rua do Souto 45",
             "city" => "Braga",
-            "duration_minutes" => 60
+            "duration_minutes" => 60,
+            "distance_km" => nil
           },
           {
             "id" => services(:mary_follow_up).id,
@@ -29,9 +30,11 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
             "price" => "20.0",
             "street_address" => "Rua do Souto 45",
             "city" => "Braga",
-            "duration_minutes" => 30
+            "duration_minutes" => 30,
+            "distance_km" => nil
           }
-        ]
+        ],
+        "nearest_service_id" => nil
       }
     ], response.parsed_body["nutritionists"]
     assert_equal({ "city" => "Braga", "source" => "input" }, response.parsed_body["location"])
@@ -73,5 +76,36 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
       { "page" => 1, "per_page" => 5, "total_count" => 0, "total_pages" => 1 },
       response.parsed_body["pagination"]
     )
+  end
+
+  test "searches every city nearest a position sent in the body" do
+    post nearby_nutritionists_url, params: { q: "sports", latitude: 41.5506, longitude: -8.426 }, as: :json
+
+    assert_schema_conform(200)
+    assert_equal({ "city" => nil, "source" => "nearby" }, response.parsed_body["location"])
+    ana = response.parsed_body["nutritionists"].sole
+    assert_equal services(:ana_sports_nutrition).id, ana["nearest_service_id"]
+    assert_in_delta 46.96, ana["services"].sole["distance_km"], 0.01
+  end
+
+  test "keeps a typed location as a filter when searching nearby" do
+    post nearby_nutritionists_url, params: { location: "Porto", latitude: 41.5506, longitude: -8.426 }, as: :json
+
+    assert_schema_conform(200)
+    assert_equal({ "city" => "Porto", "source" => "input" }, response.parsed_body["location"])
+    assert_equal [ "Ana Ferreira" ], response.parsed_body["nutritionists"].pluck("name")
+  end
+
+  test "rejects a nearby search without a valid position" do
+    [ {}, { latitude: 41.55 }, { latitude: 91, longitude: 0 } ].each do |params|
+      post nearby_nutritionists_url, params:, as: :json
+
+      assert_response_schema_confirm(422)
+      assert_equal({ "errors" => { "coordinates" => [ "invalid" ] } }, response.parsed_body, params.inspect)
+    end
+  end
+
+  test "keeps the position out of the logs" do
+    assert_equal "[FILTERED]", ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters).filter("latitude" => 41.55)["latitude"]
   end
 end

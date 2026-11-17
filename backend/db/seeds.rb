@@ -11,17 +11,61 @@ Faker::Config.locale = "pt"
 Faker::Config.random = Random.new(2026)
 Faker::UniqueGenerator.clear
 
-# Each city's centre, which "use my location" measures from, and how many
-# nutritionists work there.
+# How many nutritionists work in each city, and the practices they use there:
+# public streets and squares, geocoded once with OpenStreetMap's Nominatim so
+# distance search measures from real places. Each nutritionist takes the next
+# practice in their city, and the extra practices further down take the rest.
 CITIES = {
-  "Braga" => [ 41.545400, -8.426500, 8 ],
-  "Porto" => [ 41.157900, -8.629100, 5 ],
-  "Lisboa" => [ 38.722300, -9.139300, 5 ],
-  "Guimarães" => [ 41.442500, -8.291800, 3 ],
-  "Coimbra" => [ 40.203300, -8.410300, 3 ],
-  "Leiria" => [ 39.743600, -8.807100, 2 ],
-  "Aveiro" => [ 40.640500, -8.653800, 2 ],
-  "Faro" => [ 37.019400, -7.932200, 2 ]
+  "Braga" => [ 8, [
+    [ "Praça do Município", 41.551109, -8.427750 ],
+    [ "Avenida da Liberdade", 41.547733, -8.420926 ],
+    [ "Rua do Souto", 41.550586, -8.426007 ],
+    [ "Avenida Central", 41.551269, -8.420544 ],
+    [ "Praça da República", 41.551305, -8.422970 ],
+    [ "Rua de São Vicente", 41.555741, -8.421500 ],
+    [ "Avenida 31 de Janeiro", 41.547380, -8.414291 ],
+    [ "Rua Nova de Santa Cruz", 41.555394, -8.402895 ],
+    [ "Largo do Paço", 41.550722, -8.426348 ]
+  ] ],
+  "Porto" => [ 5, [
+    [ "Avenida dos Aliados", 41.149016, -8.610546 ],
+    [ "Rua de Santa Catarina", 41.150371, -8.605576 ],
+    [ "Rua de Cedofeita", 41.153385, -8.618424 ],
+    [ "Praça da Batalha", 41.145485, -8.607420 ],
+    [ "Avenida da Boavista", 41.160111, -8.642033 ],
+    [ "Rua de Costa Cabral", 41.166554, -8.595869 ],
+    [ "Praça de Mouzinho de Albuquerque", 41.157932, -8.629137 ],
+    [ "Rua do Campo Alegre", 41.152593, -8.631786 ]
+  ] ],
+  "Lisboa" => [ 5, [
+    [ "Rua Augusta", 38.711316, -9.137935 ],
+    [ "Avenida de Roma", 38.749029, -9.141669 ],
+    [ "Praça Duque de Saldanha", 38.733560, -9.144775 ],
+    [ "Rua Garrett", 38.710821, -9.140640 ],
+    [ "Avenida Almirante Reis", 38.734375, -9.134070 ]
+  ] ],
+  "Guimarães" => [ 3, [
+    [ "Largo do Toural", 41.441906, -8.295414 ],
+    [ "Avenida Conde de Margaride", 41.442735, -8.299638 ],
+    [ "Rua de Santo António", 41.443331, -8.294980 ]
+  ] ],
+  "Coimbra" => [ 3, [
+    [ "Rua Ferreira Borges", 40.208566, -8.429099 ],
+    [ "Avenida Sá da Bandeira", 40.211580, -8.423996 ],
+    [ "Praça da República", 40.209764, -8.419188 ]
+  ] ],
+  "Leiria" => [ 2, [
+    [ "Praça Rodrigues Lobo", 39.744564, -8.808028 ],
+    [ "Avenida Heróis de Angola", 39.745996, -8.804883 ]
+  ] ],
+  "Aveiro" => [ 2, [
+    [ "Avenida Doutor Lourenço Peixinho", 40.642094, -8.651257 ],
+    [ "Rua de João Mendonça", 40.641536, -8.654682 ]
+  ] ],
+  "Faro" => [ 2, [
+    [ "Rua de Santo António", 37.016104, -7.933248 ],
+    [ "Avenida 5 de Outubro", 37.017170, -7.928136 ]
+  ] ]
 }.freeze
 
 # Name, duration in minutes, and the price range in euros.
@@ -38,8 +82,6 @@ SERVICE_CATALOG = [
   [ "Body composition analysis", 30, 15..25 ]
 ].freeze
 
-STREET_TYPES = %w[Rua Avenida Praça Largo Travessa].freeze
-
 def person_name
   "#{Faker::Name.first_name} #{Faker::Name.last_name}"
 end
@@ -54,17 +96,16 @@ def unique_person_name
   end
 end
 
-def street_address
-  "#{STREET_TYPES.sample(random: Faker::Config.random)} #{person_name}, #{Faker::Number.between(from: 1, to: 300)}"
-end
-
-def seed_service(nutritionist, catalog_entry, city:, street_address:)
+def seed_service(nutritionist, catalog_entry, city:, practice:)
   name, duration, price_range = catalog_entry
+  street_address, latitude, longitude = practice
   price = Faker::Number.between(from: price_range.min, to: price_range.max)
 
   nutritionist.services.find_or_create_by!(name:, city:, street_address:) do |service|
     service.duration_minutes = duration
     service.price = price
+    service.latitude = latitude
+    service.longitude = longitude
   end
 end
 
@@ -72,20 +113,16 @@ end
 nutritionists = demo_requests = nil
 
 ActiveRecord::Base.transaction do
-  CITIES.each do |name, (latitude, longitude, _)|
-    City.find_or_create_by!(name:) do |city|
-      city.latitude = latitude
-      city.longitude = longitude
-    end
-  end
+  CITIES.each_key { |name| City.find_or_create_by!(name:) }
+  practices = CITIES.transform_values { |(_, list)| list.dup }
 
-  nutritionists = CITIES.flat_map do |city, (_, _, count)|
+  nutritionists = CITIES.flat_map do |city, (count, _)|
     Array.new(count) do
       name = unique_person_name
       title = Faker::Base.sample(Nutritionist::TITLES)
       license_number = "#{Faker::Number.unique.number(digits: 4)}N"
       offers_online = Faker::Boolean.boolean(true_ratio: 0.4)
-      address = street_address
+      practice = practices[city].shift
       services = SERVICE_CATALOG.first(2) + SERVICE_CATALOG.drop(2).sample(Faker::Number.between(from: 1, to: 3), random: Faker::Config.random)
 
       nutritionist = Nutritionist.find_or_create_by!(license_number:) do |record|
@@ -93,7 +130,7 @@ ActiveRecord::Base.transaction do
         record.title = title
         record.offers_online = offers_online
       end
-      services.each { |entry| seed_service(nutritionist, entry, city:, street_address: address) }
+      services.each { |entry| seed_service(nutritionist, entry, city:, practice:) }
       nutritionist
     end
   end
@@ -101,12 +138,12 @@ ActiveRecord::Base.transaction do
   # A few Braga nutritionists also see patients in Porto, so one nutritionist
   # can match searches in two cities.
   nutritionists.first(3).each do |nutritionist|
-    seed_service(nutritionist, SERVICE_CATALOG.second, city: "Porto", street_address: street_address)
+    seed_service(nutritionist, SERVICE_CATALOG.second, city: "Porto", practice: practices["Porto"].shift)
   end
 
   # One Braga nutritionist works from two practices in the city, so their card
   # lists two addresses.
-  seed_service(nutritionists.second, SERVICE_CATALOG.last, city: "Braga", street_address: street_address)
+  seed_service(nutritionists.second, SERVICE_CATALOG.last, city: "Braga", practice: practices["Braga"].shift)
 
   # Pending requests for the first Braga nutritionist. The first two overlap,
   # so accepting one rejects the other automatically.

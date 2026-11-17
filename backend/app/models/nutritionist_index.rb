@@ -1,16 +1,17 @@
 # The Meilisearch index behind typed searches. It holds one document per
-# nutritionist and city, so a query only matches the services offered in the
-# city being searched. PostgreSQL stays the source of truth: the index returns
-# nutritionist ids in ranked order, and NutritionistSearch loads the records.
+# service, with its nutritionist's name, so a query says which services match
+# and where. PostgreSQL stays the source of truth: the index returns service
+# ids in ranked order, and NutritionistSearch groups, orders, and pages them.
 class NutritionistIndex
   UID = "nutritionists".freeze
   SETTINGS = {
-    searchable_attributes: %w[name service_names],
-    filterable_attributes: %w[city],
-    sortable_attributes: %w[name]
+    searchable_attributes: %w[name service_name],
+    filterable_attributes: %w[city]
   }.freeze
 
-  Hits = Data.define(:ids, :total, :page)
+  # Meilisearch's default pagination.maxTotalHits. Every match is fetched at
+  # once, which holds while the catalogue has fewer services than this.
+  MAX_HITS = 1000
 
   class Unavailable < StandardError; end
 
@@ -31,34 +32,27 @@ class NutritionistIndex
     index = configured
     return "Search index not configured; searches use SQL." unless index
 
-    "Indexed #{index.rebuild!} nutritionist locations for search."
+    "Indexed #{index.rebuild!} services for search."
   rescue Unavailable => error
     "Search index not rebuilt; searches use SQL until it is. #{error.message}"
   end
 
-  # One document per nutritionist and city with the names of the services there.
-  # Ids follow the same accent-folding as location resolution in NutritionistSearch.
   def self.documents
-    Service.joins(:nutritionist)
-      .group(:nutritionist_id, :city, "nutritionists.name")
-      .order(:nutritionist_id, :city)
-      .pluck(:nutritionist_id, :city, "nutritionists.name", Arel.sql("array_agg(DISTINCT services.name ORDER BY services.name)"))
-      .map do |nutritionist_id, city, name, service_names|
-        { id: "#{nutritionist_id}-#{city.parameterize}", nutritionist_id:, name:, city:, service_names: }
-      end
+    Service.joins(:nutritionist).order(:id)
+      .pluck(:id, :city, "nutritionists.name", :name)
+      .map { |id, city, name, service_name| { id:, city:, name:, service_name: } }
   end
 
   def initialize(client)
     @index = client.index(UID)
   end
 
-  def search(query, city:, page:, per_page:)
-    response = guard do
-      @index.search(query, filter: "city = #{quote(city)}", sort: [ "name:asc" ],
-        attributes_to_retrieve: [ "nutritionist_id" ], page:, hits_per_page: per_page)
-    end
-
-    Hits.new(ids: response["hits"].map { |hit| hit["nutritionist_id"] }, total: response["totalHits"], page: response["page"])
+  # The ids of the services matching the query, most relevant first. A city
+  # limits them to the services there.
+  def search(query, city: nil)
+    options = { attributes_to_retrieve: [ "id" ], limit: MAX_HITS }
+    options[:filter] = "city = #{quote(city)}" if city
+    guard { @index.search(query, options) }["hits"].map { |hit| hit["id"] }
   end
 
   # Replaces every document. With a few hundred rows a full rebuild is simpler

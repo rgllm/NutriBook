@@ -9,6 +9,13 @@ class SeedsTest < ActiveSupport::TestCase
     end
   end
 
+  test "every demo practice has coordinates, the same for each service there" do
+    load_seeds
+
+    practices = Service.group(:city, :street_address).pluck(:city, :street_address, Arel.sql("count(DISTINCT (latitude, longitude))"), Arel.sql("bool_and(latitude IS NOT NULL)"))
+    assert practices.all? { |*, coordinates, located| coordinates == 1 && located }, practices.inspect
+  end
+
   test "reseeding keeps an answered demo request answered" do
     existing_ids = AppointmentRequest.ids
     load_seeds
