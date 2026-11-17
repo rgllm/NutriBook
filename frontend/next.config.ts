@@ -3,11 +3,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
-  experimental: {
-    agentFeedback: true,
-  },
-  cacheComponents: true,
-  partialPrefetching: true,
+  // The project's own AGENTS.md lives at the repository root.
+  agentRules: false,
   reactCompiler: true,
   turbopack: {
     rules: {

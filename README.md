@@ -223,6 +223,15 @@ and pending lists. Solid Queue uses additional tables in the same database.
 
 ## Main decisions
 
+- **Render every page per request, without Cache Components.** The locale
+  cookie sets `<html lang>`, so no page can be prerendered in a single
+  language, and appointment lists must always be fresh. The Rails API answers
+  locally in milliseconds, so no data was worth caching. Suspense still
+  streams page data.
+- **Let request pages handle missing nutritionists.** Malformed and unknown IDs
+  show the not-found page with `noindex`. The page shell streams before the
+  missing ID is resolved, so the HTTP status remains 200, a soft 404. There is
+  no proxy that duplicates backend ID validation to change the status code.
 - **Keep business rules in Rails.** The UI renders API results and translates
   field error codes. Backend validation protects every caller, including
   callers that bypass the form.
@@ -341,8 +350,7 @@ Try the pending-requests page:
   - Accepting Danilo Santos also rejects Nataniel Batista's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
   - Hugo Estéves and Eduarda Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
 - Silas Saraiva, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
-- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the 404 page.
-- A malformed ID: http://localhost:3000/nutritionists/1abc/requests returns a real 404.
+- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the not-found page.
 ```
 
 The list describes the seeded scenario. Requests you answer in the app stay
