@@ -1,62 +1,32 @@
 "use client"
 
-import { useSyncExternalStore, useTransition } from "react"
+import type { MouseEvent } from "react"
+import { useRouter } from "next/navigation"
 import { LoaderCircleIcon, LocateFixedIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { findNearestCity } from "@/app/actions"
+import { useGeolocation } from "@/components/search/use-geolocation"
 import { InputGroupButton } from "@/components/ui/input-group"
+import { searchHref } from "@/lib/search-params"
 
-// A position up to ten minutes old is still the same city.
-const POSITION_OPTIONS: PositionOptions = { maximumAge: 600_000, timeout: 10_000 }
-
-function currentPosition() {
-  return new Promise<GeolocationPosition>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, POSITION_OPTIONS)
-  })
-}
-
-// Support never changes while the page is open, so there is nothing to
-// subscribe to. The server snapshot keeps the button disabled until hydration,
-// when a click would otherwise do nothing.
-const subscribe = () => () => {}
-const supportsGeolocation = () => "geolocation" in navigator
-const beforeHydration = () => false
-
-// Two decimals is about a kilometre: enough to pick a city, and all the
-// server needs to know about where the guest is.
-const coarse = (degrees: number) => Math.round(degrees * 100) / 100
-
-export function UseMyLocationButton({ inputId }: { inputId: string }) {
+// Searches the nearest city for the typed query, nearest practices first.
+export function UseMyLocationButton() {
   const t = useTranslations("search")
-  const canLocate = useSyncExternalStore(subscribe, supportsGeolocation, beforeHydration)
-  const [locating, startLocating] = useTransition()
+  const router = useRouter()
+  const { canLocate, locating, locate } = useGeolocation()
 
-  function fillNearestCity() {
-    startLocating(async () => {
-      let position: GeolocationPosition
-      try {
-        position = await currentPosition()
-      } catch (error) {
-        const denied = error instanceof GeolocationPositionError && error.code === error.PERMISSION_DENIED
-        toast.error(t(denied ? "locationDenied" : "locationUnavailable"))
-        return
-      }
-
-      const result = await findNearestCity(coarse(position.coords.latitude), coarse(position.coords.longitude))
+  function searchNearMe(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form
+    locate(async (near) => {
+      const result = await findNearestCity(near.latitude, near.longitude)
       if (result.status === "unavailable") {
         toast.error(t("nearestCityUnavailable"))
         return
       }
-
-      // The input is uncontrolled, so the guest can still edit the city before
-      // searching. Focus moves there so the new value is seen and announced.
-      const input = document.getElementById(inputId)
-      if (input instanceof HTMLInputElement) {
-        input.value = result.city
-        input.focus()
-      }
+      const query = String((form && new FormData(form).get("q")) ?? "").trim()
+      router.push(searchHref({ query, location: result.city, page: 1, near }))
     })
   }
 
@@ -65,7 +35,7 @@ export function UseMyLocationButton({ inputId }: { inputId: string }) {
   return (
     <InputGroupButton
       size="icon-sm"
-      onClick={fillNearestCity}
+      onClick={searchNearMe}
       disabled={!canLocate || locating}
       aria-label={label}
       title={label}

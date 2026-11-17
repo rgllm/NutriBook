@@ -7,6 +7,17 @@ export const nutritionist: Nutritionist = {
   licenseNumber: "2963N",
   offersOnline: true,
   city: "Braga",
-  addresses: ["Rua do Souto 45"],
-  services: [{ id: 381, name: "Diabetes management", priceEur: 40, durationMinutes: 60, streetAddress: "Rua do Souto 45" }],
+  nearestServiceId: null,
+  addresses: [{ streetAddress: "Rua do Souto 45", city: "Braga", distanceKm: null }],
+  services: [
+    {
+      id: 381,
+      name: "Diabetes management",
+      priceEur: 40,
+      durationMinutes: 60,
+      streetAddress: "Rua do Souto 45",
+      city: "Braga",
+      distanceKm: null,
+    },
+  ],
 }

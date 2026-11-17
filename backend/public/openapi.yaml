@@ -16,14 +16,25 @@ paths:
       summary: Search nutritionists
       description: >
         Searches nutritionist names and the names of services offered at the
-        location. A typed query uses Meilisearch, which tolerates typos and
-        ranks by relevance. Without a query, or when Meilisearch is unavailable,
-        SQL matches part of a name, ignoring case and accents, and orders by
-        name. A blank or unknown location searches Braga, and `location.source`
+        location. PostgreSQL matches every query word within the same service or
+        nutritionist name by literal substring or
+        trigram word similarity, ignoring case and common Latin accents. Words
+        shorter than three characters or containing punctuation match literally.
+        Exact names rank before prefixes, then similarity, with name and ID
+        breaking ties. Without a query, results order by name and ID. A blank or
+        unknown location searches Braga, and `location.source`
         says which case applied. Results contain five nutritionists per page. A
         page past the end returns the last page, and a missing or invalid page
         returns the first. Each nutritionist lists only the services offered at
         the searched location, ordered by street address and then by name.
+
+        With `latitude` and `longitude`, results are ordered instead by the
+        great-circle distance to each nutritionist's nearest service that
+        matches the query, then by name. Services without coordinates have no
+        distance and come last. Each nutritionist's services are then listed
+        nearest first, and `nearest_service_id` names the matching service
+        that ranked them. Without a position, `distance_km` and
+        `nearest_service_id` are null.
       tags: [Nutritionists]
       parameters:
         - name: q
@@ -44,6 +55,18 @@ paths:
           schema:
             type: string
           example: "1"
+        - name: latitude
+          in: query
+          description: The guest's latitude. Send it with `longitude` to order results by distance.
+          schema:
+            type: string
+          example: "41.551"
+        - name: longitude
+          in: query
+          description: The guest's longitude. Send it with `latitude` to order results by distance.
+          schema:
+            type: string
+          example: "-8.428"
       responses:
         "200":
           description: One page of matching nutritionists.
@@ -51,6 +74,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NutritionistSearch"
+        "422":
+          description: Only one coordinate was sent, or one is not a number or out of range.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrors"
   /appointment_requests:
     post:
       operationId: createAppointmentRequest
@@ -210,9 +239,9 @@ paths:
       operationId: nearestLocation
       summary: Find the searchable city nearest a point
       description: >
-        The city with at least one service whose centre is closest to the
-        point, by great-circle distance. The search form uses it to fill the
-        location from the browser's position.
+        The city of the service with coordinates closest to the point, by
+        great-circle distance. The search form uses it to fill the location
+        from the browser's position.
       tags: [Locations]
       parameters:
         - name: latitude
@@ -220,13 +249,13 @@ paths:
           required: true
           schema:
             type: string
-            example: "41.55"
+            example: "41.551"
         - name: longitude
           in: query
           required: true
           schema:
             type: string
-            example: "-8.43"
+            example: "-8.428"
       responses:
         "200":
           description: The nearest city.
@@ -235,7 +264,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/NearestLocation"
         "404":
-          description: No city has a service yet.
+          description: No service has coordinates yet.
           content:
             application/json:
               schema:
@@ -264,7 +293,7 @@ components:
     Nutritionist:
       type: object
       additionalProperties: false
-      required: [id, name, title, license_number, offers_online, services]
+      required: [id, name, title, license_number, offers_online, services, nearest_service_id]
       properties:
         id:
           type: integer
@@ -284,10 +313,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Service"
+        nearest_service_id:
+          type: integer
+          nullable: true
+          description: >
+            With a position, the nearest listed service that matches the query,
+            which booking starts from. Null without a position.
+          example: 1
     Service:
       type: object
       additionalProperties: false
-      required: [id, name, price, street_address, city, duration_minutes]
+      required: [id, name, price, street_address, city, duration_minutes, distance_km]
       properties:
         id:
           type: integer
@@ -311,6 +347,14 @@ components:
           type: integer
           minimum: 1
           example: 60
+        distance_km:
+          type: number
+          nullable: true
+          minimum: 0
+          description: >
+            Great-circle kilometres from the guest's position. Null without a
+            position, or when the service has no coordinates.
+          example: 1.2
     ResolvedLocation:
       type: object
       additionalProperties: false

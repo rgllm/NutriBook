@@ -16,7 +16,7 @@ request automatically rejects every pending request that overlaps it.
 With nvm, run `nvm install` in the repository root to install and select this
 Node version.
 
-Ruby, PostgreSQL, Meilisearch, and Mailpit run in Docker. You do not need to
+Ruby, PostgreSQL, and Mailpit run in Docker. You do not need to
 install them on your machine. The frontend runs locally with pnpm.
 
 ### Run the project
@@ -30,9 +30,9 @@ pnpm --dir frontend install --frozen-lockfile
 pnpm dev
 ```
 
-On a fresh database, the backend creates the schema, loads the demo seeds, and
-builds the search index before it serves requests, so there is no separate seed
-step. Open [the application](http://localhost:3000).
+On a fresh database, the backend creates the schema and loads the demo seeds
+before serving requests, so there is no separate seed step.
+Open [the application](http://localhost:3000).
 
 | Service | Address | Purpose |
 | --- | --- | --- |
@@ -41,8 +41,8 @@ step. Open [the application](http://localhost:3000).
 | API documentation | <http://localhost:3001/docs> | Swagger |
 | Mailpit | <http://localhost:8025> | Inbox for development emails |
 
-PostgreSQL and Meilisearch are available only inside the Compose network.
-Docker volumes preserve their data across restarts. The credentials in
+PostgreSQL is available only inside the Compose network.
+A Docker volume preserves its data across restarts. The credentials in
 `compose.yaml` are for local development.
 
 The frontend runs on port 3000 and calls the Rails API at
@@ -62,9 +62,8 @@ Backend commands require the development Compose stack to be running.
 | `pnpm rails <args>` | Run a Rails command inside the backend container |
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:rollback` | Roll back the latest migration |
-| `pnpm db:seed` | Add missing demo records, rebuild the search index, and print the demo request URLs |
+| `pnpm db:seed` | Add missing demo records and print the demo request URLs |
 | `pnpm db:psql` | Open PostgreSQL against the development database |
-| `pnpm rails search:reindex` | Rebuild Meilisearch after manual data changes |
 | `pnpm check` | Run the backend and frontend checks and the end-to-end lint and typecheck, without Playwright |
 | `pnpm test` | Run the Rails and frontend test suites |
 | `pnpm backend:test` | Run the Rails test suite |
@@ -90,21 +89,25 @@ and small plain Ruby objects:
 | --- | --- |
 | `AppointmentRequest` | Submit, supersede, accept, and reject requests inside transactions |
 | `BookingSchedule` | Interpret Lisbon dates and enforce bookable start times |
-| `NutritionistSearch` | Resolve locations, search, preload services, and paginate results |
-| `NutritionistIndex` | Build Meilisearch documents and rank typed queries |
-| `City` | Find the nearest city with available services |
+| `NutritionistSearch` | Resolve locations, match, order by relevance, name, or distance, and paginate |
+| `Coordinates` | Parse the guest's position and measure great-circle distances in SQL |
 | `AppointmentAnswerEmailJob` | Send answer emails with retries and a delivery marker |
 | `AppointmentRequestMailer` | Render accepted and rejected emails, including overlap rejections |
 
-Meilisearch indexes one document per nutritionist and city, including the service
-names offered there. Rails resolves the city first, retrieves ranked IDs, then
-loads the records from PostgreSQL. Searches without a query use SQL directly.
-If Meilisearch is unavailable, times out, or has no index, Rails falls back to
-case- and accent-insensitive SQL matching. The fallback has no typo tolerance
-and orders by name, while Meilisearch ranks by relevance first, so the two can
-return different results.
-The index rebuilds at startup and after seeding because the app has no interface
-for editing nutritionists or services.
+PostgreSQL handles every search through one matching service relation. Each query
+word must match within the same service or nutritionist name, by literal
+substring or trigram word similarity above 0.4. Words shorter than three characters and words with
+punctuation use literal matching only. This tolerates examples such as `goncalvs`
+and `sprts nutrition`, but is not equivalent to a dedicated search engine.
+Without an origin, exact names rank first, then prefixes, then word similarity,
+with name and ID breaking ties. With an origin, distance takes precedence.
+
+Stored generated `search_name` columns normalize Unicode to NFC, lowercase, and
+fold the listed Portuguese and common Latin accented letters with `translate`.
+GIN trigram indexes support substring and word matching. These built-in immutable
+expressions survive schema loading and update on every database write, including
+seeds and direct SQL. This is deliberate Latin accent folding, not universal
+transliteration. The connection config fixes the word similarity threshold.
 
 Active Job uses Solid Queue in the same PostgreSQL database as the domain data.
 The worker runs inside Puma in development. Answering a request stores its state
@@ -116,9 +119,9 @@ The main endpoints are:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/nutritionists?q=&location=&page=` | Search nutritionists, five per page |
+| GET | `/nutritionists?q=&location=&page=&latitude=&longitude=` | Search nutritionists, five per page, nearest first when given a position |
 | GET | `/locations` | List cities with services and the default city |
-| GET | `/locations/nearest?latitude=&longitude=` | Resolve coordinates to the nearest supported city |
+| GET | `/locations/nearest?latitude=&longitude=` | The city of the nearest service with coordinates |
 | POST | `/appointment_requests` | Submit a guest's appointment request |
 | GET | `/nutritionists/:id/appointment_requests` | List a nutritionist's pending requests |
 | PATCH | `/nutritionists/:nutritionist_id/appointment_requests/:id` | Accept or reject a request |
@@ -164,8 +167,6 @@ erDiagram
     cities {
         bigint id PK
         string name UK
-        decimal latitude
-        decimal longitude
     }
     nutritionists {
         bigint id PK
@@ -182,6 +183,8 @@ erDiagram
         string city FK
         string street_address
         integer duration_minutes
+        decimal latitude
+        decimal longitude
     }
     appointment_requests {
         bigint id PK
@@ -203,7 +206,9 @@ erDiagram
 Guests have no account or separate table. Their name and normalized email live
 on each request. Service addresses allow a nutritionist to work in several
 cities or at several practices in one city. `services.city` references the
-unique city name. Prices use fixed-precision decimals.
+unique city name. Prices use fixed-precision decimals. A service's latitude
+and longitude are its practice's, and are both unknown until the address is
+geocoded.
 
 A request stores its UTC start and end times. The end time captures the service's
 duration at booking, so later duration changes do not move an existing request.
@@ -219,12 +224,15 @@ PostgreSQL backs the domain rules with constraints:
 | A request's service belongs to its nutritionist | Composite foreign key to `services(nutritionist_id, id)` |
 | Valid state and answer metadata | Checks on status, rejection reason, answer timestamp, and notification timestamp |
 | Answer emails in a supported language | Check that `language` is `en-GB` or `pt-PT` |
-| Valid sizes and values | Checks on guest input lengths, positive durations, nonnegative prices, ordered times, and coordinate ranges |
+| Valid sizes and values | Checks on guest input lengths, positive durations, nonnegative prices, and ordered times |
+| A practice is either located or not | Checks that a service's latitude and longitude are both set or both null, and on the globe |
 
 Time ranges are half-open. An appointment ending at 11:00 does not overlap one
 starting at 11:00. Indexes on `services(city, nutritionist_id)` and
 `appointment_requests(nutritionist_id, status, starts_at)` support city searches
-and pending lists. Solid Queue uses additional tables in the same database.
+and pending lists. Distance has no index: it is computed for each matching
+service, which costs less than a spatial index at a few hundred services. A
+large catalogue would add PostGIS or `earthdistance` with a radius filter. Solid Queue uses additional tables in the same database.
 
 ## Retry a failed answer email
 
@@ -302,14 +310,30 @@ job skips the send if `answer_notified_at` is already set.
   permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
   13:00. These opening hours are a project assumption. Rails rejects requests
   overlapping an accepted appointment, accounting for service duration.
-- **Use Meilisearch for typed search and keep SQL available.** Typo tolerance
-  and prefix matching improve discovery while PostgreSQL stays authoritative.
-  Meilisearch matches word prefixes rather than arbitrary substrings.
+- **Keep search in PostgreSQL.** Generated normalized names and `pg_trgm`
+  provide word-level typo tolerance without a separate index or refresh job.
+  All query words must match, so a common word alone does not select a service.
 - **Default unknown locations to Braga.** Blank locations also use Braga.
   Matching ignores case and accents, and `Lisbon` and `Oporto` are aliases.
-  Geolocation rounds coordinates before sending them and fills the nearest
-  supported city. The guest still presses Search. It does not sort results
-  by distance to individual practices.
+- **Sort by real distance from the guest, within the city.** The city is
+  always a filter and always shows in the location field. A "Sort by" select
+  beside the results switches between relevance and distance. Distance asks
+  for the browser's position; "Use my location" also fills the city of the
+  nearest practice. Each nutritionist appears once, ranked by their nearest
+  service that matches the query. The card lists that practice first with its
+  distance, and booking starts from that service. Services without
+  coordinates come last, without a distance.
+- **Keep the position in the URL, rounded.** Distance order is search state
+  like the query and the city, so `latitude` and `longitude` live in the URL.
+  Results stay server-rendered, and pagination, refresh, back, and shared links
+  keep the order. The browser rounds the position to three decimals, about
+  100 m, before it leaves the page. Rails filters it from the logs and never
+  stores it.
+- **Geocode demo addresses once.** The seeds use public streets and squares,
+  resolved with OpenStreetMap's Nominatim and committed with their
+  coordinates, so setup and tests need no network or API key. A
+  service-editing interface would geocode on save and leave the coordinates
+  unknown when the match is not precise.
 - **Keep translations where they are rendered.** The frontend's English and
   Portuguese share typed message keys. Answer emails are rendered by Rails, so
   their copy lives in `backend/config/locales/en-GB.yml` and `pt-PT.yml`, which
@@ -336,8 +360,9 @@ access boundary before any public deployment with real data.
 [The seeds](backend/db/seeds.rb) create 30 nutritionists across Braga, Porto,
 Lisboa, Guimarães, Coimbra, Leiria, Aveiro, and Faro. Services have different
 prices and durations, including First appointment, Follow-up, and specialist
-consultations. Names and prices use a fixed Faker seed, and addresses are
-fictional.
+consultations. Names and prices use a fixed Faker seed. The nutritionists are
+fictional; their practices are public streets and squares in each city, with
+real coordinates.
 
 Braga has eight nutritionists for pagination. Three also offer services in
 Porto, and one works at two Braga addresses. The first seeded nutritionist has
@@ -351,6 +376,8 @@ Try these flows after a fresh setup:
 | Default location | <http://localhost:3000> | Braga results and pagination |
 | Service search | <http://localhost:3000/?q=first&location=Braga> | Nutritionists offering First appointment in Braga |
 | Another city | <http://localhost:3000/?location=Leiria> | Leiria results |
+| Search near you | Select the crosshair in the location field and allow location access | The nearest city's nutritionists, nearest first, with distances |
+| Sort by distance | <http://localhost:3000/?location=Braga&latitude=41.551&longitude=-8.42> | Braga results nearest that point first, with distances; "Sort by" switches back to relevance |
 | Unknown city | <http://localhost:3000/?location=Mars> | Braga results with a fallback notice |
 | Empty results | <http://localhost:3000/?q=zzzznomatch&location=Braga> | Empty state with a way to clear the search |
 | Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
@@ -369,9 +396,9 @@ again is safe whenever you need them:
 ```text
 Try the pending-requests page:
 - Aline Moreira, with 4 seeded requests: http://localhost:3000/nutritionists/242/requests
-  - Accepting Danilo Santos also rejects Nataniel Batista's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
-  - Hugo Estéves and Eduarda Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
-- Silas Saraiva, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
+  - Accepting Alessandro Carvalho also rejects Fábio Carvalho's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
+  - Hugo Oliveira and Lucas Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
+- Heitor Pereira, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
 - An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the not-found page.
 ```
 
@@ -394,7 +421,7 @@ docker compose up -d --wait backend
 Tests focus on observable behavior and the backend invariants. PostgreSQL tests
 use the real database engine so locks, foreign keys, and exclusion constraints
 are exercised. Frontend tests stub the HTTP boundary. End-to-end tests connect
-the real browser, frontend, API, database, search engine, job worker, and inbox.
+the real browser, frontend, API, database, job worker, and inbox.
 
 ### What is covered
 
@@ -412,9 +439,8 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 Contract checks cover the calls these tests make, not every possible request.
 Fixtures that are malformed on purpose opt out with `checkContract: false`.
 
-Backend search tests use a stand-in index. The end-to-end suite exercises the
-real Meilisearch service, including typo tolerance. Playwright checks Lisbon
-booking behavior from a browser configured in Los Angeles.
+Backend and end-to-end search tests exercise PostgreSQL, including typo tolerance.
+Playwright checks Lisbon booking behavior from a browser configured in Los Angeles.
 
 ### Run backend and frontend checks
 

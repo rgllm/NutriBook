@@ -48,6 +48,28 @@ class ServiceTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::CheckViolation) { @service.update_column(:duration_minutes, 0) }
   end
 
+  test "coordinates are optional but come in pairs on the globe" do
+    @service.assign_attributes(latitude: nil, longitude: nil)
+    assert @service.valid?
+
+    @service.assign_attributes(latitude: 41.5, longitude: nil)
+    assert_not @service.valid?
+    assert_includes @service.errors[:longitude], "can't be blank"
+
+    @service.assign_attributes(latitude: 91, longitude: -181)
+    assert_not @service.valid?
+    assert_predicate @service.errors[:latitude], :any?
+    assert_predicate @service.errors[:longitude], :any?
+  end
+
+  test "the database rejects a lone coordinate" do
+    assert_raises(ActiveRecord::CheckViolation) { @service.update_column(:longitude, nil) }
+  end
+
+  test "the database rejects a coordinate off the globe" do
+    assert_raises(ActiveRecord::CheckViolation) { @service.update_column(:latitude, 91) }
+  end
+
   test "cannot be destroyed while it has appointment requests" do
     assert_not @service.destroy
     assert Service.exists?(@service.id)

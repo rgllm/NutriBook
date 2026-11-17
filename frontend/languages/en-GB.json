@@ -14,7 +14,6 @@
     "queryPlaceholder": "Search for a nutritionist or service",
     "locationLabel": "Location",
     "locationPlaceholder": "Location",
-    "locationHint": "If no location is provided we default to {city}.",
     "useMyLocation": "Use my location",
     "locating": "Finding your location…",
     "locationDenied": "Allow location access in your browser, or type a city.",
@@ -33,7 +32,10 @@
     "unavailableDescription": "We couldn't reach the nutritionist directory. <retry>Try again</retry>.",
     "pagination": "Pagination",
     "previousPage": "Go to previous page",
-    "nextPage": "Go to next page"
+    "nextPage": "Go to next page",
+    "sortLabel": "Sort by",
+    "sortRelevance": "Relevance",
+    "sortDistance": "Distance"
   },
   "nutritionist": {
     "title": "{title, select, Dietitian {Dietitian} other {Nutritionist}}",
@@ -44,7 +46,8 @@
     "scheduleAppointment": "Schedule appointment",
     "scheduleAppointmentWith": "Schedule appointment with {name}",
     "personalPageOf": "Personal page of {name}",
-    "close": "Close"
+    "close": "Close",
+    "distance": "{distance} away"
   },
   "appointment": {
     "title": "Schedule an appointment",
@@ -54,6 +57,7 @@
     "service": "Service",
     "servicePlaceholder": "Choose a service",
     "serviceOption": "{name} · {price, number, price} · {minutes} min",
+    "serviceOptionAt": "{name} · {address}, {city} · {price, number, price} · {minutes} min",
     "online": "Online appointment",
     "dateAndTime": "Date and time",
     "time": "Time",

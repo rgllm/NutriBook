@@ -3,6 +3,7 @@ import { LocationFallbackAlert } from "@/components/search/location-fallback-ale
 import { NoResults } from "@/components/search/no-results"
 import { ResultsHeading } from "@/components/search/results-heading"
 import { ResultsPagination } from "@/components/search/results-pagination"
+import { SortSelect } from "@/components/search/sort-select"
 import { SearchUnavailable } from "@/components/search/search-unavailable"
 import { ApiUnavailableError } from "@/lib/api/http"
 import { searchNutritionists } from "@/lib/api/nutritionists"
@@ -33,7 +34,10 @@ export async function SearchResults({
         <LocationFallbackAlert input={search.location} city={location.city} />
       )}
 
-      <ResultsHeading count={pagination.totalCount} city={location.city} query={search.query} />
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <ResultsHeading count={pagination.totalCount} city={location.city} query={search.query} />
+        {nutritionists.length > 0 && <SortSelect search={search} />}
+      </div>
 
       {nutritionists.length > 0 ? (
         <ul className="flex flex-col gap-4">

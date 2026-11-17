@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_100200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_trgm"
   enable_extension "unaccent"
 
   create_table "appointment_requests", force: :cascade do |t|
@@ -48,13 +49,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
 
   create_table "cities", force: :cascade do |t|
     t.string "name", null: false
-    t.decimal "latitude", precision: 8, scale: 6, null: false
-    t.decimal "longitude", precision: 9, scale: 6, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_cities_on_name", unique: true
-    t.check_constraint "latitude >= '-90'::integer::numeric AND latitude <= 90::numeric", name: "cities_latitude_in_range"
-    t.check_constraint "longitude >= '-180'::integer::numeric AND longitude <= 180::numeric", name: "cities_longitude_in_range"
   end
 
   create_table "nutritionists", force: :cascade do |t|
@@ -64,7 +61,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
     t.boolean "offers_online", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.virtual "search_name", type: :text, as: "translate(lower(NORMALIZE(name, NFC)), 'áàâãäåéèêëíìîïóòôõöúùûüçñýÿ'::text, 'aaaaaaeeeeiiiiooooouuuucnyy'::text)", stored: true
     t.index ["license_number"], name: "index_nutritionists_on_license_number", unique: true
+    t.index ["search_name"], name: "index_nutritionists_on_search_name", opclass: :gin_trgm_ops, using: :gin
     t.check_constraint "title::text = ANY (ARRAY['Dietitian'::character varying::text, 'Nutritionist'::character varying::text])", name: "nutritionists_title_allowed"
   end
 
@@ -77,9 +76,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "street_address", null: false
+    t.decimal "latitude", precision: 8, scale: 6
+    t.decimal "longitude", precision: 9, scale: 6
+    t.virtual "search_name", type: :text, as: "translate(lower(NORMALIZE(name, NFC)), 'áàâãäåéèêëíìîïóòôõöúùûüçñýÿ'::text, 'aaaaaaeeeeiiiiooooouuuucnyy'::text)", stored: true
     t.index ["city", "nutritionist_id"], name: "index_services_on_city_and_nutritionist_id"
     t.index ["nutritionist_id", "id"], name: "index_services_on_nutritionist_id_and_id", unique: true
+    t.index ["search_name"], name: "index_services_on_search_name", opclass: :gin_trgm_ops, using: :gin
+    t.check_constraint "(latitude IS NULL) = (longitude IS NULL)", name: "services_coordinates_paired"
     t.check_constraint "duration_minutes > 0", name: "services_duration_positive"
+    t.check_constraint "latitude >= '-90'::integer::numeric AND latitude <= 90::numeric", name: "services_latitude_in_range"
+    t.check_constraint "longitude >= '-180'::integer::numeric AND longitude <= 180::numeric", name: "services_longitude_in_range"
     t.check_constraint "price >= 0::numeric", name: "services_price_not_negative"
   end
 

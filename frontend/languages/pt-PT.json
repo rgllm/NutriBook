@@ -14,7 +14,6 @@
     "queryPlaceholder": "Pesquise um nutricionista ou serviço",
     "locationLabel": "Localização",
     "locationPlaceholder": "Localização",
-    "locationHint": "Sem localização, mostramos resultados em {city}.",
     "useMyLocation": "Usar a minha localização",
     "locating": "A obter a sua localização…",
     "locationDenied": "Permita o acesso à localização no navegador ou escreva uma cidade.",
@@ -33,7 +32,10 @@
     "unavailableDescription": "Não foi possível aceder à lista de nutricionistas. <retry>Tentar de novo</retry>.",
     "pagination": "Paginação",
     "previousPage": "Ir para a página anterior",
-    "nextPage": "Ir para a página seguinte"
+    "nextPage": "Ir para a página seguinte",
+    "sortLabel": "Ordenar por",
+    "sortRelevance": "Relevância",
+    "sortDistance": "Distância"
   },
   "nutritionist": {
     "title": "{title, select, Dietitian {Dietista} other {Nutricionista}}",
@@ -44,7 +46,8 @@
     "scheduleAppointment": "Marcar consulta",
     "scheduleAppointmentWith": "Marcar consulta com {name}",
     "personalPageOf": "Página pessoal de {name}",
-    "close": "Fechar"
+    "close": "Fechar",
+    "distance": "a {distance}"
   },
   "appointment": {
     "title": "Marcar uma consulta",
@@ -54,6 +57,7 @@
     "service": "Serviço",
     "servicePlaceholder": "Escolha um serviço",
     "serviceOption": "{name} · {price, number, price} · {minutes} min",
+    "serviceOptionAt": "{name} · {address}, {city} · {price, number, price} · {minutes} min",
     "online": "Consulta online",
     "dateAndTime": "Data e hora",
     "time": "Hora",

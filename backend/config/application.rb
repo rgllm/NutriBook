@@ -41,8 +41,5 @@ module Nutribook
     # enqueue until after commit would reopen the gap between the two.
     config.active_job.queue_adapter = :solid_queue
     config.active_job.enqueue_after_transaction_commit = false
-
-    # Meilisearch ranks typed searches when this is set; see NutritionistIndex.
-    config.x.meilisearch_url = ENV["MEILISEARCH_URL"]
   end
 end

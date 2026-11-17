@@ -5,13 +5,9 @@ class LocationsController < ApplicationController
 
   # The searchable city closest to the browser's position.
   def nearest
-    latitude = Float(params[:latitude], exception: false)
-    longitude = Float(params[:longitude], exception: false)
+    origin = Coordinates.parse(params[:latitude], params[:longitude])
+    return render_invalid_coordinates unless origin
 
-    unless latitude&.between?(-90, 90) && longitude&.between?(-180, 180)
-      return render json: { errors: { coordinates: [ "invalid" ] } }, status: :unprocessable_content
-    end
-
-    render json: { city: City.nearest_to(latitude:, longitude:).first!.name }
+    render json: { city: City.nearest_to(origin).first!.name }
   end
 end

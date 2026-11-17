@@ -31,7 +31,6 @@ test("finds nutritionists by the name of a service", async ({ page }) => {
   await expect(page.getByRole("main")).toContainText("Sports nutrition")
 })
 
-// Only the Meilisearch index forgives typos; the SQL fallback would find nobody.
 test("finds a nutritionist despite typos in the query", async ({ page }) => {
   await search(page, { query: "goncalvs", location: E2E_CITY })
 
@@ -40,6 +39,14 @@ test("finds a nutritionist despite typos in the query", async ({ page }) => {
   await search(page, { query: "sprts nutrition", location: E2E_CITY })
 
   await expect(resultNames(page)).toHaveText(["João Gonçalves"])
+})
+
+test("requires every query word and treats wildcard characters literally", async ({ page }) => {
+  await search(page, { query: "sports follow", location: E2E_CITY })
+  await expect(page.getByText("No nutritionists found")).toBeVisible()
+
+  await search(page, { query: "%", location: E2E_CITY })
+  await expect(page.getByText("No nutritionists found")).toBeVisible()
 })
 
 test("pages through the nutritionists in a city", async ({ page }) => {
@@ -67,6 +74,7 @@ test("searches Braga when no location is given", async ({ page }) => {
   await search(page, {})
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/ in Braga$/)
+  await expect(locationInput(page)).toHaveValue("Braga")
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0)
 })
 
@@ -78,20 +86,53 @@ test("falls back to Braga for an unknown location and says so", async ({ page })
 })
 
 test.describe("with location access", () => {
-  // Just outside Viana do Castelo, nearer it than any city the demo seeds use.
-  test.use({ permissions: ["geolocation"], geolocation: { latitude: 41.71, longitude: -8.8 } })
+  // On Viana do Castelo's Rua da Bandeira, where Marta Simões works.
+  test.use({ permissions: ["geolocation"], geolocation: { latitude: 41.6978, longitude: -8.8221 } })
 
-  test("fills in the nearest city and waits for the guest to search", async ({ page }) => {
-    await page.goto("/")
+  test("searches the nearest city, nearest first, keeping the city in the field", async ({ page }) => {
+    await page.goto("/?location=Porto")
     await page.getByRole("button", { name: "Use my location" }).click()
 
-    await expect(locationInput(page)).toHaveValue(E2E_CITY)
-    await expect(locationInput(page)).toBeFocused()
-    await expect(page).toHaveURL(/\/$/)
-
-    await page.getByRole("search").getByRole("button", { name: "Search" }).click()
-
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(`6 nutritionists in ${E2E_CITY}`)
+    await expect(locationInput(page)).toHaveValue(E2E_CITY)
+    await expect(page.getByRole("combobox", { name: "Sort by" })).toContainText("Distance")
+    await expect(resultNames(page)).toHaveText(["Marta Simões", "Tiago Brandão", "Rui Peixoto", "João Gonçalves", "Inês Araújo"])
+    await expect(page.getByRole("main").getByRole("listitem").filter({ hasText: "Tiago Brandão" })).toContainText("0.7 km away")
+
+    // Sofia Leal's practice has no coordinates, so she comes last, without a distance.
+    await page.getByRole("navigation", { name: "pagination" }).getByRole("link", { name: "Go to next page" }).click()
+
+    await expect(resultNames(page)).toHaveText(["Sofia Leal"])
+    await expect(page.getByRole("main")).not.toContainText("km away")
+    await expect(page).toHaveURL(/page=2&latitude=41\.698&longitude=-8\.822$/)
+  })
+
+  test("searches the typed query from the position, forgiving typos", async ({ page }) => {
+    await page.goto("/")
+    await page.getByRole("search").getByLabel("Nutritionist or service").fill("sprts nutrition")
+    await page.getByRole("button", { name: "Use my location" }).click()
+
+    await expect(resultNames(page).first()).toHaveText("João Gonçalves")
+    await page.getByRole("button", { name: "Schedule appointment with João Gonçalves" }).click()
+    await expect(page.getByRole("dialog").getByRole("combobox", { name: "Service" })).toContainText("Sports nutrition")
+  })
+
+  test("switches between relevance and distance", async ({ page }) => {
+    await search(page, { location: E2E_CITY })
+    const sort = page.getByRole("combobox", { name: "Sort by" })
+    await expect(sort).toContainText("Relevance")
+
+    await sort.click()
+    await page.getByRole("option", { name: "Distance" }).click()
+
+    await expect(resultNames(page).first()).toHaveText("Marta Simões")
+    await expect(locationInput(page)).toHaveValue(E2E_CITY)
+
+    await sort.click()
+    await page.getByRole("option", { name: "Relevance" }).click()
+
+    await expect(page).toHaveURL(/\?location=Viana\+do\+Castelo$/)
+    await expect(page.getByRole("main")).not.toContainText("km away")
   })
 })
 
