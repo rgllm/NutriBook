@@ -63,6 +63,7 @@ Backend commands require the development Compose stack to be running.
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:rollback` | Roll back the latest migration |
 | `pnpm db:seed` | Add missing demo records, rebuild the search index, and print the demo request URLs |
+| `pnpm demo:reset` | Erase development records and queued jobs, then restore the complete demo scenario |
 | `pnpm db:psql` | Open PostgreSQL against the development database |
 | `pnpm rails search:reindex` | Rebuild Meilisearch after manual data changes |
 | `pnpm check` | Run the backend and frontend checks and the end-to-end lint and typecheck, without Playwright |
@@ -74,6 +75,7 @@ Backend commands require the development Compose stack to be running.
 | `pnpm frontend:typecheck` | Generate Next.js types and run TypeScript checks |
 | `pnpm frontend:build` | Build the frontend for production |
 | `pnpm e2e` | Reset the isolated test stack and run Playwright |
+| `pnpm e2e:demo` | Reset the isolated test stack and test development-only demo links and reset behavior |
 | `pnpm e2e:ui` | Run the same end-to-end suite in Playwright UI mode |
 | `pnpm e2e:lint` / `pnpm e2e:typecheck` | Check the end-to-end test code |
 | `pnpm e2e:down` | Remove the end-to-end containers and their data volumes |
@@ -325,15 +327,23 @@ Try these flows after a fresh setup:
 | Empty results | <http://localhost:3000/?q=zzzznomatch&location=Braga> | Empty state with a way to clear the search |
 | Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
 | Replace a request | Book again with the same email, including with another nutritionist | Previous pending request disappears from its list |
-| Answer requests | The links `pnpm db:seed` prints | Pending cards with Accept and Reject actions |
+| Answer requests | Select **Demo inbox** on a nutritionist's search card in development | Pending cards with Accept and Reject actions |
 | Automatic rejection | Accept one of the seeded 10:00 requests | Both overlapping cards leave the list, and each guest gets an email |
-| Read answer emails | <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
+| Read answer emails | Select **Mailpit inbox** in the development footer, or open <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
 | Change language | Use the language selector above the header | Translated UI that persists across visits |
 
-Nutritionist IDs change when the database is reseeded, because PostgreSQL does
-not reset its sequences, so the pending-request pages have no fixed URL. The
-seeds end by printing them with the current IDs, and running `pnpm db:seed`
-again is safe whenever you need them:
+In development, search for Aline Moreira and select **Demo inbox** to try the
+four-request scenario. Search for Silas Saraiva to try an empty inbox. Each
+link uses the nutritionist's current database ID. The professional header link
+continues to open Nutrium.
+
+The footer labels the data as synthetic and links to Mailpit. These demo links
+appear with `pnpm dev` and are absent from production builds. For a custom
+Mailpit port, set the frontend's `MAILPIT_URL` to its browser-facing address,
+for example `MAILPIT_URL=http://localhost:8125 MAILPIT_PORT=8125 pnpm dev`.
+
+Nutritionist IDs can change after a full demo reset. Ordinary `pnpm db:seed`
+preserves existing IDs and safely prints the current request-page URLs:
 
 ```text
 Try the pending-requests page:
@@ -349,15 +359,36 @@ The list describes the seeded scenario. Requests you answer in the app stay
 answered, so the first page then shows fewer cards.
 
 `pnpm db:seed` adds missing demo records and preserves answered requests. It does
-not restore the original pending list. To erase development records and rebuild
-the demo data, stop the backend first so its job worker does not poll queue
-tables while they are reset:
+not restore the original pending list.
+
+### Reset the demo
+
+**This command erases all application records and queued jobs in the development
+database, including requests you created yourself.** It preserves the database
+schema and existing Mailpit messages. Use it only with synthetic development data.
+
+With the Docker services already running from `pnpm dev`, run:
 
 ```sh
-docker compose stop backend
-docker compose run --rm --no-deps backend bin/rails db:seed:replant
-docker compose up -d --wait backend
+pnpm demo:reset
 ```
+
+The command stops Rails and its job worker, replants the database, then restarts
+Rails and waits for its health check. Stopping the worker prevents it from
+polling queue tables during reset. Replanting clears old email jobs alongside
+the requests they reference. The seeds rebuild the search index and restore all
+30 nutritionists, their services, and Aline's four pending requests on the next
+Monday and Tuesday in Lisbon. Repeating the command restores the same scenario
+with current future dates. IDs may change.
+
+Return to search after reset and use the new **Demo inbox** links. A previously
+opened request URL may no longer exist. Historical Mailpit messages remain, so
+compare recipients and arrival times when testing another pass.
+
+If a reset fails, the command exits with an error and does not restart Rails.
+Fix the reported problem, ensure PostgreSQL, Mailpit, and Meilisearch are
+running, then rerun `pnpm demo:reset`. Do not disable Rails' protected-environment
+checks. The default `pnpm db:seed` behavior remains separate from this reset.
 
 ## Testing strategy
 
@@ -433,6 +464,7 @@ dependencies are missing. Then run:
 pnpm e2e:lint
 pnpm e2e:typecheck
 pnpm e2e
+pnpm e2e:demo
 ```
 
 Each run resets the separate Compose project `nutribook-e2e`, adds dedicated
@@ -446,6 +478,15 @@ Fixtures assign separate nutritionists to the flows, guests use unique emails,
 and test dates remain in the future. Do not run two suites against the same
 end-to-end stack at once. The suite builds into `frontend/.next-e2e`, so a
 local frontend development server can keep running during it.
+
+`pnpm e2e:demo` runs only the demo specs against `next dev`, including repeated
+reset, email delivery after reset, current-ID navigation, the empty inbox,
+Portuguese mobile layout, and recovery from a failed reset. It uses the same
+isolated Compose stack and output directory as `pnpm e2e`; run them sequentially.
+The production suite verifies that demo links are absent. To isolate concurrent
+worktrees, set `E2E_COMPOSE_PROJECT_NAME` and all three `E2E_*_PORT` overrides.
+Use that project name with `docker compose -p <name> -f compose.yaml -f
+e2e/compose.yaml down --volumes` when removing a custom test stack.
 
 Failures retain screenshots and traces in `e2e/test-results/`. Open the HTML
 report with:

@@ -110,6 +110,14 @@ The three custom sizes carry their line height, letter spacing, and weight (600)
 - **Pagination.** Left-aligned under the list. Previous and next are icon-only, and the current page is a `brand-soft` fill.
 - **Empty state.** A bordered white panel that says what was searched and offers to clear the query.
 
+In development only, a quiet underlined **Demo inbox** link sits below each
+card's two actions. It opens that nutritionist's current request URL. A footer
+uses the same content width and padding, a decorative top border, supporting
+text identifying synthetic data, and an underlined **Mailpit inbox** link.
+Both links have a 44px minimum target height and a visible focus outline.
+The footer stacks on mobile. Production builds omit these additions and retain
+the reference layout. The professional header link continues to open Nutrium.
+
 ## Appointment dialog
 
 - The title uses `font-heading text-subheading`, and the description names the nutritionist.

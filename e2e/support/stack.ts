@@ -9,6 +9,7 @@ export const MAILPIT_PORT = port("E2E_MAILPIT_PORT", 8125)
 export const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
 export const API_URL = `http://127.0.0.1:${BACKEND_PORT}`
 export const MAILPIT_URL = `http://127.0.0.1:${MAILPIT_PORT}`
+export const COMPOSE_PROJECT_NAME = process.env.E2E_COMPOSE_PROJECT_NAME ?? "nutribook-e2e"
 
 // The city of the nutritionists in fixtures/nutritionists.rb.
 export const E2E_CITY = "Viana do Castelo"

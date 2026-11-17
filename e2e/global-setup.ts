@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
-import { BACKEND_PORT, MAILPIT_PORT, MAILPIT_URL } from "./support/stack"
+import { BACKEND_PORT, COMPOSE_PROJECT_NAME, MAILPIT_PORT, MAILPIT_URL } from "./support/stack"
 
 const root = fileURLToPath(new URL("..", import.meta.url))
 const fixture = readFileSync(new URL("fixtures/nutritionists.rb", import.meta.url))
@@ -10,7 +10,7 @@ const fixture = readFileSync(new URL("fixtures/nutritionists.rb", import.meta.ur
 function compose(args: string[], input?: Buffer) {
   execFileSync(
     "docker",
-    ["compose", "-p", "nutribook-e2e", "-f", "compose.yaml", "-f", "e2e/compose.yaml", ...args],
+    ["compose", "-p", COMPOSE_PROJECT_NAME, "-f", "compose.yaml", "-f", "e2e/compose.yaml", ...args],
     {
       cwd: root,
       env: { ...process.env, BACKEND_PORT: String(BACKEND_PORT), MAILPIT_PORT: String(MAILPIT_PORT) },

@@ -125,5 +125,11 @@
     "title": "Page not found",
     "description": "This page does not exist. Check the address, or find a nutritionist from search.",
     "back": "Back to search"
+  },
+  "demo": {
+    "inbox": "Demo inbox",
+    "inboxLabel": "Demo inbox for {name}",
+    "notice": "Synthetic demo data. Open a nutritionist’s demo inbox from their search card.",
+    "mailpit": "Mailpit inbox"
   }
 }

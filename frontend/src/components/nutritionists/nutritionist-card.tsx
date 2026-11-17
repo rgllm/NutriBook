@@ -1,4 +1,5 @@
 import { UserRoundIcon, VideoIcon } from "lucide-react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -14,6 +15,7 @@ import type { Nutritionist } from "@/lib/api/nutritionists"
 
 export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist }) {
   const t = useTranslations("nutritionist")
+  const demo = useTranslations("demo")
 
   return (
     <Card>
@@ -56,6 +58,15 @@ export function NutritionistCard({ nutritionist }: { nutritionist: Nutritionist 
             <UserRoundIcon data-icon="inline-start" />
             {t("personalPage")}
           </Button>
+          {process.env.NODE_ENV === "development" && (
+            <Link
+              href={`/nutritionists/${nutritionist.id}/requests`}
+              aria-label={demo("inboxLabel", { name: nutritionist.name })}
+              className="inline-flex min-h-11 items-center justify-center rounded-full text-foreground underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              {demo("inbox")}
+            </Link>
+          )}
         </div>
       </CardContent>
     </Card>

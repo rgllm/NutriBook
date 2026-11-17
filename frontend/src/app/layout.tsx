@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server"
 import "./globals.css"
 
 import { Toaster } from "@/components/ui/sonner"
+import { DemoFooter } from "@/components/demo-footer"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>
           {children}
+          <DemoFooter />
           <Toaster position="bottom-center" />
         </NextIntlClientProvider>
       </body>

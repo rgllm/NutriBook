@@ -113,6 +113,7 @@ jobs:
       - run: pnpm --dir e2e lint
       - run: pnpm --dir e2e typecheck
       - run: pnpm e2e
+      - run: pnpm e2e:demo
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -125,5 +125,11 @@
     "title": "Página não encontrada",
     "description": "Esta página não existe. Verifique o endereço ou encontre um nutricionista na pesquisa.",
     "back": "Voltar à pesquisa"
+  },
+  "demo": {
+    "inbox": "Pedidos de demonstração",
+    "inboxLabel": "Pedidos de demonstração de {name}",
+    "notice": "Dados fictícios. Abra os pedidos de demonstração no cartão de cada nutricionista.",
+    "mailpit": "Caixa de correio Mailpit"
   }
 }

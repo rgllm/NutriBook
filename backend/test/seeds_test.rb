@@ -22,6 +22,30 @@ class SeedsTest < ActiveSupport::TestCase
     assert answered.reload.accepted?
   end
 
+  test "recreated demo requests use future Lisbon slots after time passes" do
+    existing_ids = AppointmentRequest.ids
+    load_seeds
+    demo = AppointmentRequest.where.not(id: existing_ids)
+    original_start = demo.minimum(:starts_at)
+    demo.delete_all
+
+    travel_to original_start + 3.months do
+      load_seeds
+      recreated = AppointmentRequest.where.not(id: existing_ids).order(:starts_at, :id)
+      monday = BookingSchedule::TIME_ZONE.today.next_occurring(:monday)
+
+      assert_equal [ "pending" ] * 4, recreated.pluck(:status)
+      assert_equal [
+        BookingSchedule.starts_at(monday.iso8601, "10:00"),
+        BookingSchedule.starts_at(monday.iso8601, "10:00"),
+        BookingSchedule.starts_at(monday.iso8601, "14:00"),
+        BookingSchedule.starts_at((monday + 1).iso8601, "09:00")
+      ], recreated.pluck(:starts_at)
+      assert recreated.all? { |request| request.starts_at.future? }
+      assert_equal [ 60, 30, 60, 30 ], recreated.map { |request| (request.ends_at - request.starts_at).to_i / 60 }
+    end
+  end
+
   test "reports what it seeded" do
     out, = capture_io { silence_warnings { Rails.application.load_seed } }
 
