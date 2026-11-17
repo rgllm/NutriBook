@@ -20,11 +20,24 @@ function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   )
 }
 
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="text-destructive">
+      *
+    </span>
+  )
+}
+
 function FieldLegend({
   className,
   variant = "legend",
+  required,
+  children,
   ...props
-}: React.ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
+}: React.ComponentProps<"legend"> & {
+  variant?: "legend" | "label"
+  required?: boolean
+}) {
   return (
     <legend
       data-slot="field-legend"
@@ -34,7 +47,10 @@ function FieldLegend({
         className
       )}
       {...props}
-    />
+    >
+      {children}
+      {required && <> <RequiredMark /></>}
+    </legend>
   )
 }
 
@@ -100,8 +116,10 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
 
 function FieldLabel({
   className,
+  required,
+  children,
   ...props
-}: React.ComponentProps<typeof Label>) {
+}: React.ComponentProps<typeof Label> & { required?: boolean }) {
   return (
     <Label
       data-slot="field-label"
@@ -111,7 +129,10 @@ function FieldLabel({
         className
       )}
       {...props}
-    />
+    >
+      {children}
+      {required && <RequiredMark />}
+    </Label>
   )
 }
 

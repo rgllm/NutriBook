@@ -42,11 +42,13 @@
     "services": "Services",
     "personalPage": "Personal page",
     "scheduleAppointment": "Schedule appointment",
+    "scheduleAppointmentWith": "Schedule appointment with {name}",
     "close": "Close"
   },
   "appointment": {
     "title": "Schedule an appointment",
     "description": "With {name}, {title, select, Dietitian {dietitian} other {nutritionist}} in {city}. They will confirm your request by email.",
+    "requiredHint": "Fields marked * are required.",
     "name": "Your name",
     "email": "Email",
     "service": "Service",

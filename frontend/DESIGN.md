@@ -69,6 +69,7 @@ Rules:
 - Supporting text is graphite (5.5:1 on white, 5.35:1 on the canvas). Do not go lighter for text.
 - `line` is decorative. A control whose edge must be visible uses `line-strong` (3.6:1 on white).
 - The focus ring reaches 6.33:1 on white. On the green band it would drop to about 1.2:1, so the header sets `--ring` to white (5.13:1) for everything inside it.
+- Forced-colors mode drops the box-shadow ring, so `globals.css` draws a `CanvasText` outline on `:focus-visible` there.
 - No gradients. Every fill is a flat colour.
 - A state such as pending, accepted, or rejected always carries a text label or an icon. Colour alone does not carry it.
 - The palette is light only. `dark:` is bound to a `.dark` class that is never set, so the `dark:` classes in generated components stay inert.
@@ -79,14 +80,14 @@ Headings use Outfit and everything else uses Inter. Both load through `next/font
 
 | Utility | Size | Line height | Use |
 |---------|------|-------------|-----|
-| `text-display` | 40px | 1.05 | Reserved for a page that needs a hero line |
-| `text-heading` | 30px | 1.15 | Page title (`h1`) |
-| `text-subheading` | 20px | 1.3 | Card and dialog titles, the logo |
+| `text-display` | 2.5rem (40px) | 1.05 | Reserved for a page that needs a hero line |
+| `text-heading` | 1.875rem (30px) | 1.15 | Page title (`h1`) |
+| `text-subheading` | 1.25rem (20px) | 1.3 | Card and dialog titles, the logo |
 | `text-base` | 16px | Tailwind default | Inputs and emphasised body |
 | `text-sm` | 14px | Tailwind default | Body, labels, buttons |
 | `text-xs` | 12px | Tailwind default | Tags and captions |
 
-The three custom sizes carry their line height, letter spacing, and weight (600), so they need no `leading-*`, `tracking-*`, or `font-*` weight class. Pair them with `font-heading`. Inputs stay at 16px so mobile browsers do not zoom on focus.
+The three custom sizes carry their line height, letter spacing, and weight (600), so they need no `leading-*`, `tracking-*`, or `font-*` weight class. Pair them with `font-heading`. Inputs stay at 16px so mobile browsers do not zoom on focus. Sizes are in `rem` so they follow the reader's browser font size.
 
 ## Layout and shape
 

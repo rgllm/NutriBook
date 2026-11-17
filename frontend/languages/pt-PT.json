@@ -42,11 +42,13 @@
     "services": "Serviços",
     "personalPage": "Página pessoal",
     "scheduleAppointment": "Marcar consulta",
+    "scheduleAppointmentWith": "Marcar consulta com {name}",
     "close": "Fechar"
   },
   "appointment": {
     "title": "Marcar uma consulta",
     "description": "Com {name}, {title, select, Dietitian {dietista} other {nutricionista}} em {city}. A confirmação do pedido chega por email.",
+    "requiredHint": "Os campos marcados com * são obrigatórios.",
     "name": "O seu nome",
     "email": "Email",
     "service": "Serviço",
