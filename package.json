@@ -1,8 +1,5 @@
 {
   "name": "NutriBook",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
     "dev": "docker compose up --build -d --wait && pnpm --dir frontend dev",
     "stop": "docker compose down",
@@ -29,9 +26,6 @@
     "e2e:lint": "pnpm --dir e2e lint",
     "e2e:typecheck": "pnpm --dir e2e typecheck"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -40,5 +34,6 @@
     }
   },
   "packageManager": "pnpm@12.18.0",
-  "type": "module"
+  "type": "module",
+  "private": true
 }
