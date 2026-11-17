@@ -221,6 +221,13 @@ starting at 11:00. Indexes on `services(city, nutritionist_id)` and
 `appointment_requests(nutritionist_id, status, starts_at)` support city searches
 and pending lists. Solid Queue uses additional tables in the same database.
 
+## Retry a failed answer email
+
+An answer email that still fails after its retries stays in Solid Queue. In
+`pnpm backend:console`, `SolidQueue::FailedExecution` lists those jobs with
+their errors, and `failed.retry` queues one again once the cause is fixed. The
+job skips the send if `answer_notified_at` is already set.
+
 ## Main decisions
 
 - **Render every page per request, without Cache Components.** The locale
@@ -280,10 +287,11 @@ and pending lists. Solid Queue uses additional tables in the same database.
   database, so a rollback also removes the jobs. A Redis-backed queue would
   need an outbox to give the same atomic enqueue guarantee.
 - **Make delivery retries safe where possible.** The email job locks the request
-  and checks `answer_notified_at` before sending. Transient failures retry up
-  to ten attempts. A crash after SMTP accepts an email but before the marker
-  is saved can still duplicate delivery. A provider with an idempotency key
-  would be needed to close that gap.
+  and checks `answer_notified_at` before sending. Transient network and SMTP
+  errors retry with backoff, up to ten attempts. Permanent SMTP, authentication,
+  and TLS errors fail at once. A crash after SMTP accepts an email but before
+  the marker is saved can still duplicate delivery. A provider with an
+  idempotency key would be needed to close that gap.
 - **Book in the practice's time zone.** Guests submit a date and time as picked.
   Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
   permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
