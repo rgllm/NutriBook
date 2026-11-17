@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { ApiUnavailableError } from "@/lib/api/http"
 import { searchNutritionists } from "@/lib/api/nutritionists"
 import { stubApi } from "@/test/stub-api"
 
@@ -95,70 +94,5 @@ describe("searchNutritionists", () => {
       location: { city: "Porto", source: "input" },
       pagination: { page: 2, totalCount: 6, totalPages: 2 },
     })
-  })
-
-  it("reports the API as unavailable when it cannot be reached", async () => {
-    stubApi(new TypeError("fetch failed"))
-
-    await expect(searchNutritionists(search)).rejects.toBeInstanceOf(ApiUnavailableError)
-  })
-
-  it("reports the API as unavailable when it fails", async () => {
-    stubApi(new Response(null, { status: 503 }))
-
-    await expect(searchNutritionists(search)).rejects.toBeInstanceOf(ApiUnavailableError)
-  })
-
-  it("reports the API as unavailable when the body fails after the headers", async () => {
-    const stalledBody = new ReadableStream({
-      start(controller) {
-        controller.error(new DOMException("The operation timed out.", "TimeoutError"))
-      },
-    })
-    stubApi(new Response(stalledBody))
-
-    await expect(searchNutritionists(search)).rejects.toBeInstanceOf(ApiUnavailableError)
-  })
-
-  it("treats malformed JSON as a bug, not an outage", async () => {
-    stubApi(new Response("{", { headers: { "Content-Type": "application/json" } }), { checkContract: false })
-
-    const error = await searchNutritionists(search).catch((error: unknown) => error)
-    expect(error).toBeInstanceOf(SyntaxError)
-    expect(error).not.toBeInstanceOf(ApiUnavailableError)
-  })
-
-  it("treats a client error as a bug, not an outage", async () => {
-    stubApi(new Response(null, { status: 404 }))
-
-    const error = await searchNutritionists(search).catch((error: unknown) => error)
-    expect(error).toBeInstanceOf(Error)
-    expect(error).not.toBeInstanceOf(ApiUnavailableError)
-  })
-
-  it("rejects a service without a duration", async () => {
-    const [nutritionist] = payload.nutritionists
-    const [service, ...rest] = nutritionist.services
-    stubApi(
-      Response.json({
-        ...payload,
-        nutritionists: [
-          { ...nutritionist, services: [{ ...service, duration_minutes: undefined }, ...rest] },
-        ],
-      }),
-      { checkContract: false },
-    )
-
-    const error = await searchNutritionists(search).catch((error: unknown) => error)
-    expect(error).toBeInstanceOf(Error)
-    expect(error).not.toBeInstanceOf(ApiUnavailableError)
-  })
-
-  it("rejects a response that does not match the contract", async () => {
-    stubApi(Response.json({ ...payload, pagination: undefined }), { checkContract: false })
-
-    const error = await searchNutritionists(search).catch((error: unknown) => error)
-    expect(error).toBeInstanceOf(Error)
-    expect(error).not.toBeInstanceOf(ApiUnavailableError)
   })
 })

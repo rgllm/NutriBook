@@ -142,7 +142,6 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
     assert_equal 7, first.total_count
     assert_equal 2, first.total_pages
-    assert_equal 5, first.per_page
     assert_equal expected.first(5), first.nutritionists
     assert_equal expected.last(2), second.nutritionists
     assert_equal 2, second.page

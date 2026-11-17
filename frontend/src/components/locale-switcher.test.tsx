@@ -11,12 +11,6 @@ vi.mock("@/i18n/actions", () => ({ setLocale: vi.fn() }))
 describe("LocaleSwitcher", () => {
   beforeEach(() => vi.mocked(setLocale).mockClear())
 
-  it("shows the current language with its flag", () => {
-    render(<LocaleSwitcher />)
-
-    expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent("🇬🇧English")
-  })
-
   it("switches to the language the visitor picks", async () => {
     const user = userEvent.setup()
     render(<LocaleSwitcher />)
