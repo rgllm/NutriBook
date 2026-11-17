@@ -172,7 +172,6 @@ end
 
 puts "Seeded #{Nutritionist.count} nutritionists, #{Service.count} services, " \
   "and #{AppointmentRequest.pending.count} pending requests."
-puts NutritionistIndex.refresh
 
 # IDs move when the database is reseeded, so print where to try the
 # pending-requests page. This describes the seeded scenario: answering requests

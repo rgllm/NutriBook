@@ -40,6 +40,16 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
     assert_equal({ "city" => "Braga", "source" => "input" }, response.parsed_body["location"])
   end
 
+  test "typed and nearby searches tolerate service typos" do
+    get nutritionists_url, params: { q: "sprts nutrition", location: "Porto" }
+    assert_schema_conform(200)
+    assert_equal [ "Ana Ferreira" ], response.parsed_body["nutritionists"].pluck("name")
+
+    post nearby_nutritionists_url, params: { q: "sprts nutrition", latitude: 41.55, longitude: -8.426 }, as: :json
+    assert_schema_conform(200)
+    assert_equal services(:ana_sports_nutrition).id, response.parsed_body["nutritionists"].sole["nearest_service_id"]
+  end
+
   test "without a location it searches Braga by default" do
     get nutritionists_url
 

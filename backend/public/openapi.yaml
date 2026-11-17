@@ -16,10 +16,13 @@ paths:
       summary: Search nutritionists
       description: >
         Searches nutritionist names and the names of services offered at the
-        location. A typed query uses Meilisearch, which tolerates typos and
-        ranks by relevance. Without a query, or when Meilisearch is unavailable,
-        SQL matches part of a name, ignoring case and accents, and orders by
-        name. A blank or unknown location searches Braga, and `location.source`
+        location. PostgreSQL matches every query word within the same service or
+        nutritionist name by literal substring or
+        trigram word similarity, ignoring case and common Latin accents. Words
+        shorter than three characters or containing punctuation match literally.
+        Exact names rank before prefixes, then similarity, with name and ID
+        breaking ties. Without a query, results order by name and ID. A blank or
+        unknown location searches Braga, and `location.source`
         says which case applied. Results contain five nutritionists per page. A
         page past the end returns the last page, and a missing or invalid page
         returns the first. Each nutritionist lists only the services offered at

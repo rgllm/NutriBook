@@ -31,7 +31,6 @@ test("finds nutritionists by the name of a service", async ({ page }) => {
   await expect(page.getByRole("main")).toContainText("Sports nutrition")
 })
 
-// Only the Meilisearch index forgives typos; the SQL fallback would find nobody.
 test("finds a nutritionist despite typos in the query", async ({ page }) => {
   await search(page, { query: "goncalvs", location: E2E_CITY })
 
@@ -40,6 +39,14 @@ test("finds a nutritionist despite typos in the query", async ({ page }) => {
   await search(page, { query: "sprts nutrition", location: E2E_CITY })
 
   await expect(resultNames(page)).toHaveText(["João Gonçalves"])
+})
+
+test("requires every query word and treats wildcard characters literally", async ({ page }) => {
+  await search(page, { query: "sports follow", location: E2E_CITY })
+  await expect(page.getByText("No nutritionists found")).toBeVisible()
+
+  await search(page, { query: "%", location: E2E_CITY })
+  await expect(page.getByText("No nutritionists found")).toBeVisible()
 })
 
 test("pages through the nutritionists in a city", async ({ page }) => {
@@ -103,6 +110,8 @@ test.describe("with location access", () => {
     await page.getByRole("button", { name: "Use my location" }).click()
 
     await expect(resultNames(page).first()).toHaveText("João Gonçalves")
+    await page.getByRole("button", { name: "Schedule appointment with João Gonçalves" }).click()
+    await expect(page.getByRole("dialog").getByRole("combobox", { name: "Service" })).toContainText("Sports nutrition")
   })
 
   test("lists a practice without coordinates without a distance", async ({ page }) => {

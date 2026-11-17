@@ -16,7 +16,7 @@ request automatically rejects every pending request that overlaps it.
 With nvm, run `nvm install` in the repository root to install and select this
 Node version.
 
-Ruby, PostgreSQL, Meilisearch, and Mailpit run in Docker. You do not need to
+Ruby, PostgreSQL, and Mailpit run in Docker. You do not need to
 install them on your machine. The frontend runs locally with pnpm.
 
 ### Run the project
@@ -30,9 +30,9 @@ pnpm --dir frontend install --frozen-lockfile
 pnpm dev
 ```
 
-On a fresh database, the backend creates the schema, loads the demo seeds, and
-builds the search index before it serves requests, so there is no separate seed
-step. Open [the application](http://localhost:3000).
+On a fresh database, the backend creates the schema and loads the demo seeds
+before serving requests, so there is no separate seed step.
+Open [the application](http://localhost:3000).
 
 | Service | Address | Purpose |
 | --- | --- | --- |
@@ -41,8 +41,8 @@ step. Open [the application](http://localhost:3000).
 | API documentation | <http://localhost:3001/docs> | Swagger |
 | Mailpit | <http://localhost:8025> | Inbox for development emails |
 
-PostgreSQL and Meilisearch are available only inside the Compose network.
-Docker volumes preserve their data across restarts. The credentials in
+PostgreSQL is available only inside the Compose network.
+A Docker volume preserves its data across restarts. The credentials in
 `compose.yaml` are for local development.
 
 The frontend runs on port 3000 and calls the Rails API at
@@ -62,9 +62,8 @@ Backend commands require the development Compose stack to be running.
 | `pnpm rails <args>` | Run a Rails command inside the backend container |
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:rollback` | Roll back the latest migration |
-| `pnpm db:seed` | Add missing demo records, rebuild the search index, and print the demo request URLs |
+| `pnpm db:seed` | Add missing demo records and print the demo request URLs |
 | `pnpm db:psql` | Open PostgreSQL against the development database |
-| `pnpm rails search:reindex` | Rebuild Meilisearch after manual data changes |
 | `pnpm check` | Run the backend and frontend checks and the end-to-end lint and typecheck, without Playwright |
 | `pnpm test` | Run the Rails and frontend test suites |
 | `pnpm backend:test` | Run the Rails test suite |
@@ -91,22 +90,24 @@ and small plain Ruby objects:
 | `AppointmentRequest` | Submit, supersede, accept, and reject requests inside transactions |
 | `BookingSchedule` | Interpret Lisbon dates and enforce bookable start times |
 | `NutritionistSearch` | Resolve locations, match, order by relevance, name, or distance, and paginate |
-| `NutritionistIndex` | Build one Meilisearch document per service and rank typed queries |
 | `Coordinates` | Parse the guest's position and measure great-circle distances in SQL |
 | `AppointmentAnswerEmailJob` | Send answer emails with retries and a delivery marker |
 | `AppointmentRequestMailer` | Render accepted and rejected emails, including overlap rejections |
 
-Meilisearch indexes one document per service, with its nutritionist's name and
-city, so a typed query says which services match and where. Rails resolves the
-city first, retrieves every matching service ID in ranked order, then groups,
-orders, and pages the nutritionists in PostgreSQL. Searches without a query
-use SQL directly.
-If Meilisearch is unavailable, times out, or has no index, Rails falls back to
-case- and accent-insensitive SQL matching. The fallback has no typo tolerance
-and orders by name, while Meilisearch ranks by relevance first, so the two can
-return different results.
-The index rebuilds at startup and after seeding because the app has no interface
-for editing nutritionists or services.
+PostgreSQL handles every search through one matching service relation. Each query
+word must match within the same service or nutritionist name, by literal
+substring or trigram word similarity above 0.4. Words shorter than three characters and words with
+punctuation use literal matching only. This tolerates examples such as `goncalvs`
+and `sprts nutrition`, but is not equivalent to a dedicated search engine.
+Without an origin, exact names rank first, then prefixes, then word similarity,
+with name and ID breaking ties. With an origin, distance takes precedence.
+
+Stored generated `search_name` columns normalize Unicode to NFC, lowercase, and
+fold the listed Portuguese and common Latin accented letters with `translate`.
+GIN trigram indexes support substring and word matching. These built-in immutable
+expressions survive schema loading and update on every database write, including
+seeds and direct SQL. This is deliberate Latin accent folding, not universal
+transliteration. The connection config fixes the word similarity threshold.
 
 Active Job uses Solid Queue in the same PostgreSQL database as the domain data.
 The worker runs inside Puma in development. Answering a request stores its state
@@ -309,9 +310,9 @@ job skips the send if `answer_notified_at` is already set.
   permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
   13:00. These opening hours are a project assumption. Rails rejects requests
   overlapping an accepted appointment, accounting for service duration.
-- **Use Meilisearch for typed search and keep SQL available.** Typo tolerance
-  and prefix matching improve discovery while PostgreSQL stays authoritative.
-  Meilisearch matches word prefixes rather than arbitrary substrings.
+- **Keep search in PostgreSQL.** Generated normalized names and `pg_trgm`
+  provide word-level typo tolerance without a separate index or refresh job.
+  All query words must match, so a common word alone does not select a service.
 - **Default unknown locations to Braga.** Blank locations also use Braga.
   Matching ignores case and accents, and `Lisbon` and `Oporto` are aliases.
 - **Sort by real distance from the guest.** "Use my location" searches every
@@ -417,7 +418,7 @@ docker compose up -d --wait backend
 Tests focus on observable behavior and the backend invariants. PostgreSQL tests
 use the real database engine so locks, foreign keys, and exclusion constraints
 are exercised. Frontend tests stub the HTTP boundary. End-to-end tests connect
-the real browser, frontend, API, database, search engine, job worker, and inbox.
+the real browser, frontend, API, database, job worker, and inbox.
 
 ### What is covered
 
@@ -435,9 +436,8 @@ the real browser, frontend, API, database, search engine, job worker, and inbox.
 Contract checks cover the calls these tests make, not every possible request.
 Fixtures that are malformed on purpose opt out with `checkContract: false`.
 
-Backend search tests use a stand-in index. The end-to-end suite exercises the
-real Meilisearch service, including typo tolerance. Playwright checks Lisbon
-booking behavior from a browser configured in Los Angeles.
+Backend and end-to-end search tests exercise PostgreSQL, including typo tolerance.
+Playwright checks Lisbon booking behavior from a browser configured in Los Angeles.
 
 ### Run backend and frontend checks
 

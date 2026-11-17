@@ -1,22 +1,6 @@
 require "test_helper"
 
 class NutritionistSearchTest < ActiveSupport::TestCase
-  # Answers like NutritionistIndex with canned service ids, and records each call.
-  class FakeIndex
-    attr_reader :calls
-
-    def initialize(ids = [], unavailable: false)
-      @ids, @unavailable, @calls = ids, unavailable, []
-    end
-
-    def search(query, city: nil)
-      @calls << { query:, city: }
-      raise NutritionistIndex::Unavailable, "connection refused" if @unavailable
-
-      @ids
-    end
-  end
-
   # Rua do Souto, Braga, where Mary Jane works. Ana Ferreira is in Porto.
   BRAGA = Coordinates.new(latitude: 41.5506, longitude: -8.4260)
   PORTO = Coordinates.new(latitude: 41.1504, longitude: -8.6056)
@@ -186,54 +170,48 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     assert_equal one, queries
   end
 
-  test "a typed query is ranked by the search index in the resolved city" do
-    other = create_nutritionist("Ana Jane", location: "Braga")
-    index = FakeIndex.new([ other.services.first.id, services(:mary_follow_up).id, services(:mary_first_appointment).id ])
+  test "typos match individual words without matching only a common word" do
+    joao = create_nutritionist("João Gonçalves", location: "Braga", services: [ "Sports nutrition" ])
+    create_nutritionist("Rui Gomes", location: "Braga", services: [ "Clinical nutrition" ])
 
-    search = search(query: " jnae ", location: "braga", index:)
-
-    assert_equal [ other, nutritionists(:mary_jane) ], search.nutritionists
-    assert_equal 2, search.total_count
-    assert_equal [ { query: "jnae", city: "Braga" } ], index.calls
+    assert_equal [ joao ], search(query: "goncalvs").nutritionists
+    assert_equal [ joao ], search(query: "sprts nutrition").nutritionists
+    assert_equal services(:mary_first_appointment).id, search(query: "first appointment", origin: BRAGA).nearest_service_ids[nutritionists(:mary_jane).id]
   end
 
-  test "ranked results list only the services at the searched location" do
-    mary = nutritionists(:mary_jane)
-    weight_loss = mary.services.create!(name: "Weight loss", price: 30, city: "Porto", street_address: "Rua de Cedofeita 9", duration_minutes: 45)
+  test "exact and prefix matches precede fuzzy matches with stable ties" do
+    fuzzy = create_nutritionist("A Sports specialist", location: "Braga", services: [ "Sports nutrition" ])
+    prefix = create_nutritionist("Z Sports specialist", location: "Braga", services: [ "Sprts nutrition plus" ])
+    exact = create_nutritionist("Z Exact specialist", location: "Braga", services: [ "Sprts nutrition" ])
 
-    porto = search(query: "mary", location: "Porto", index: FakeIndex.new([ weight_loss.id ])).nutritionists
-
-    assert_equal [ "Weight loss" ], porto.first.services.map(&:name)
+    assert_equal [ exact, prefix, fuzzy ], search(query: "sprts nutrition").nutritionists
   end
 
-  test "a ranked page past the end returns the last page" do
-    created = 5.times.map { |i| create_nutritionist("Nutri #{i}", location: "Braga") }
-    index = FakeIndex.new([ *created, nutritionists(:mary_jane) ].map { |nutritionist| nutritionist.services.first.id })
+  test "short words and punctuation match literally" do
+    underscore = create_nutritionist("A_B", location: "Braga")
 
-    search = search(query: "nutri", location: "Braga", page: "9", index:)
-
-    assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
-    assert_equal 2, search.page
+    assert_equal [ underscore ], search(query: "_").nutritionists
+    assert_equal [ underscore ], search(query: "a_").nutritionists
+    assert_empty search(query: "x").nutritionists
+    assert_empty search(query: "sprts %").nutritionists
   end
 
-  test "an id the index still holds but PostgreSQL no longer does is left out" do
-    index = FakeIndex.new([ 0, services(:mary_first_appointment).id ])
+  test "database writes refresh normalized search names without callbacks" do
+    joao = create_nutritionist("Other name", location: "Braga", services: [ "Other service" ])
+    joao.update_columns(name: "JOA\u0303O Gonçalves")
+    joao.services.first.update_columns(name: "NUTRIÇÃO desportiva")
 
-    assert_equal [ nutritionists(:mary_jane) ], search(query: "mary", location: "Braga", index:).nutritionists
+    assert_equal [ joao ], search(query: "joão").nutritionists
+    assert_equal [ joao ], search(query: "nutricao").nutritionists
   end
 
-  test "without a query the index is not asked" do
-    index = FakeIndex.new
+  test "typed results paginate after grouping nutritionists" do
+    created = 6.times.map { |i| create_nutritionist("Nutri #{i}", location: "Braga", services: [ "Sports nutrition", "Sports nutrition plus" ]) }
+    result = search(query: "sports nutrition", page: "99")
 
-    assert_equal [ nutritionists(:mary_jane) ], search(location: "Braga", index:).nutritionists
-    assert_empty index.calls
-  end
-
-  test "when the index is unavailable the query is matched in SQL" do
-    search = search(query: "jane", location: "Braga", index: FakeIndex.new(unavailable: true))
-
-    assert_equal [ nutritionists(:mary_jane) ], search.nutritionists
-    assert_equal 1, search.total_count
+    assert_equal 6, result.total_count
+    assert_equal 2, result.page
+    assert_equal [ created.last ], result.nutritionists
   end
 
   test "a city search reports no distances or nearest services" do
@@ -279,13 +257,23 @@ class NutritionistSearchTest < ActiveSupport::TestCase
     assert_equal services(:ana_sports_nutrition).id, search.nearest_service_ids[nutritionists(:ana_ferreira).id]
   end
 
-  test "nearby, a typed query keeps the index's typo tolerance" do
-    index = FakeIndex.new([ services(:mary_first_appointment).id, services(:ana_sports_nutrition).id ])
+  test "nearby uses typo tolerant matching and selects the matching booking service" do
+    result = search(query: "sprts nutrition", origin: PORTO)
 
-    search = search(query: "sprts", origin: PORTO, index:)
+    assert_equal [ nutritionists(:ana_ferreira) ], result.nutritionists
+    assert_equal services(:ana_sports_nutrition).id, result.nearest_service_ids[nutritionists(:ana_ferreira).id]
+  end
 
-    assert_equal [ nutritionists(:ana_ferreira), nutritionists(:mary_jane) ], search.nutritionists
-    assert_equal [ { query: "sprts", city: nil } ], index.calls
+  test "distance takes precedence over exact query relevance" do
+    mary = nutritionists(:mary_jane)
+    sports = mary.services.create!(name: "Sports nutrition", price: 30, city: "Braga", street_address: "Rua do Souto 45",
+      duration_minutes: 45, latitude: BRAGA.latitude, longitude: BRAGA.longitude)
+    services(:ana_sports_nutrition).update!(name: "Sprts nutrition")
+
+    result = search(query: "sprts nutrition", origin: BRAGA)
+
+    assert_equal [ mary, nutritionists(:ana_ferreira) ], result.nutritionists
+    assert_equal sports.id, result.nearest_service_ids[mary.id]
   end
 
   test "nearby, a typed location stays a filter and is ordered by distance" do
@@ -332,8 +320,8 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   private
 
-  def search(query: nil, location: nil, page: nil, origin: nil, index: nil)
-    NutritionistSearch.new(query:, location:, page:, origin:, index:)
+  def search(query: nil, location: nil, page: nil, origin: nil)
+    NutritionistSearch.new(query:, location:, page:, origin:)
   end
 
   def create_nutritionist(name, location:, services: [ "First appointment" ], coordinates: [ nil, nil ])

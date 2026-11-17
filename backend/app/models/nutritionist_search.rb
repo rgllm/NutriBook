@@ -9,13 +9,10 @@ class NutritionistSearch
 
   # The guest's position, the origin, orders results nearest first. Without a
   # typed location it also lifts the city filter, so every city takes part.
-  # A typed query is matched by the search index when there is one, and by
-  # PostgreSQL without one or when the index cannot answer.
-  def initialize(query:, location:, page:, origin: nil, index: NutritionistIndex.configured)
-    @query = query.to_s.squish
+  def initialize(query:, location:, page:, origin: nil)
+    @query = query.to_s.unicode_normalize(:nfc).downcase.tr("áàâãäåéèêëíìîïóòôõöúùûüçñýÿ", "aaaaaaeeeeiiiiooooouuuucnyy").squish
     @requested_page = Integer(page.to_s, 10, exception: false).to_i.clamp(1..)
     @origin = origin
-    @index = index
     @location, @location_source = resolve_location(location)
   end
 
@@ -71,17 +68,17 @@ class NutritionistSearch
     end
   end
 
-  # Every matching nutritionist's id, in result order: nearest first with an
-  # origin, then the index's relevance, then name.
   def ranked_ids
     return nearest_service_ids.keys if @origin
 
-    if indexed_ids
-      nutritionist_of = matching_services.pluck(:id, :nutritionist_id).to_h
-      return indexed_ids.filter_map { |id| nutritionist_of[id] }.uniq
+    matches = matching_services.joins(:nutritionist)
+    if @query.empty?
+      matches.distinct.order("nutritionists.name", "nutritionists.id").pluck("nutritionists.name", "nutritionists.id").map(&:last)
+    else
+      matches.group("nutritionists.id", "nutritionists.name")
+        .order(Arel.sql("MIN(#{match_priority})"), Arel.sql("MAX(#{similarity}) DESC"), "nutritionists.name", "nutritionists.id")
+        .pluck("nutritionists.id")
     end
-
-    Nutritionist.where(id: matching_services.select(:nutritionist_id)).order(:name, :id).ids
   end
 
   # DISTINCT ON keeps each nutritionist's nearest matching service. Services
@@ -97,27 +94,39 @@ class NutritionistSearch
       .pluck(:id, "nearest.service_id").to_h
   end
 
-  # The services a query matches: by the index's ids, or by part of the
-  # nutritionist's or the service's name. A name match counts every service.
   def matching_services
-    services = services_in_location
-    return services if @query.empty?
-    return services.where(id: indexed_ids) if indexed_ids
-
-    services.joins(:nutritionist).where(
-      "unaccent(nutritionists.name) ILIKE unaccent(:pattern) OR unaccent(services.name) ILIKE unaccent(:pattern)",
-      pattern: "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
-    )
+    @matching_services ||= begin
+      services = services_in_location
+      if @query.empty?
+        services
+      else
+        services.where(id: matching_names(services).select(:id))
+          .or(services.where(nutritionist_id: matching_names(Nutritionist.all).select(:id)))
+      end
+    end
   end
 
-  # The index's matches for a typed query, or nil to match in SQL.
-  def indexed_ids
-    return @indexed_ids if defined?(@indexed_ids)
+  def matching_names(relation)
+    @query.split.reduce(relation) do |scope, word|
+      predicate = "search_name LIKE :pattern"
+      predicate += " OR search_name %> :word" if word.length >= 3 && word.match?(/\A[[:alnum:]]+\z/)
+      scope.where(predicate, pattern: "%#{ActiveRecord::Base.sanitize_sql_like(word)}%", word:)
+    end
+  end
 
-    @indexed_ids = (@index.search(@query, city: location) if @index && @query.present?)
-  rescue NutritionistIndex::Unavailable => error
-    Rails.logger.warn("Search index unavailable, matching in SQL: #{error.message}")
-    @indexed_ids = nil
+  def match_priority
+    ActiveRecord::Base.sanitize_sql_array([
+      "CASE WHEN nutritionists.search_name = :query OR services.search_name = :query THEN 0 " \
+        "WHEN nutritionists.search_name LIKE :prefix OR services.search_name LIKE :prefix THEN 1 ELSE 2 END",
+      { query: @query, prefix: "#{ActiveRecord::Base.sanitize_sql_like(@query)}%" }
+    ])
+  end
+
+  def similarity
+    ActiveRecord::Base.sanitize_sql_array([
+      "GREATEST(word_similarity(:query, nutritionists.search_name), word_similarity(:query, services.search_name))",
+      { query: @query }
+    ])
   end
 
   # Each card lists the nutritionist's services at the location, or everywhere

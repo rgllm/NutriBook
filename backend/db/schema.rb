@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_18_100100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_100200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_trgm"
   enable_extension "unaccent"
 
   create_table "appointment_requests", force: :cascade do |t|
@@ -40,7 +41,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_100100) do
     t.check_constraint "char_length(guest_email::text) <= 254", name: "appointment_requests_guest_email_length"
     t.check_constraint "char_length(guest_name::text) <= 100", name: "appointment_requests_guest_name_length"
     t.check_constraint "ends_at > starts_at", name: "appointment_requests_ends_after_starts"
-    t.check_constraint "language::text = ANY (ARRAY['en-GB'::character varying::text, 'pt-PT'::character varying::text])", name: "appointment_requests_language_allowed"
+    t.check_constraint "language::text = ANY (ARRAY['en-GB'::character varying, 'pt-PT'::character varying]::text[])", name: "appointment_requests_language_allowed"
     t.check_constraint "rejection_reason::text = ANY (ARRAY['declined'::character varying::text, 'overlap'::character varying::text])", name: "appointment_requests_rejection_reason_allowed"
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'superseded'::character varying::text])", name: "appointment_requests_status_allowed"
     t.exclusion_constraint "nutritionist_id WITH =, tsrange(starts_at, ends_at) WITH &&", where: "(status)::text = 'accepted'::text", using: :gist, name: "appointment_requests_no_overlapping_accepted"
@@ -60,7 +61,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_100100) do
     t.boolean "offers_online", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.virtual "search_name", type: :text, as: "translate(lower(NORMALIZE(name, NFC)), 'áàâãäåéèêëíìîïóòôõöúùûüçñýÿ'::text, 'aaaaaaeeeeiiiiooooouuuucnyy'::text)", stored: true
     t.index ["license_number"], name: "index_nutritionists_on_license_number", unique: true
+    t.index ["search_name"], name: "index_nutritionists_on_search_name", opclass: :gin_trgm_ops, using: :gin
     t.check_constraint "title::text = ANY (ARRAY['Dietitian'::character varying::text, 'Nutritionist'::character varying::text])", name: "nutritionists_title_allowed"
   end
 
@@ -75,8 +78,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_100100) do
     t.string "street_address", null: false
     t.decimal "latitude", precision: 8, scale: 6
     t.decimal "longitude", precision: 9, scale: 6
+    t.virtual "search_name", type: :text, as: "translate(lower(NORMALIZE(name, NFC)), 'áàâãäåéèêëíìîïóòôõöúùûüçñýÿ'::text, 'aaaaaaeeeeiiiiooooouuuucnyy'::text)", stored: true
     t.index ["city", "nutritionist_id"], name: "index_services_on_city_and_nutritionist_id"
     t.index ["nutritionist_id", "id"], name: "index_services_on_nutritionist_id_and_id", unique: true
+    t.index ["search_name"], name: "index_services_on_search_name", opclass: :gin_trgm_ops, using: :gin
     t.check_constraint "(latitude IS NULL) = (longitude IS NULL)", name: "services_coordinates_paired"
     t.check_constraint "duration_minutes > 0", name: "services_duration_positive"
     t.check_constraint "latitude >= '-90'::integer::numeric AND latitude <= 90::numeric", name: "services_latitude_in_range"
