@@ -90,15 +90,17 @@ and small plain Ruby objects:
 | --- | --- |
 | `AppointmentRequest` | Submit, supersede, accept, and reject requests inside transactions |
 | `BookingSchedule` | Interpret Lisbon dates and enforce bookable start times |
-| `NutritionistSearch` | Resolve locations, search, preload services, and paginate results |
-| `NutritionistIndex` | Build Meilisearch documents and rank typed queries |
-| `City` | Find the nearest city with available services |
+| `NutritionistSearch` | Resolve locations, match, order by relevance, name, or distance, and paginate |
+| `NutritionistIndex` | Build one Meilisearch document per service and rank typed queries |
+| `Coordinates` | Parse the guest's position and measure great-circle distances in SQL |
 | `AppointmentAnswerEmailJob` | Send answer emails with retries and a delivery marker |
 | `AppointmentRequestMailer` | Render accepted and rejected emails, including overlap rejections |
 
-Meilisearch indexes one document per nutritionist and city, including the service
-names offered there. Rails resolves the city first, retrieves ranked IDs, then
-loads the records from PostgreSQL. Searches without a query use SQL directly.
+Meilisearch indexes one document per service, with its nutritionist's name and
+city, so a typed query says which services match and where. Rails resolves the
+city first, retrieves every matching service ID in ranked order, then groups,
+orders, and pages the nutritionists in PostgreSQL. Searches without a query
+use SQL directly.
 If Meilisearch is unavailable, times out, or has no index, Rails falls back to
 case- and accent-insensitive SQL matching. The fallback has no typo tolerance
 and orders by name, while Meilisearch ranks by relevance first, so the two can
@@ -118,7 +120,7 @@ The main endpoints are:
 | --- | --- | --- |
 | GET | `/nutritionists?q=&location=&page=` | Search nutritionists, five per page |
 | GET | `/locations` | List cities with services and the default city |
-| GET | `/locations/nearest?latitude=&longitude=` | Resolve coordinates to the nearest supported city |
+| POST | `/nutritionists/nearby` | The same search from the guest's position, nearest first |
 | POST | `/appointment_requests` | Submit a guest's appointment request |
 | GET | `/nutritionists/:id/appointment_requests` | List a nutritionist's pending requests |
 | PATCH | `/nutritionists/:nutritionist_id/appointment_requests/:id` | Accept or reject a request |
@@ -164,8 +166,6 @@ erDiagram
     cities {
         bigint id PK
         string name UK
-        decimal latitude
-        decimal longitude
     }
     nutritionists {
         bigint id PK
@@ -182,6 +182,8 @@ erDiagram
         string city FK
         string street_address
         integer duration_minutes
+        decimal latitude
+        decimal longitude
     }
     appointment_requests {
         bigint id PK
@@ -203,7 +205,9 @@ erDiagram
 Guests have no account or separate table. Their name and normalized email live
 on each request. Service addresses allow a nutritionist to work in several
 cities or at several practices in one city. `services.city` references the
-unique city name. Prices use fixed-precision decimals.
+unique city name. Prices use fixed-precision decimals. A service's latitude
+and longitude are its practice's, and are both unknown until the address is
+geocoded.
 
 A request stores its UTC start and end times. The end time captures the service's
 duration at booking, so later duration changes do not move an existing request.
@@ -219,12 +223,15 @@ PostgreSQL backs the domain rules with constraints:
 | A request's service belongs to its nutritionist | Composite foreign key to `services(nutritionist_id, id)` |
 | Valid state and answer metadata | Checks on status, rejection reason, answer timestamp, and notification timestamp |
 | Answer emails in a supported language | Check that `language` is `en-GB` or `pt-PT` |
-| Valid sizes and values | Checks on guest input lengths, positive durations, nonnegative prices, ordered times, and coordinate ranges |
+| Valid sizes and values | Checks on guest input lengths, positive durations, nonnegative prices, and ordered times |
+| A practice is either located or not | Checks that a service's latitude and longitude are both set or both null, and on the globe |
 
 Time ranges are half-open. An appointment ending at 11:00 does not overlap one
 starting at 11:00. Indexes on `services(city, nutritionist_id)` and
 `appointment_requests(nutritionist_id, status, starts_at)` support city searches
-and pending lists. Solid Queue uses additional tables in the same database.
+and pending lists. Distance has no index: it is computed for each matching
+service, which costs less than a spatial index at a few hundred services. A
+large catalogue would add PostGIS or `earthdistance` with a radius filter. Solid Queue uses additional tables in the same database.
 
 ## Retry a failed answer email
 
@@ -307,9 +314,23 @@ job skips the send if `answer_notified_at` is already set.
   Meilisearch matches word prefixes rather than arbitrary substrings.
 - **Default unknown locations to Braga.** Blank locations also use Braga.
   Matching ignores case and accents, and `Lisbon` and `Oporto` are aliases.
-  Geolocation rounds coordinates before sending them and fills the nearest
-  supported city. The guest still presses Search. It does not sort results
-  by distance to individual practices.
+- **Sort by real distance from the guest.** "Use my location" searches every
+  city, nearest first, with no radius, and keeps the typed query and its typo
+  tolerance. Each nutritionist appears once, ranked by their nearest service
+  that matches the query. The card lists that practice first with its
+  distance, and booking starts from that service. A typed city stays a filter,
+  still ordered by distance. Services without coordinates come last, without
+  a distance.
+- **Keep the guest's position out of URLs and storage.** The browser rounds it
+  to three decimals, about 100 m, and keeps it only in memory, so a refresh,
+  a shared link, or any navigation drops it. A Server Action sends it to Rails
+  in a POST body; Rails filters it from the logs and never stores it.
+  Pagination in this mode reruns the search instead of following its link.
+- **Geocode demo addresses once.** The seeds use public streets and squares,
+  resolved with OpenStreetMap's Nominatim and committed with their
+  coordinates, so setup and tests need no network or API key. A
+  service-editing interface would geocode on save and leave the coordinates
+  unknown when the match is not precise.
 - **Keep translations where they are rendered.** The frontend's English and
   Portuguese share typed message keys. Answer emails are rendered by Rails, so
   their copy lives in `backend/config/locales/en-GB.yml` and `pt-PT.yml`, which
@@ -336,8 +357,9 @@ access boundary before any public deployment with real data.
 [The seeds](backend/db/seeds.rb) create 30 nutritionists across Braga, Porto,
 Lisboa, Guimarães, Coimbra, Leiria, Aveiro, and Faro. Services have different
 prices and durations, including First appointment, Follow-up, and specialist
-consultations. Names and prices use a fixed Faker seed, and addresses are
-fictional.
+consultations. Names and prices use a fixed Faker seed. The nutritionists are
+fictional; their practices are public streets and squares in each city, with
+real coordinates.
 
 Braga has eight nutritionists for pagination. Three also offer services in
 Porto, and one works at two Braga addresses. The first seeded nutritionist has
@@ -351,6 +373,7 @@ Try these flows after a fresh setup:
 | Default location | <http://localhost:3000> | Braga results and pagination |
 | Service search | <http://localhost:3000/?q=first&location=Braga> | Nutritionists offering First appointment in Braga |
 | Another city | <http://localhost:3000/?location=Leiria> | Leiria results |
+| Search near you | Select the crosshair in the location field and allow location access | Nutritionists from every city, nearest first, with distances |
 | Unknown city | <http://localhost:3000/?location=Mars> | Braga results with a fallback notice |
 | Empty results | <http://localhost:3000/?q=zzzznomatch&location=Braga> | Empty state with a way to clear the search |
 | Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
@@ -369,9 +392,9 @@ again is safe whenever you need them:
 ```text
 Try the pending-requests page:
 - Aline Moreira, with 4 seeded requests: http://localhost:3000/nutritionists/242/requests
-  - Accepting Danilo Santos also rejects Nataniel Batista's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
-  - Hugo Estéves and Eduarda Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
-- Silas Saraiva, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
+  - Accepting Alessandro Carvalho also rejects Fábio Carvalho's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
+  - Hugo Oliveira and Lucas Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
+- Heitor Pereira, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
 - An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the not-found page.
 ```
 
