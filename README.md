@@ -127,6 +127,10 @@ Next.js App Router pages fetch Rails data in Server Components. The server-only
 API client in `frontend/src/lib/api/` validates responses with Zod, converts
 snake_case keys to camelCase, and parses decimal prices. Requests use
 `cache: "no-store"` and a five-second timeout, so appointment lists stay fresh.
+The location directory is the exception. `cachedLocations()` caches its parsed
+result with `"use cache"` and `cacheLife("hours")`, which starts a background
+refresh on the first request after an hour. The cache lives in each server
+process. Restart the frontend after reseeding to see new cities immediately.
 
 Search state lives in `q`, `location`, and `page` URL parameters. The search
 form submits with `next/form`, which makes results shareable and supports GET
@@ -223,6 +227,18 @@ and pending lists. Solid Queue uses additional tables in the same database.
 
 ## Main decisions
 
+- **Use Cache Components for the location directory.** The city list changes
+  only when services change; searches and pending lists still fetch fresh data.
+  `partialPrefetching: true` enables the matching navigation behavior. Leaving
+  it unset with Cache Components enabled produces a Next.js warning.
+  The locale cookie determines `<html lang>` before a shell can render, so the
+  root layout exports `instant = false` to disable instant-navigation and
+  static-shell validation. This export does not force dynamic rendering.
+  The cookie read does. Suspense still streams page data.
+- **Let request pages handle missing nutritionists.** Malformed and unknown IDs
+  show the not-found page with `noindex`. Because the page shell streams before
+  the missing ID is resolved, the HTTP status remains 200, a soft 404. There is
+  no proxy that duplicates backend ID validation to change the status code.
 - **Keep business rules in Rails.** The UI renders API results and translates
   field error codes. Backend validation protects every caller, including
   callers that bypass the form.
@@ -341,8 +357,7 @@ Try the pending-requests page:
   - Accepting Danilo Santos also rejects Nataniel Batista's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
   - Hugo Estéves and Eduarda Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
 - Silas Saraiva, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
-- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the 404 page.
-- A malformed ID: http://localhost:3000/nutritionists/1abc/requests returns a real 404.
+- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the not-found page.
 ```
 
 The list describes the seeded scenario. Requests you answer in the app stay

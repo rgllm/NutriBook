@@ -152,6 +152,5 @@ puts <<~GUIDE
     - Accepting #{booked} also rejects #{overlapping}'s request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
     - #{free.to_sentence} don't overlap anyone, so accepting or rejecting either one removes only that card.
   - #{idle.name}, with no requests: #{requests_url.(idle.id)} shows the empty state.
-  - An ID with no nutritionist: #{requests_url.([ 999_999, Nutritionist.maximum(:id) + 1 ].max)} shows the 404 page.
-  - A malformed ID: #{requests_url.("1abc")} returns a real 404.
+  - An ID with no nutritionist: #{requests_url.([ 999_999, Nutritionist.maximum(:id) + 1 ].max)} shows the not-found page.
 GUIDE
