@@ -22,13 +22,11 @@ export function SearchForm({
   location = "",
   near = null,
   locations,
-  disabled = false,
 }: {
   query?: string
   location?: string
   near?: Position | null
   locations?: Locations
-  disabled?: boolean
 }) {
   const t = useTranslations("search")
 
@@ -50,8 +48,6 @@ export function SearchForm({
       role="search"
       className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start"
     >
-      {/* `contents` keeps the fields in the form's grid. */}
-      <fieldset disabled={disabled} className="contents">
       <Field>
         <FieldLabel htmlFor="search-query" className="sr-only">
           {t("queryLabel")}
@@ -75,7 +71,8 @@ export function SearchForm({
             name="location"
             list={locations && "known-cities"}
             autoComplete="address-level2"
-            defaultValue={location}
+            // A blank location searches the default city, so the field shows it.
+            defaultValue={location || locations?.default}
             placeholder={t("locationPlaceholder")}
           />
           <InputGroupAddon align="inline-end">
@@ -100,7 +97,6 @@ export function SearchForm({
       <Button type="submit" variant="brand-soft" size="lg" className="sm:px-10">
         {t("submit")}
       </Button>
-      </fieldset>
     </Form>
   )
 }

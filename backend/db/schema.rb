@@ -41,7 +41,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_100200) do
     t.check_constraint "char_length(guest_email::text) <= 254", name: "appointment_requests_guest_email_length"
     t.check_constraint "char_length(guest_name::text) <= 100", name: "appointment_requests_guest_name_length"
     t.check_constraint "ends_at > starts_at", name: "appointment_requests_ends_after_starts"
-    t.check_constraint "language::text = ANY (ARRAY['en-GB'::character varying, 'pt-PT'::character varying]::text[])", name: "appointment_requests_language_allowed"
+    t.check_constraint "language::text = ANY (ARRAY['en-GB'::character varying::text, 'pt-PT'::character varying::text])", name: "appointment_requests_language_allowed"
     t.check_constraint "rejection_reason::text = ANY (ARRAY['declined'::character varying::text, 'overlap'::character varying::text])", name: "appointment_requests_rejection_reason_allowed"
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'superseded'::character varying::text])", name: "appointment_requests_status_allowed"
     t.exclusion_constraint "nutritionist_id WITH =, tsrange(starts_at, ends_at) WITH &&", where: "(status)::text = 'accepted'::text", using: :gist, name: "appointment_requests_no_overlapping_accepted"

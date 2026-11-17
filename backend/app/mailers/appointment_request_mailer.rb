@@ -36,7 +36,6 @@ class AppointmentRequestMailer < ApplicationMailer
     email_address_with_name(appointment_request.guest_email, appointment_request.guest_name)
   end
 
-  # Guests book in Portuguese wall-clock time, so the email uses it too.
   def appointment_time
     starts_at, ends_at = appointment_request.values_at(:starts_at, :ends_at).map { |time| time.in_time_zone(BookingSchedule::TIME_ZONE) }
     t("appointment_request_mailer.appointment_time",

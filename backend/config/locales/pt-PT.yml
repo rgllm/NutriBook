@@ -20,6 +20,5 @@ pt-PT:
       body: "%{nutritionist} aceitou o seu pedido de consulta. Até breve."
     rejected:
       subject: "O seu pedido de consulta com %{nutritionist} não foi aceite"
-      declined: "%{nutritionist} não pode aceitar este pedido de consulta."
-      overlap: "%{nutritionist} aceitou outra consulta à mesma hora, por isso esta hora já não está disponível."
+      declined: "%{nutritionist} não aceitou este pedido de consulta."
       request_again: Pode pedir outra hora no NutriBook.

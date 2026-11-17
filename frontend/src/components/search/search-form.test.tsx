@@ -43,12 +43,6 @@ describe("SearchForm", () => {
     for (const control of controls()) expect(control).toBeEnabled()
   })
 
-  it("takes no input while disabled", () => {
-    render(<SearchForm disabled />)
-
-    for (const control of controls()) expect(control).toBeDisabled()
-  })
-
   it("searches the default city when the location is left blank, and shows it", async () => {
     render(<SearchForm locations={{ locations: ["Braga", "Porto"], default: "Braga" }} />)
     const form = screen.getByRole("search") as HTMLFormElement

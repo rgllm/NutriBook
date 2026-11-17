@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "NutriBook · Find a nutritionist",
+    "title": "NutriBook - Find a nutritionist",
     "description": "Search nutritionists by name, service, and location, and request an appointment.",
-    "requestsTitle": "NutriBook · Pending requests"
+    "requestsTitle": "NutriBook - Pending requests"
   },
   "siteHeader": {
     "forProfessionals": "Are you a nutrition professional? Get to know our software",

@@ -45,7 +45,7 @@ paths:
           example: follow
         - name: location
           in: query
-          description: City to search. `Lisbon` and `Oporto` are accepted as aliases.
+          description: City to search. Case and accents are ignored.
           schema:
             type: string
           example: Braga

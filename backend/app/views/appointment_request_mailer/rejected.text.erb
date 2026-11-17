@@ -1,6 +1,6 @@
 <%= t("appointment_request_mailer.greeting", name: appointment_request.guest_name) %>
 
-<%= t(appointment_request.rejection_overlap? ? ".overlap" : ".declined", nutritionist: nutritionist_name) %>
+<%= t(".declined", nutritionist: nutritionist_name) %>
 
 <%= render "details" -%>
 

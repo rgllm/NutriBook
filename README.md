@@ -314,7 +314,7 @@ job skips the send if `answer_notified_at` is already set.
   provide word-level typo tolerance without a separate index or refresh job.
   All query words must match, so a common word alone does not select a service.
 - **Default unknown locations to Braga.** Blank locations also use Braga.
-  Matching ignores case and accents, and `Lisbon` and `Oporto` are aliases.
+  Matching ignores case and accents.
 - **Sort by real distance from the guest, within the city.** The city is
   always a filter and always shows in the location field. A "Sort by" select
   beside the results switches between relevance and distance. Distance asks
