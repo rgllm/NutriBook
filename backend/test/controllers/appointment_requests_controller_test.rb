@@ -125,6 +125,18 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
     }, response.parsed_body)
   end
 
+  test "books on the half hour, in winter and in summer" do
+    post appointment_requests_url, params: request_params(time: "10:30"), as: :json
+
+    assert_schema_conform(201)
+    assert_equal [ "2026-12-07T10:30:00.000Z", "2026-12-07T11:30:00.000Z" ], response.parsed_body.values_at("starts_at", "ends_at")
+
+    post appointment_requests_url, params: request_params(guest_email: "summer@example.com", date: "2027-07-05", time: "17:30"), as: :json
+
+    assert_schema_conform(201)
+    assert_equal "2027-07-05T16:30:00.000Z", response.parsed_body["starts_at"]
+  end
+
   test "stores the language the guest booked in" do
     post appointment_requests_url, params: request_params(language: "pt-PT"), as: :json
 
@@ -171,6 +183,13 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
 
   test "a time outside the schedule is reported on the start time" do
     post appointment_requests_url, params: request_params(date: "2026-12-06"), as: :json
+
+    assert_schema_conform(422)
+    assert_equal({ "starts_at" => [ "not_a_slot" ] }, response.parsed_body["errors"])
+  end
+
+  test "a time between half hours is reported on the start time" do
+    post appointment_requests_url, params: request_params(time: "10:15"), as: :json
 
     assert_schema_conform(422)
     assert_equal({ "starts_at" => [ "not_a_slot" ] }, response.parsed_body["errors"])

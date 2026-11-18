@@ -3,7 +3,7 @@
 const PRACTICE_TIME_ZONE = "Europe/Lisbon"
 
 export type IsoDay = `${number}-${number}-${number}`
-export type Slot = `${number}:00`
+export type Slot = `${number}:${"00" | "30"}`
 
 const isoDay = new Intl.DateTimeFormat("en-CA", { timeZone: PRACTICE_TIME_ZONE })
 const utcOffset = new Intl.DateTimeFormat("en-US", {

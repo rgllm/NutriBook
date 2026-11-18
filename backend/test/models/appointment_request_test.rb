@@ -129,9 +129,14 @@ class AppointmentRequestTest < ActiveSupport::TestCase
   end
 
   test "a new request must start on a bookable slot" do
+    assert build_request(starts_at: Time.utc(2026, 12, 3, 10, 30)).valid?, "half past"
+
     {
-      "off the hour" => Time.utc(2026, 12, 3, 10, 30),
+      "between slots" => Time.utc(2026, 12, 3, 10, 15),
+      "a second past a slot" => Time.utc(2026, 12, 3, 10, 30, 1),
       "lunch hour" => Time.utc(2026, 12, 3, 13, 0),
+      "half past lunch" => Time.utc(2026, 12, 3, 13, 30),
+      "after the last start" => Time.utc(2026, 12, 3, 18, 30),
       "before opening" => Time.utc(2026, 12, 3, 8, 0),
       "Sunday" => Time.utc(2026, 12, 6, 10, 0)
     }.each do |label, starts_at|
@@ -148,7 +153,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
 
     assert_not request.valid?
     assert_equal [ :taken ], request.error_codes[:starts_at]
-    assert build_request(starts_at: Time.utc(2026, 12, 1, 15, 0)).valid?
+    assert build_request(starts_at: Time.utc(2026, 12, 1, 14, 30)).valid?, "starts as it ends"
   end
 
   test "accepting rejects the nutritionist's overlapping pending requests" do
@@ -168,6 +173,18 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert_equal Time.current, overlapping.answered_at
     assert adjacent.reload.pending?
     assert other_nutritionist.reload.pending?
+  end
+
+  test "accepting a half-past request rejects by duration and keeps adjacent requests pending" do
+    follow_up = services(:mary_follow_up).id
+    request = submit_request(guest_email: "half.past@example.com", service_id: follow_up, starts_at: Time.utc(2026, 12, 1, 12, 30))
+    overlapping = submit_request(guest_email: "overlap@example.com", starts_at: Time.utc(2026, 12, 1, 12, 0))
+    before = submit_request(guest_email: "before@example.com", service_id: follow_up, starts_at: Time.utc(2026, 12, 1, 12, 0))
+
+    assert_equal [ overlapping.id ], request.answer!("accepted")
+
+    assert overlapping.reload.rejection_overlap?
+    assert before.reload.pending?
   end
 
   test "rejecting leaves overlapping requests pending" do

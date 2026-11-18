@@ -15,30 +15,48 @@ class BookingScheduleTest < ActiveSupport::TestCase
     end
   end
 
-  test "slots are on the hour, Monday to Saturday, from 9:00 to 18:00 without 13:00" do
-    monday = Date.new(2026, 12, 7)
-    open_hours = BookingSchedule::SLOT_HOURS.map { |hour| format("%02d:00", hour) }
+  test "slots start every half hour, Monday to Saturday, from 09:00 to 18:00 without the lunch hour" do
+    every_quarter_hour = (0...24 * 60).step(15).map { |minutes| format("%02d:%02d", *minutes.divmod(60)) }
+    open_times = %w[
+      09:00 09:30 10:00 10:30 11:00 11:30 12:00 12:30
+      14:00 14:30 15:00 15:30 16:00 16:30 17:00 17:30 18:00
+    ]
 
-    open_hours.each { |time| assert slot?(monday, time), time }
-    assert slot?(monday + 5, "10:00"), "Saturday"
-    assert_not slot?(monday + 6, "10:00"), "Sunday"
-    [ "08:00", "13:00", "19:00", "10:30" ].each { |time| assert_not slot?(monday, time), time }
+    [ Date.new(2026, 12, 7), Date.new(2027, 7, 5) ].each do |monday|
+      assert_equal open_times, every_quarter_hour.select { |time| slot?(monday, time) }, monday
+      assert slot?(monday + 5, "10:30"), "Saturday"
+      assert_not slot?(monday + 6, "10:30"), "Sunday"
+    end
+    assert_not BookingSchedule.slot?(lisbon("2026-12-07", "10:30") + 1.second), "a second past the slot"
   end
 
   test "the slots an appointment would overlap depend on its duration, and adjacent slots stay free" do
     # Busy from 10:00 to 11:00 on a Monday in Lisbon.
     busy = [ lisbon("2026-12-07", "10:00"), lisbon("2026-12-07", "11:00") ]
 
-    assert_equal [ lisbon("2026-12-07", "10:00") ], BookingSchedule.slots_overlapping(*busy, 30.minutes)
-    assert_equal [ lisbon("2026-12-07", "10:00") ], BookingSchedule.slots_overlapping(*busy, 60.minutes)
-    assert_equal [ "09:00", "10:00" ].map { |time| lisbon("2026-12-07", time) }, BookingSchedule.slots_overlapping(*busy, 90.minutes)
+    {
+      30 => %w[10:00 10:30],
+      45 => %w[09:30 10:00 10:30],
+      60 => %w[09:30 10:00 10:30],
+      90 => %w[09:00 09:30 10:00 10:30]
+    }.each do |minutes, times|
+      assert_equal times.map { |time| lisbon("2026-12-07", time) }, BookingSchedule.slots_overlapping(*busy, minutes.minutes), minutes
+    end
+  end
+
+  test "an appointment starting on the half hour blocks the slots it overlaps and frees the next one" do
+    busy = [ lisbon("2026-12-07", "10:30"), lisbon("2026-12-07", "11:15") ]
+
+    assert_equal %w[10:30 11:00].map { |time| lisbon("2026-12-07", time) }, BookingSchedule.slots_overlapping(*busy, 30.minutes)
+    assert_equal %w[10:00 10:30 11:00].map { |time| lisbon("2026-12-07", time) }, BookingSchedule.slots_overlapping(*busy, 60.minutes)
   end
 
   test "overlapped slots skip the lunch hour and follow summer time" do
     # Busy from 12:30 to 14:30 on a Monday in July, when Lisbon is UTC+1.
     busy = [ lisbon("2027-07-05", "12:30"), lisbon("2027-07-05", "14:30") ]
 
-    assert_equal [ Time.utc(2027, 7, 5, 11), Time.utc(2027, 7, 5, 13) ], BookingSchedule.slots_overlapping(*busy, 60.minutes)
+    assert_equal [ Time.utc(2027, 7, 5, 11), Time.utc(2027, 7, 5, 11, 30), Time.utc(2027, 7, 5, 13) ],
+      BookingSchedule.slots_overlapping(*busy, 60.minutes)
   end
 
   private

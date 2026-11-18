@@ -358,9 +358,11 @@ job skips the send if `answer_notified_at` is already set.
   provider that deduplicates on an idempotency key.
 - **Book in the practice's time zone.** Guests submit a date and time as picked.
   Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
-  permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
-  13:00. These opening hours are a project assumption. Rails rejects requests
-  overlapping an accepted appointment, accounting for service duration.
+  permits future starts Monday to Saturday, every half hour from 09:00 to 18:00
+  except 13:00 and 13:30. These opening hours are a project assumption. Rails
+  rejects requests overlapping an accepted appointment, accounting for service
+  duration. Durations that are not a multiple of 30 minutes can leave a short
+  gap no start time fills.
 - **Keep search in PostgreSQL.** Generated normalized names and `pg_trgm`
   provide word-level typo tolerance without a separate index or refresh job.
   All query words must match, so a common word alone does not select a service.

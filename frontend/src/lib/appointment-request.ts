@@ -4,16 +4,23 @@ import type { CreatedAppointmentRequest } from "@/lib/api/appointment-requests"
 import type { ValidationErrors } from "@/lib/api/http"
 import { PRACTICE_TIME_ZONE } from "@/i18n/formats"
 
-// Mirrors BookingSchedule::SLOT_HOURS in the backend, which enforces them.
 export const TIME_SLOTS = [
   "09:00",
+  "09:30",
   "10:00",
+  "10:30",
   "11:00",
+  "11:30",
   "12:00",
+  "12:30",
   "14:00",
+  "14:30",
   "15:00",
+  "15:30",
   "16:00",
+  "16:30",
   "17:00",
+  "17:30",
   "18:00",
 ] as const
 

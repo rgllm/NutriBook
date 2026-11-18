@@ -69,6 +69,7 @@ describe("booking in Lisbon time from another zone", () => {
 
     expect(toBookingDay(practiceToday(lisbonAfternoon))).toBe("2026-11-16")
     expect(isSlotInPast(monday, "16:00", lisbonAfternoon)).toBe(true)
+    expect(isSlotInPast(monday, "16:30", lisbonAfternoon)).toBe(true)
     expect(isSlotInPast(monday, "17:00", lisbonAfternoon)).toBe(false)
   })
 
@@ -77,7 +78,7 @@ describe("booking in Lisbon time from another zone", () => {
     const now = new Date("2027-03-29T09:30:00Z")
     const monday = new Date(2027, 2, 29)
 
-    expect(isSlotInPast(monday, "10:00", now)).toBe(true)
+    expect(isSlotInPast(monday, "10:30", now)).toBe(true)
     expect(isSlotInPast(monday, "11:00", now)).toBe(false)
   })
 
