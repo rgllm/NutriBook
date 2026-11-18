@@ -329,12 +329,24 @@ job skips the send if `answer_notified_at` is already set.
 - **Queue email in the answer transaction.** Solid Queue shares the domain
   database, so a rollback also removes the jobs. A Redis-backed queue would
   need an outbox to give the same atomic enqueue guarantee.
-- **Make delivery retries safe where possible.** The email job locks the request
-  and checks `answer_notified_at` before sending. Transient network and SMTP
-  errors retry with backoff, up to ten attempts. Permanent SMTP, authentication,
-  and TLS errors fail at once. A crash after SMTP accepts an email but before
-  the marker is saved can still duplicate delivery. A provider with an
-  idempotency key would be needed to close that gap.
+- **Guarantee the email job, not its delivery.** The answer and its email jobs
+  commit atomically, so every answer has a job. The job does not guarantee
+  that the guest receives a copy, nor only one. Transient network and SMTP
+  errors retry with backoff, up to ten attempts. Permanent SMTP,
+  authentication, and TLS errors fail at once. Either way, a job can end in
+  failed executions without delivering anything (see
+  [Retry a failed answer email](#retry-a-failed-answer-email)). The job locks
+  the request and skips it if `answer_notified_at` is set. It sends while
+  holding the database row lock, but SMTP does not take part in the database
+  transaction and cannot be rolled back. The marker is written after the send
+  returns and commits when the transaction completes. A job that runs after
+  that commit sends nothing. Any failure after the SMTP server
+  accepts the message and before the marker commits rolls the marker back, so
+  the email can arrive twice. That includes a crash and a lost database
+  commit. It also includes a timeout or reset while reading the server's reply
+  to the message or to `QUIT`. Those look transient, so the job retries them
+  automatically and each retry can send another copy. Closing that gap needs a
+  provider that deduplicates on an idempotency key.
 - **Book in the practice's time zone.** Guests submit a date and time as picked.
   Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
   permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except
