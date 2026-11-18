@@ -4,7 +4,7 @@ Nutribook is a web application where guests find a nutritionist and request an a
 
 ## Demo
 
-![NutriBook demonstration](docs/demo.gif)
+<!-- Add the demo GIF using GitHub’s Markdown editor. -->
 
 ## How to run it
 
