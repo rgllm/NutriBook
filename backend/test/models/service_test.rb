@@ -78,7 +78,7 @@ class ServiceTest < ActiveSupport::TestCase
       starts_at: Time.utc(2026, 12, 1, 16), status: "accepted", answered_at: Time.current)
 
     [ @service, services(:mary_follow_up) ].each do |service|
-      refused = BookingSchedule::SLOT_HOURS.map { |hour| Time.utc(2026, 12, 1, hour) }.select do |starts_at|
+      refused = BookingSchedule::SLOT_TIMES.map { |time| BookingSchedule.starts_at("2026-12-01", time) }.select do |starts_at|
         request = AppointmentRequest.new(service:, guest_name: "Joana", guest_email: "joana@example.com", starts_at:)
         request.validate
         request.error_codes[:starts_at] == [ :taken ]
@@ -86,7 +86,7 @@ class ServiceTest < ActiveSupport::TestCase
 
       assert_equal refused, service.taken_slots, service.name
     end
-    assert_equal [ 14, 16 ].map { |hour| Time.utc(2026, 12, 1, hour) }, @service.taken_slots
+    assert_equal [ [ 14, 0 ], [ 15, 30 ], [ 16, 0 ], [ 16, 30 ] ].map { |hour, minute| Time.utc(2026, 12, 1, hour, minute) }, @service.taken_slots
   end
 
   test "taken slots leave out the past, other nutritionists, and requests that were not accepted" do

@@ -44,17 +44,17 @@ test("a guest requests an appointment and the nutritionist sees it", async ({ pa
 
   await expect(dialog.getByRole("button", { name: calendarDay(monday) })).toBeDisabled()
   await dialog.getByRole("button", { name: calendarDay(tuesday) }).click()
-  await expect(dialog.getByRole("button", { name: "12:00", exact: true })).toBeDisabled()
-  await dialog.getByRole("button", { name: "14:00", exact: true }).click()
+  await expect(dialog.getByRole("button", { name: "12:30", exact: true })).toBeDisabled()
+  await dialog.getByRole("button", { name: "14:30", exact: true }).click()
   await dialog.getByRole("button", { name: "Request appointment" }).click()
 
   await expect(dialog).toHaveAccessibleName("Appointment requested")
-  await expect(dialog).toContainText(`Follow-up on ${spokenDay(tuesday)} at 14:00`)
+  await expect(dialog).toContainText(`Follow-up on ${spokenDay(tuesday)} at 14:30`)
   await expect(dialog).toContainText(guest.email)
 
   await page.goto(`/nutritionists/${nutritionist.id}/requests`)
   const request = pendingRequest(page, guest)
   await expect(request).toContainText("Follow-up")
   await expect(request).toContainText(guest.email)
-  await expect(request).toContainText("14:00–14:30")
+  await expect(request).toContainText("14:30–15:00")
 })

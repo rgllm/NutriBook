@@ -185,6 +185,10 @@ describe("AppointmentForm", () => {
 
   describe("times the nutritionist has already accepted", () => {
     const MONDAY = /Monday, 23 November 2026/
+    const OPEN_TIMES = [
+      "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
+      "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00",
+    ]
     const editing: EditingState = { status: "editing", errors: {}, values: { name: "", email: "" } }
     const withTaken = (takenSlots: string[]) => ({
       ...nutritionist,
@@ -198,14 +202,26 @@ describe("AppointmentForm", () => {
       </Dialog>
     )
 
-    it("strikes out a taken time and keeps the times around it open", async () => {
+    it("offers a start every half hour", async () => {
       const user = userEvent.setup()
-      render(formWith(["2026-11-23 10:00"]))
+      render(formWith([]))
+
+      await user.click(screen.getByRole("button", { name: MONDAY }))
+
+      const times = screen.getAllByRole("button", { name: /^\d{2}:\d{2}$/ })
+      expect(times.map((button) => button.textContent)).toEqual(OPEN_TIMES)
+      for (const button of times) expect(button).toBeEnabled()
+    })
+
+    it("strikes out taken times and keeps the times around them open", async () => {
+      const user = userEvent.setup()
+      render(formWith(["2026-11-23 10:00", "2026-11-23 10:30"]))
 
       await user.click(screen.getByRole("button", { name: MONDAY }))
 
       expect(screen.getByRole("button", { name: "10:00, already booked" })).toBeDisabled()
-      expect(screen.getByRole("button", { name: "09:00" })).toBeEnabled()
+      expect(screen.getByRole("button", { name: "10:30, already booked" })).toBeDisabled()
+      expect(screen.getByRole("button", { name: "09:30" })).toBeEnabled()
       expect(screen.getByRole("button", { name: "11:00" })).toBeEnabled()
     })
 
@@ -226,8 +242,7 @@ describe("AppointmentForm", () => {
     })
 
     it("strikes out a day with no time left", () => {
-      const fullMonday = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
-      render(formWith(fullMonday.map((time) => `2026-11-23 ${time}`)))
+      render(formWith(OPEN_TIMES.map((time) => `2026-11-23 ${time}`)))
 
       expect(screen.getByRole("button", { name: MONDAY })).toBeDisabled()
       expect(screen.getByRole("button", { name: /Tuesday, 24 November 2026/ })).toBeEnabled()

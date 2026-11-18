@@ -87,8 +87,9 @@ paths:
       description: >
         Books a pending request with the nutritionist who offers the service.
         The day and time are Portuguese wall-clock time and must be a future
-        slot: Monday to Saturday, on the hour, from 09:00 to 18:00 except
-        13:00, and not overlapping the nutritionist's accepted appointments.
+        slot: Monday to Saturday, on the hour or half hour, from 09:00 to
+        18:00 except 13:00 and 13:30, and not overlapping the nutritionist's
+        accepted appointments.
         A guest, identified by email, has at most one pending request, so this
         supersedes the guest's previous pending request.
       tags: [Appointment requests]
