@@ -4,14 +4,9 @@ import type { FormEvent } from "react"
 import Form from "next/form"
 import { useTranslations } from "next-intl"
 
-import { UseMyLocationButton } from "@/components/search/use-my-location-button"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
+import { InputGroup, InputGroupInput } from "@/components/ui/input-group"
 import type { Locations } from "@/lib/api/locations"
 import type { Position } from "@/lib/search-params"
 
@@ -75,9 +70,6 @@ export function SearchForm({
             defaultValue={location || locations?.default}
             placeholder={t("locationPlaceholder")}
           />
-          <InputGroupAddon align="inline-end">
-            <UseMyLocationButton />
-          </InputGroupAddon>
         </InputGroup>
         {locations && (
           <datalist id="known-cities">

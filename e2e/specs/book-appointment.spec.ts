@@ -14,9 +14,6 @@ test("a guest requests an appointment and the nutritionist sees it", async ({ pa
   const guest = newGuest("Carla")
   const monday = upcomingMonday(test.info().retry)
   const tuesday = addDays(monday, 1)
-  // The browser believes it is Tuesday 12:30 in Lisbon, which is still early
-  // morning in its own Los Angeles zone, so the calendar and the time slots
-  // must both follow Lisbon.
   await page.clock.setFixedTime(lisbonInstant(tuesday, "12:30"))
 
   await page.goto(`/?${new URLSearchParams({ q: nutritionist.name, location: E2E_CITY })}`)

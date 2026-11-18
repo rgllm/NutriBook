@@ -48,10 +48,7 @@ describe("toAppointmentErrors", () => {
   })
 })
 
-// The suite runs in Los Angeles (see vitest.config.mts), so calendar days built
-// with new Date(y, m, d) are local midnights there, as the picker makes them.
-describe("booking in Lisbon time from another zone", () => {
-  // Monday 16 November, 16:00 in Los Angeles, is already Tuesday 00:00 in Lisbon.
+describe("booking in Lisbon time", () => {
   const lisbonMidnight = new Date("2026-11-17T00:00:00Z")
 
   it("starts the calendar at Lisbon's today", () => {
@@ -62,8 +59,7 @@ describe("booking in Lisbon time from another zone", () => {
     expect(isSlotInPast(new Date(2026, 10, 16), "18:00", lisbonMidnight)).toBe(true)
   })
 
-  it("keeps Lisbon's remaining slots open when the browser is a day ahead", () => {
-    // 16:30 in Lisbon on Monday 16 November is Tuesday 01:30 in Tokyo.
+  it("keeps the remaining slots open today", () => {
     const lisbonAfternoon = new Date("2026-11-16T16:30:00Z")
     const monday = new Date(2026, 10, 16)
 
