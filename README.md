@@ -326,6 +326,15 @@ job skips the send if `answer_notified_at` is already set.
   appointment and is refused, or is committed in time for the acceptance to
   reject it and email the guest. Submissions to the same nutritionist do not
   block each other. Database constraints remain the final protection.
+- **Show what accepting will reject, and reject nothing unseen.** The pending
+  list gives each request the `overlapping_ids` that accepting it would reject,
+  computed in SQL with the same `overlapping` scope the accept uses. Accept on
+  such a card opens a confirmation listing those guests and times; without
+  overlaps it stays one click. The accept sends back the ids it showed, and
+  inside the answer transaction Rails refuses with `overlaps_changed` if it
+  would reject any other, so a request that arrived after the page loaded is
+  never rejected blind. The page refreshes to show it. A shown request that has
+  since left the pending list does not block the accept.
 - **Queue email in the answer transaction.** Solid Queue shares the domain
   database, so a rollback also removes the jobs. A Redis-backed queue would
   need an outbox to give the same atomic enqueue guarantee.
@@ -425,7 +434,7 @@ Try these flows after a fresh setup:
 | Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
 | Replace a request | Book again with the same email, including with another nutritionist | Previous pending request disappears from its list |
 | Answer requests | The links `pnpm db:seed` prints | Pending cards with Accept and Reject actions |
-| Automatic rejection | Accept one of the seeded 10:00 requests | Both overlapping cards leave the list, and each guest gets an email |
+| Automatic rejection | Accept one of the seeded 10:00 requests | A confirmation names the overlapping request first; then both cards leave the list, and each guest gets an email |
 | Read answer emails | <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
 | Change language | Use the language selector above the header | Translated UI that persists across visits |
 | Answer in the guest's language | Book in Português, then answer the request | The answer email arrives in Portuguese |

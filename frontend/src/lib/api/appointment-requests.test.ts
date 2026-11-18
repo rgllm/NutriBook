@@ -87,7 +87,7 @@ describe("createAppointmentRequest", () => {
 })
 
 describe("getPendingRequests", () => {
-  const pendingRequest = (id: number, startsAt: string, endsAt: string) => ({
+  const pendingRequest = (id: number, startsAt: string, endsAt: string, overlappingIds: number[] = []) => ({
     id,
     guest_name: "Rita Gomes",
     guest_email: "rita.gomes@example.com",
@@ -95,6 +95,7 @@ describe("getPendingRequests", () => {
     ends_at: endsAt,
     online: false,
     service: { id: 1, name: "First appointment" },
+    overlapping_ids: overlappingIds,
   })
 
   it("reads the nutritionist's requests and marks the ones whose time has passed", async () => {
@@ -124,6 +125,7 @@ describe("getPendingRequests", () => {
           online: false,
           serviceName: "First appointment",
           overdue: true,
+          overlaps: [],
         },
         {
           id: 7,
@@ -134,8 +136,32 @@ describe("getPendingRequests", () => {
           online: false,
           serviceName: "First appointment",
           overdue: false,
+          overlaps: [],
         },
       ],
+    })
+  })
+
+  it("names the requests each one overlaps from the same list", async () => {
+    stubApi(
+      Response.json({
+        nutritionist: { id: 1, name: "Mary Jane" },
+        appointment_requests: [
+          { ...pendingRequest(7, "2026-12-01T10:00:00.000Z", "2026-12-01T11:00:00.000Z", [8]), guest_name: "Ana" },
+          { ...pendingRequest(8, "2026-12-01T10:00:00.000Z", "2026-12-01T10:30:00.000Z", [7]), guest_name: "Bruno" },
+        ],
+      }),
+    )
+
+    const pending = await getPendingRequests("1")
+
+    expect(pending?.requests.map(({ guestName, overlaps }) => [guestName, overlaps.map((overlap) => overlap.guestName)]))
+      .toEqual([["Ana", ["Bruno"]], ["Bruno", ["Ana"]]])
+    expect(pending?.requests[0].overlaps[0]).toMatchObject({
+      id: 8,
+      serviceName: "First appointment",
+      startsAt: new Date("2026-12-01T10:00:00Z"),
+      endsAt: new Date("2026-12-01T10:30:00Z"),
     })
   })
 
@@ -157,12 +183,12 @@ describe("answerAppointmentRequest", () => {
       }),
     )
 
-    const result = await answerAppointmentRequest("1", 7, "accepted")
+    const result = await answerAppointmentRequest("1", 7, "accepted", [9])
 
     const [url, init] = fetch.mock.calls[0]
     expect(String(url)).toBe("http://api.test/nutritionists/1/appointment_requests/7")
     expect(init.method).toBe("PATCH")
-    expect(JSON.parse(String(init.body))).toEqual({ appointment_request: { status: "accepted" } })
+    expect(JSON.parse(String(init.body))).toEqual({ appointment_request: { status: "accepted", overlapping_ids: [9] } })
     expect(result).toEqual({ ok: true, data: { id: 7, status: "accepted", rejectedIds: [9] } })
   })
 
@@ -171,7 +197,7 @@ describe("answerAppointmentRequest", () => {
       Response.json({ errors: { status: ["not_an_answer"] } }, { status: 422 }),
     )
 
-    expect(await answerAppointmentRequest("1", 7, "maybe")).toEqual({
+    expect(await answerAppointmentRequest("1", 7, "maybe", [])).toEqual({
       ok: false,
       errors: { status: ["not_an_answer"] },
     })
@@ -185,7 +211,7 @@ describe("answerAppointmentRequest", () => {
       ),
     )
 
-    const error = await answerAppointmentRequest("1", 7, "rejected").catch((error: unknown) => error)
+    const error = await answerAppointmentRequest("1", 7, "rejected", []).catch((error: unknown) => error)
     expect(error).toBeInstanceOf(ApiConflictError)
     expect((error as Error).message).toBe("already_accepted")
   })
@@ -193,6 +219,6 @@ describe("answerAppointmentRequest", () => {
   it("reports a request that is not the nutritionist's as not found", async () => {
     stubApi(Response.json({ error: "AppointmentRequest not found" }, { status: 404 }))
 
-    await expect(answerAppointmentRequest("2", 7, "accepted")).rejects.toBeInstanceOf(ApiNotFoundError)
+    await expect(answerAppointmentRequest("2", 7, "accepted", [])).rejects.toBeInstanceOf(ApiNotFoundError)
   })
 })

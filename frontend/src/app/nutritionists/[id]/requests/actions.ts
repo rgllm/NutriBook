@@ -10,10 +10,12 @@ import type { AnswerRequestState } from "@/lib/pending-requests"
 
 // Refreshes whenever the request has left the pending list, whether this answer
 // took it out or something else already had: the overlapping requests the API
-// rejected leave with it, and a stale card does not linger.
+// rejected leave with it, and a stale card does not linger. A conflict also
+// refreshes when the request stays, so changed overlaps show before a retry.
 export async function answerRequest(
   nutritionistId: string,
   requestId: number,
+  overlappingIds: number[],
   _previous: AnswerRequestState,
   formData: FormData,
 ): Promise<AnswerRequestState> {
@@ -27,6 +29,7 @@ export async function answerRequest(
       nutritionistId,
       requestId,
       String(formData.get("status") ?? ""),
+      overlappingIds,
     )
     // The only invalid answer is a status the buttons never send.
     if (!result.ok) return { status: "failed", error: t("failed") }

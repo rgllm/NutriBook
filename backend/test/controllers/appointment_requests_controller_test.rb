@@ -24,8 +24,21 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
       "starts_at" => "2026-12-01T10:00:00.000Z",
       "ends_at" => "2026-12-01T11:00:00.000Z",
       "online" => false,
-      "service" => { "id" => services(:mary_first_appointment).id, "name" => "First appointment" }
+      "service" => { "id" => services(:mary_first_appointment).id, "name" => "First appointment" },
+      "overlapping_ids" => []
     }, response.parsed_body["appointment_requests"].second)
+  end
+
+  test "each pending request lists the ones accepting it would reject" do
+    pending = appointment_requests(:pending)
+    overlapping = submit(guest_email: "overlap@example.com", service_id: services(:mary_follow_up).id, date: "2026-12-01", time: "10:00")
+    adjacent = submit(guest_email: "adjacent@example.com", date: "2026-12-01", time: "11:00")
+
+    get nutritionist_appointment_requests_url(nutritionists(:mary_jane))
+
+    assert_schema_conform(200)
+    assert_equal({ pending.id => [ overlapping.id ], overlapping.id => [ pending.id ], adjacent.id => [] },
+      response.parsed_body["appointment_requests"].to_h { |request| request.values_at("id", "overlapping_ids") })
   end
 
   test "a nutritionist with no pending requests gets an empty list" do
@@ -186,6 +199,24 @@ class AppointmentRequestsControllerTest < ActionDispatch::IntegrationTest
       "rejected_ids" => [ overlapping.id ]
     }, response.parsed_body)
     assert overlapping.reload.rejected?
+  end
+
+  test "accepting refuses with a conflict when it would reject a request that was not shown" do
+    request = appointment_requests(:pending)
+    unseen = submit(guest_email: "unseen@example.com", date: "2026-12-01", time: "10:00")
+
+    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request),
+      params: { appointment_request: { status: "accepted", overlapping_ids: [] } }, as: :json
+
+    assert_schema_conform(409)
+    assert_equal({ "error" => "overlaps_changed", "status" => "pending" }, response.parsed_body)
+    assert unseen.reload.pending?
+
+    patch nutritionist_appointment_request_url(nutritionists(:mary_jane), request),
+      params: { appointment_request: { status: "accepted", overlapping_ids: [ unseen.id ] } }, as: :json
+
+    assert_schema_conform(200)
+    assert_equal [ unseen.id ], response.parsed_body["rejected_ids"]
   end
 
   test "rejecting a request" do

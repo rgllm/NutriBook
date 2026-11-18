@@ -201,8 +201,9 @@ paths:
         "409":
           description: >
             The request cannot take this answer. It was already answered or
-            superseded, or accepting it would overlap an accepted appointment.
-            `status` is the request's current status.
+            superseded, accepting it would overlap an accepted appointment, or
+            accepting it would reject a request missing from the
+            `overlapping_ids` sent. `status` is the request's current status.
           content:
             application/json:
               schema:
@@ -518,6 +519,16 @@ components:
             status:
               type: string
               example: accepted
+            overlapping_ids:
+              type: array
+              description: >
+                The overlapping requests the nutritionist was shown, from the
+                list's `overlapping_ids`. When sent, accepting refuses with
+                `overlaps_changed` instead of rejecting any request not in it.
+                Ignored on a rejection.
+              items:
+                type: integer
+              example: [9]
     AnsweredAppointmentRequest:
       type: object
       additionalProperties: false
@@ -548,7 +559,7 @@ components:
         error:
           type: string
           description: Why the request cannot take the answer, as a code the client words for the nutritionist.
-          enum: [already_accepted, already_rejected, superseded, overlaps_accepted]
+          enum: [already_accepted, already_rejected, superseded, overlaps_accepted, overlaps_changed]
           example: already_accepted
         status:
           type: string
@@ -594,7 +605,7 @@ components:
     PendingAppointmentRequest:
       type: object
       additionalProperties: false
-      required: [id, guest_name, guest_email, starts_at, ends_at, online, service]
+      required: [id, guest_name, guest_email, starts_at, ends_at, online, service, overlapping_ids]
       properties:
         id:
           type: integer
@@ -628,6 +639,14 @@ components:
             name:
               type: string
               example: First appointment
+        overlapping_ids:
+          type: array
+          description: >
+            The other requests in this list that overlap this one in time,
+            soonest first. Accepting this request rejects them.
+          items:
+            type: integer
+          example: [9]
     InvalidRequest:
       type: object
       additionalProperties: false

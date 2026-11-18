@@ -1,15 +1,17 @@
 class AppointmentRequestsController < ApplicationController
   # A nutritionist's pending requests, overdue ones included, soonest first.
+  # Each lists the others in the list that accepting it would reject.
   def index
     nutritionist = Nutritionist.find(params[:nutritionist_id])
-    requests = nutritionist.appointment_requests.pending.includes(:service).order(:starts_at, :id)
+    requests = nutritionist.appointment_requests.pending.includes(:service).order(:starts_at, :id).to_a
+    overlapping_ids = AppointmentRequest.overlapping_ids_among(requests)
 
     render json: {
       nutritionist: nutritionist.as_json(only: %i[id name]),
-      appointment_requests: requests.as_json(
-        only: %i[id guest_name guest_email starts_at ends_at online],
-        include: { service: { only: %i[id name] } }
-      )
+      appointment_requests: requests.map do |request|
+        request.as_json(only: %i[id guest_name guest_email starts_at ends_at online], include: { service: { only: %i[id name] } })
+          .merge(overlapping_ids: overlapping_ids.fetch(request.id, []))
+      end
     }
   end
 
@@ -29,7 +31,8 @@ class AppointmentRequestsController < ApplicationController
   # The nutritionist accepts or rejects one of their requests.
   def update
     appointment_request = AppointmentRequest.find_by!(id: params[:id], nutritionist_id: params[:nutritionist_id])
-    rejected_ids = appointment_request.answer!(params.expect(appointment_request: [ :status ])[:status])
+    answer = params.expect(appointment_request: [ :status, overlapping_ids: [] ])
+    rejected_ids = appointment_request.answer!(answer[:status], overlapping_ids: answer[:overlapping_ids]&.map(&:to_i))
 
     render json: appointment_request.as_json(only: %i[id status answered_at]).merge(rejected_ids:)
   rescue AppointmentRequest::NotAnswerable => error

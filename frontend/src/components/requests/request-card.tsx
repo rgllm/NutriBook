@@ -37,6 +37,9 @@ export function RequestCard({
         <div className="flex flex-wrap gap-2">
           <Badge variant="brand">{request.online ? t("online") : t("inPerson")}</Badge>
           {request.overdue && <Badge variant="destructive">{t("overdue")}</Badge>}
+          {request.overlaps.length > 0 && (
+            <Badge variant="outline">{t("overlaps", { count: request.overlaps.length })}</Badge>
+          )}
         </div>
 
         <dl className="flex flex-col gap-2">
@@ -79,8 +82,14 @@ export function RequestCard({
 
       <CardFooter>
         <AnswerRequestForm
-          action={answerRequest.bind(null, nutritionistId, request.id)}
+          action={answerRequest.bind(
+            null,
+            nutritionistId,
+            request.id,
+            request.overlaps.map(({ id }) => id),
+          )}
           guestName={request.guestName}
+          overlaps={request.overlaps}
         />
       </CardFooter>
     </Card>

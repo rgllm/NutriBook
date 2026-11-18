@@ -101,6 +101,7 @@
     "online": "Online",
     "inPerson": "In person",
     "overdue": "Overdue",
+    "overlaps": "{count, plural, one {Overlaps 1 request} other {Overlaps # requests}}",
     "email": "Email",
     "date": "Date",
     "time": "Time",
@@ -112,6 +113,11 @@
     "reject": "Reject",
     "rejecting": "Rejecting…",
     "rejectLabel": "Reject the request from {guest}",
+    "confirmAcceptTitle": "Accept {guest}'s request?",
+    "confirmAcceptDescription": "{count, plural, one {It overlaps this pending request, which will be rejected. Its guest gets an email.} other {It overlaps these # pending requests, which will be rejected. Each guest gets an email.}}",
+    "confirmAccept": "{count, plural, one {Accept and reject 1} other {Accept and reject #}}",
+    "cancel": "Cancel",
+    "close": "Close",
     "answered": "{answer, select, accepted {Accepted} other {Rejected}} {guest}'s request.{rejected, plural, =0 {} one { 1 overlapping request was rejected.} other { # overlapping requests were rejected.}}",
     "gone": "This request no longer exists.",
     "failed": "We could not answer this request.",
@@ -121,7 +127,8 @@
     "alreadyAccepted": "This request was already accepted.",
     "alreadyRejected": "This request was already rejected.",
     "superseded": "The guest replaced this request with a newer one.",
-    "overlapsAccepted": "This time overlaps an accepted appointment. Reject the request instead."
+    "overlapsAccepted": "This time overlaps an accepted appointment. Reject the request instead.",
+    "overlapsChanged": "New requests overlap this one. Check the updated list and accept again."
   },
   "errorPage": {
     "title": "Something went wrong",

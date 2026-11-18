@@ -182,6 +182,43 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert overlapping.reload.pending?
   end
 
+  test "lists, for each pending request, the others among them that accepting it would reject" do
+    # The pending fixture runs from 10:00 to 11:00 UTC on 1 December.
+    request = appointment_requests(:pending)
+    short = submit_request(guest_email: "short@example.com", service_id: services(:mary_follow_up).id, starts_at: Time.utc(2026, 12, 1, 10, 0))
+    before = submit_request(guest_email: "before@example.com", starts_at: Time.utc(2026, 12, 1, 9, 0))
+    after = submit_request(guest_email: "after@example.com", starts_at: Time.utc(2026, 12, 1, 11, 0))
+    submit_request(guest_email: "ana.guest@example.com", service_id: services(:ana_sports_nutrition).id, starts_at: Time.utc(2026, 12, 1, 10, 0))
+
+    assert_equal({ request.id => [ short.id ], short.id => [ request.id ] },
+      AppointmentRequest.overlapping_ids_among(AppointmentRequest.pending))
+    assert_empty AppointmentRequest.overlapping_ids_among([ request, before, after ])
+  end
+
+  test "accepting refuses to reject an overlapping request the nutritionist was not shown" do
+    request = appointment_requests(:pending)
+    shown = submit_request(guest_email: "shown@example.com", starts_at: Time.utc(2026, 12, 1, 10, 0))
+    seen = AppointmentRequest.overlapping_ids_among(AppointmentRequest.pending).fetch(request.id)
+    unseen = submit_request(guest_email: "unseen@example.com", service_id: services(:mary_follow_up).id, starts_at: Time.utc(2026, 12, 1, 10, 0))
+
+    assert_no_enqueued_jobs only: AppointmentAnswerEmailJob do
+      error = assert_raises(AppointmentRequest::NotAnswerable) { request.answer!("accepted", overlapping_ids: seen) }
+      assert_equal "overlaps_changed", error.message
+    end
+    assert [ request, shown, unseen ].all? { |answered| answered.reload.pending? }
+
+    assert_equal [ shown.id, unseen.id ].sort, request.answer!("accepted", overlapping_ids: [ shown.id, unseen.id ]).sort
+  end
+
+  test "an overlapping request shown but no longer pending does not block accepting" do
+    request = appointment_requests(:pending)
+    shown = submit_request(guest_email: "shown@example.com", starts_at: Time.utc(2026, 12, 1, 10, 0))
+    submit_request(guest_email: "shown@example.com", starts_at: Time.utc(2026, 12, 3, 10, 0))
+
+    assert_empty request.answer!("accepted", overlapping_ids: [ shown.id ])
+    assert shown.reload.superseded?
+  end
+
   test "answering emails the guest of every request it answers, once each" do
     request = appointment_requests(:pending)
     overlapping = submit_request(guest_email: "overlap@example.com", starts_at: Time.utc(2026, 12, 1, 10, 0))
