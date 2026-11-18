@@ -10,29 +10,30 @@ request automatically rejects every pending request that overlaps it.
 ### What to install
 
 - Docker
-- Node.js 24, at the exact version in `.nvmrc`. CI reads the same file.
+
+That is enough to run the whole application. To work on the frontend with hot
+reload, or to run the frontend and end-to-end checks, also install:
+
+- Node.js 24, at the exact version in `.nvmrc`. CI and `frontend/Dockerfile`
+  use the same version.
 - pnpm
 
 With nvm, run `nvm install` in the repository root to install and select this
 Node version.
 
-Ruby, PostgreSQL, and Mailpit run in Docker. You do not need to
-install them on your machine. The frontend runs locally with pnpm.
-
 ### Run the project
 
-Clone the repository and install the frontend dependencies:
+Clone the repository and start every service:
 
 ```sh
 git clone https://github.com/rgllm/NutriBook.git
 cd NutriBook
-pnpm --dir frontend install --frozen-lockfile
-pnpm dev
+docker compose up --build
 ```
 
 On a fresh database, the backend creates the schema and loads the demo seeds
-before serving requests, so there is no separate seed step.
-Open [the application](http://localhost:3000).
+before serving requests, so there is no separate seed step. The frontend
+starts once Rails is healthy. Open [the application](http://localhost:3000).
 
 | Service | Address | Purpose |
 | --- | --- | --- |
@@ -43,10 +44,28 @@ Open [the application](http://localhost:3000).
 
 PostgreSQL is available only inside the Compose network.
 A Docker volume preserves its data across restarts. The credentials in
-`compose.yaml` are for local development.
+`compose.yaml` are for local development. Set `FRONTEND_PORT`, `BACKEND_PORT`,
+or `MAILPIT_PORT` to publish a service on another host port.
 
-The frontend runs on port 3000 and calls the Rails API at
-`http://localhost:3001` by default, so no `.env` file is needed.
+The `frontend` container serves a production build of Next.js and calls Rails
+over the Compose network at `http://backend:3000`. Rails accepts that host name
+through `RAILS_DEVELOPMENT_HOSTS`. Rebuild with `docker compose up --build`
+after changing frontend code.
+
+### Develop the frontend locally
+
+For hot reload, run the frontend on your machine instead of in Docker:
+
+```sh
+docker compose stop frontend    # if the full stack is running
+pnpm --dir frontend install --frozen-lockfile
+pnpm dev
+```
+
+`pnpm dev` starts Rails, PostgreSQL, and Mailpit in Docker, without the
+`frontend` container, then runs `next dev` on port 3000. The local frontend
+calls the Rails API at `http://localhost:3001` by default, so no `.env` file is
+needed.
 
 ### Main commands
 
@@ -55,9 +74,10 @@ Backend commands require the development Compose stack to be running.
 
 | Command | What it does |
 | --- | --- |
-| `pnpm dev` | Build and start Docker services, then run the frontend in development |
+| `pnpm dev` | Build and start the backend services in Docker, then run the frontend locally in development |
 | `pnpm stop` | Stop and remove development containers while keeping their data volumes |
 | `pnpm backend:logs` | Follow Rails logs |
+| `pnpm frontend:logs` | Follow the frontend container's logs |
 | `pnpm backend:console` | Open the Rails console |
 | `pnpm rails <args>` | Run a Rails command inside the backend container |
 | `pnpm db:migrate` | Apply pending migrations |
