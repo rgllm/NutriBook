@@ -178,6 +178,7 @@ To run the checks, install Node.js at the version in [.nvmrc](.nvmrc) and pnpm 1
 pnpm --dir frontend install --frozen-lockfile
 pnpm --dir e2e install --frozen-lockfile
 pnpm --dir e2e exec playwright install chromium
+docker compose up -d --wait
 pnpm check
 pnpm e2e
 ```
