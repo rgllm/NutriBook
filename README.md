@@ -1,6 +1,6 @@
 # NutriBook
 
-Nutribook is a web application where guests find a nutritionist and request an appointment. The nutritionist accepts or rejects it, and the guest gets the answer by email.
+NutriBook is a web application where guests find a nutritionist and request an appointment. The nutritionist accepts or rejects it, and the guest gets the answer by email.
 
 ## Demo
 
@@ -52,9 +52,9 @@ The seed data has 30 nutritionists across 8 cities, with different services, pri
 5. Accept one of the two overlapping demo requests. The confirmation lists the other request that will be rejected. Both guests get an email.
 6. Switch between English and Portuguese. The answer email uses the website language the guest booked in.
 
-### Nutrionists Requests page to try
+### Nutritionists Requests page to try
 
-These links use example IDs from the local demo. Use the seed output above if your IDs differ. The scenarios describe the initial seed data, before you answer or replace any requests.
+These links use example IDs from the local demo. The scenarios describe the initial seed data, before you answer or replace any requests.
 
 | Scenario | Example page | What to try |
 | --- | --- | --- |
