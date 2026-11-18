@@ -314,6 +314,6 @@ class NutritionistSearchTest < ActiveSupport::TestCase
 
   def load_page(search)
     search.total_pages
-    search.nutritionists.each { |nutritionist| nutritionist.services.to_a }
+    search.nutritionists.each { |nutritionist| nutritionist.services.each(&:taken_slots) }
   end
 end

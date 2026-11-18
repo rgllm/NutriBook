@@ -323,7 +323,7 @@ components:
     Service:
       type: object
       additionalProperties: false
-      required: [id, name, price, street_address, city, duration_minutes, distance_km]
+      required: [id, name, price, street_address, city, duration_minutes, distance_km, taken_slots]
       properties:
         id:
           type: integer
@@ -355,6 +355,18 @@ components:
             Great-circle kilometres from the guest's position. Null without a
             position, or when the service has no coordinates.
           example: 1.2
+        taken_slots:
+          type: array
+          description: >
+            Future slot start times, in UTC and in order, that booking this
+            service refuses as `taken`: an appointment of this duration starting
+            then would overlap one the nutritionist has accepted, at any of
+            their practices. Adjacent slots stay free. Only the times are
+            listed, never who booked them.
+          items:
+            type: string
+            format: date-time
+          example: ["2026-12-01T14:00:00.000Z"]
     ResolvedLocation:
       type: object
       additionalProperties: false

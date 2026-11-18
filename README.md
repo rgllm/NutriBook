@@ -88,7 +88,7 @@ and small plain Ruby objects:
 | Component | Responsibility |
 | --- | --- |
 | `AppointmentRequest` | Submit, supersede, accept, and reject requests inside transactions |
-| `BookingSchedule` | Interpret Lisbon dates and enforce bookable start times |
+| `BookingSchedule` | Interpret Lisbon dates, enforce bookable start times, and find the slots an appointment would overlap |
 | `NutritionistSearch` | Resolve locations, match, order by relevance, name, or distance, and paginate |
 | `Coordinates` | Parse the guest's position and measure great-circle distances in SQL |
 | `AppointmentAnswerEmailJob` | Send answer emails with retries and a delivery marker |
@@ -119,7 +119,7 @@ The main endpoints are:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/nutritionists?q=&location=&page=&latitude=&longitude=` | Search nutritionists, five per page, nearest first when given a position |
+| GET | `/nutritionists?q=&location=&page=&latitude=&longitude=` | Search nutritionists, five per page, nearest first when given a position, with each service's taken slots |
 | GET | `/locations` | List cities with services and the default city |
 | GET | `/locations/nearest?latitude=&longitude=` | The city of the nearest service with coordinates |
 | POST | `/appointment_requests` | Submit a guest's appointment request |
@@ -144,6 +144,15 @@ tracks form results and `useFormStatus` supplies pending feedback. Answering a
 request refreshes the page data so answered and automatically rejected cards
 leave the list. Transport failures show retry messages, while unexpected
 responses reach the error boundary.
+
+The booking calendar strikes out the times the chosen service cannot take and
+the days with none left. Each service in the search response lists its
+`taken_slots`: future slot starts where an appointment of that service's
+duration would overlap one the nutritionist accepted. Rails computes them with
+the same rule that refuses a booking as `taken`, and they carry no guest data.
+Changing the service or the day drops a picked time that became taken. The
+list is as fresh as the page, so a time accepted after it loaded is still
+refused on submit, and that refusal refreshes the page to strike it out.
 
 The UI uses Tailwind CSS v4 and shadcn/ui with Base UI primitives. The React
 Compiler is enabled. [DESIGN.md](frontend/DESIGN.md) defines the reference layout,

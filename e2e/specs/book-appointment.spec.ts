@@ -1,16 +1,7 @@
 import { expect, newGuest, test } from "../support/fixtures"
-import { pendingRequest } from "../support/pages"
+import { calendarDay, pendingRequest } from "../support/pages"
 import { addDays, lisbonInstant, upcomingMonday, type IsoDay } from "../support/schedule"
 import { E2E_CITY } from "../support/stack"
-
-// The calendar names each day the way date-fns's British "PPPP" format writes
-// it, for example "Tuesday, 24 November 2026".
-function calendarDay(day: IsoDay) {
-  const date = new Date(`${day}T12:00:00Z`)
-  const part = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...options }).format(date)
-  return `${part({ weekday: "long" })}, ${part({ day: "numeric", month: "long", year: "numeric" })}`
-}
 
 // How the confirmation names the day, for example "Tuesday 24 November".
 const spokenDay = (day: IsoDay) =>

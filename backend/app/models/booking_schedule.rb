@@ -19,4 +19,16 @@ class BookingSchedule
     local = time.in_time_zone(TIME_ZONE)
     OPEN_WEEKDAYS.include?(local.wday) && SLOT_HOURS.include?(local.hour) && local.min.zero? && local.sec.zero?
   end
+
+  # The slots where an appointment lasting `duration` would overlap the busy
+  # interval [starts_at, ends_at). A slot that ends as it starts, or starts as
+  # it ends, is free. Lisbon's offsets are whole hours, so stepping by the hour
+  # in UTC visits every slot.
+  def self.slots_overlapping(starts_at, ends_at, duration)
+    earliest = starts_at - duration
+    (earliest.beginning_of_hour.to_i...ends_at.to_i).step(1.hour.to_i).filter_map do |seconds|
+      start = Time.zone.at(seconds)
+      start if start > earliest && slot?(start)
+    end
+  end
 end

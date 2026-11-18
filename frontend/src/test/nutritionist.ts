@@ -18,6 +18,7 @@ export const nutritionist: Nutritionist = {
       streetAddress: "Rua do Souto 45",
       city: "Braga",
       distanceKm: null,
+      takenSlots: [],
     },
   ],
 }

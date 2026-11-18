@@ -62,6 +62,7 @@
     "dateAndTime": "Data e hora",
     "time": "Hora",
     "pickDay": "Escolha um dia para ver as horas disponíveis.",
+    "takenSlot": "{time}, já ocupada",
     "cancel": "Cancelar",
     "submit": "Pedir consulta",
     "submitting": "A pedir…",
