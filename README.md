@@ -1,467 +1,66 @@
 # NutriBook
 
-NutriBook connects guests with nutritionists. Guests search by name, service,
-and location, then request an appointment with their name and email. Nutritionists
-accept or reject requests, and guests receive the answer by email. Accepting a
-request automatically rejects every pending request that overlaps it.
+Nutribook is a web application where guests find a nutritionist and request an appointment. The nutritionist accepts or rejects it, and the guest gets the answer by email.
 
-## Getting started
+## Demo
 
-### What to install
+<!-- Add the demo GIF using GitHub’s Markdown editor. -->
 
-- Docker
+## How to run it
 
-That is enough to run the whole application. To work on the frontend with hot
-reload, or to run the frontend and end-to-end checks, also install:
-
-- Node.js 24, at the exact version in `.nvmrc`. CI and `frontend/Dockerfile`
-  use the same version.
-- pnpm
-
-With nvm, run `nvm install` in the repository root to install and select this
-Node version.
-
-### Run the project
-
-Clone the repository and start every service:
+Everything runs on Docker (backend and frontend). You only need Docker with Docker Compose.
 
 ```sh
 git clone https://github.com/rgllm/NutriBook.git
 cd NutriBook
-docker compose up --build
+docker compose up
 ```
 
-On a fresh database, the backend creates the schema and loads the demo seeds
-before serving requests, so there is no separate seed step. The frontend
-starts once Rails is healthy. Open [the application](http://localhost:3000).
 
-| Service | Address | Purpose |
+The first run creates the database and automatically loads the demo data. There is no `.env` file to prepare or separate seed command to run.
+
+| What                        | Where                        |
+| --------------------------- | ---------------------------- |
+| Application                 | <http://localhost:3000>      |
+| Email inbox (Mailpit)       | <http://localhost:8025>      |
+| API documentation (Swagger) | <http://localhost:3001/docs> |
+| Rails API                   | <http://localhost:3001>      |
+
+Mailpit catches the emails, so you can use an address like `guest@example.com`
+and read the replies in the inbox. Nothing is sent to a real email address.
+
+The frontend and backend run in development mode with the source mounted and have hot reload. Each start rebuilds the images from cache, so a dependency change is picked up on the next start.
+To stop the demo, run `docker compose down`. The database stays in a Docker volume, so your requests are still there when you start it again.
+
+With pnpm installed, `pnpm dev` and `pnpm stop` run the same two commands from the repository root.
+
+## Demo and seed data
+
+The seed data has 30 nutritionists across 8 cities, with different services, prices, and durations. Some work in more than one city or at more than one address. Braga has enough results to try pagination.
+
+1. Search by nutritionist name or service, then change the city. A blank or unknown location falls back to Braga. Try `sprts nutrition` to see typo matching, or sort by **Distance** to order the selected city’s practices by distance from you.
+2. Open **Schedule appointment**, choose a service, and enter a name, email, date, and time. This sends a request. The appointment is only confirmed when the nutritionist accepts it.
+3. Make another request with the same email, even with a different nutritionist. It **replaces the previous pending request**.
+4. Open a nutritionist requests page and accept or reject a request. Then check the email inbox.
+5. Accept one of the two overlapping demo requests. The confirmation lists the other request that will be rejected. Both guests get an email.
+6. Switch between English and Portuguese. The answer email uses the website language the guest booked in.
+
+### Nutrionists Requests page to try
+
+These links use example IDs from the local demo. Use the seed output above if your IDs differ. The scenarios describe the initial seed data, before you answer or replace any requests.
+
+| Scenario | Example page | What to try |
 | --- | --- | --- |
-| Next.js | <http://localhost:3000> | Frontend |
-| Rails | <http://localhost:3001> | Backend |
-| API documentation | <http://localhost:3001/docs> | Swagger |
-| Mailpit | <http://localhost:8025> | Inbox for development emails |
+| Pending and overlapping requests | [Requests page](http://localhost:3000/nutritionists/242/requests) | Four pending requests. Accept either Monday 10:00 request to see the overlap confirmation. The other is rejected automatically, and both guests get an email. |
+| Requests without overlaps | [Same requests page](http://localhost:3000/nutritionists/242/requests) | Accept or reject the Monday 14:00 or Tuesday 09:00 request. Only that card leaves the list, and its guest gets an email. |
+| Superseded request | [Same requests page](http://localhost:3000/nutritionists/242/requests) | Copy a pending guest's email and use it to make another request, with this nutritionist or another one. Refresh the original page: the old request is gone, and only the new one remains pending with the chosen nutritionist. |
+| No pending requests | [Empty requests page](http://localhost:3000/nutritionists/243/requests) | Shows the empty state. |
+| Unknown nutritionist | [Missing nutritionist](http://localhost:3000/nutritionists/999999/requests) | Shows "Page not found" for an ID that does not exist. |
+| Invalid ID | [Invalid requests URL](http://localhost:3000/nutritionists/1abc/requests) | Shows "Page not found" for a malformed ID. |
 
-PostgreSQL is available only inside the Compose network.
-A Docker volume preserves its data across restarts. The credentials in
-`compose.yaml` are for local development. Set `FRONTEND_PORT`, `BACKEND_PORT`,
-or `MAILPIT_PORT` to publish a service on another host port.
+### Reset the seed data
 
-The `frontend` container serves a production build, so rebuild it with
-`docker compose up --build` after changing frontend code.
-
-### Develop the frontend locally
-
-For hot reload, run the frontend on your machine instead of in Docker:
-
-```sh
-docker compose stop frontend    # if the full stack is running
-pnpm --dir frontend install --frozen-lockfile
-pnpm dev
-```
-
-`pnpm dev` starts Rails, PostgreSQL, and Mailpit in Docker, without the
-`frontend` container, then runs `next dev` on port 3000. The local frontend
-calls the Rails API at `http://localhost:3001` by default, so no `.env` file is
-needed.
-
-### Main commands
-
-Run these from the repository root unless the command specifies a directory.
-Backend commands require the development Compose stack to be running.
-
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Build and start the backend services in Docker, then run the frontend locally in development |
-| `pnpm stop` | Stop and remove development containers while keeping their data volumes |
-| `pnpm backend:logs` | Follow Rails logs |
-| `pnpm backend:console` | Open the Rails console |
-| `pnpm rails <args>` | Run a Rails command inside the backend container |
-| `pnpm db:migrate` | Apply pending migrations |
-| `pnpm db:rollback` | Roll back the latest migration |
-| `pnpm db:seed` | Add missing demo records and print the demo request URLs |
-| `pnpm db:psql` | Open PostgreSQL against the development database |
-| `pnpm check` | Run the backend and frontend checks and the end-to-end lint and typecheck, without Playwright |
-| `pnpm test` | Run the Rails and frontend test suites |
-| `pnpm backend:test` | Run the Rails test suite |
-| `pnpm backend:ci` | Run backend setup, lint, security audits, tests, and a test-database seed replant |
-| `pnpm frontend:test` | Run frontend unit and component tests |
-| `pnpm lint` | Run backend, frontend, and end-to-end lint |
-| `pnpm frontend:typecheck` | Generate Next.js types and run TypeScript checks |
-| `pnpm frontend:build` | Build the frontend for production |
-| `pnpm e2e` | Reset the isolated test stack and run Playwright |
-| `pnpm e2e:ui` | Run the same end-to-end suite in Playwright UI mode |
-| `pnpm e2e:lint` / `pnpm e2e:typecheck` | Check the end-to-end test code |
-| `pnpm e2e:down` | Remove the end-to-end containers and their data volumes |
-
-## Architecture
-
-### Backend architecture
-
-The Rails API owns search, validation, scheduling, and request state changes.
-Controllers handle HTTP input and responses. Domain behavior lives in models
-and small plain Ruby objects:
-
-| Component | Responsibility |
-| --- | --- |
-| `AppointmentRequest` | Submit, supersede, accept, and reject requests inside transactions |
-| `BookingSchedule` | Interpret Lisbon dates, enforce bookable start times, and find the slots an appointment would overlap |
-| `NutritionistSearch` | Resolve locations, match, order by relevance, name, or distance, and paginate |
-| `Coordinates` | Parse the guest's position and measure great-circle distances in SQL |
-| `AppointmentAnswerEmailJob` | Send answer emails with retries and a delivery marker |
-| `AppointmentRequestMailer` | Render accepted and rejected emails, including overlap rejections |
-
-PostgreSQL handles every search through one matching service relation. Each query
-word must match within the same service or nutritionist name, by literal
-substring or trigram word similarity above 0.4. Words shorter than three characters and words with
-punctuation use literal matching only. This tolerates examples such as `goncalvs`
-and `sprts nutrition`, but is not equivalent to a dedicated search engine.
-Without an origin, exact names rank first, then prefixes, then word similarity,
-with name and ID breaking ties. With an origin, distance takes precedence.
-
-Stored generated `search_name` columns normalize Unicode to NFC, lowercase, and
-fold the listed Portuguese and common Latin accented letters with `translate`.
-GIN trigram indexes support substring and word matching. These built-in immutable
-expressions survive schema loading and update on every database write, including
-seeds and direct SQL. This is deliberate Latin accent folding, not universal
-transliteration. The connection config fixes the word similarity threshold.
-
-Active Job uses Solid Queue in the same PostgreSQL database as the domain data.
-The worker runs inside Puma in development. Answering a request stores its state
-change and email jobs in one transaction. SMTP delivery happens afterwards,
-through Mailpit in development.
-
-The API contract lives in [openapi.yaml](backend/public/openapi.yaml).
-The main endpoints are:
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/nutritionists?q=&location=&page=&latitude=&longitude=` | Search nutritionists, five per page, nearest first when given a position, with each service's taken slots |
-| GET | `/locations` | List cities with services and the default city |
-| GET | `/locations/nearest?latitude=&longitude=` | The city of the nearest service with coordinates |
-| POST | `/appointment_requests` | Submit a guest's appointment request |
-| GET | `/nutritionists/:id/appointment_requests` | List a nutritionist's pending requests |
-| PATCH | `/nutritionists/:nutritionist_id/appointment_requests/:id` | Accept or reject a request |
-
-### Frontend architecture
-
-Next.js App Router pages fetch Rails data in Server Components. The server-only
-API client in `frontend/src/lib/api/` validates responses with Zod, converts
-snake_case keys to camelCase, and parses decimal prices. Requests use
-`cache: "no-store"` and a five-second timeout, so appointment lists stay fresh.
-
-Search state lives in `q`, `location`, and `page` URL parameters. The search
-form submits with `next/form`, which makes results shareable and supports GET
-submission without JavaScript. Suspense boundaries stream results and request
-lists with skeletons while their data loads.
-
-Booking and answer forms call Server Actions. Client components handle the
-dialog, calendar, pending states, field errors, and toasts. `useActionState`
-tracks form results and `useFormStatus` supplies pending feedback. Answering a
-request refreshes the page data so answered and automatically rejected cards
-leave the list. Transport failures show retry messages, while unexpected
-responses reach the error boundary.
-
-The booking calendar strikes out the times the chosen service cannot take and
-the days with none left. Each service in the search response lists its
-`taken_slots`: future slot starts where an appointment of that service's
-duration would overlap one the nutritionist accepted. Rails computes them with
-the same rule that refuses a booking as `taken`, and they carry no guest data.
-Changing the service or the day drops a picked time that became taken. The
-list is as fresh as the page, so a time accepted after it loaded is still
-refused on submit, and that refusal refreshes the page to strike it out.
-
-The UI uses Tailwind CSS v4 and shadcn/ui with Base UI primitives. The React
-Compiler is enabled. [DESIGN.md](frontend/DESIGN.md) defines the reference layout,
-typography, component rules, and semantic tokens in `frontend/src/app/theme.css`.
-
-`next-intl` provides English and Portuguese messages from `frontend/languages/`.
-The saved `NEXT_LOCALE` cookie takes priority over the browser's language,
-with English as the fallback. Language selection does not change the URL.
-Dates and times always use `Europe/Lisbon`. The booking form sends the
-language it is shown in, and the guest's answer email uses it.
-
-### Database design
-
-```mermaid
-erDiagram
-    cities ||--o{ services : locates
-    nutritionists ||--o{ services : offers
-    nutritionists ||--o{ appointment_requests : receives
-    services ||--o{ appointment_requests : books
-
-    cities {
-        bigint id PK
-        string name UK
-    }
-    nutritionists {
-        bigint id PK
-        string name
-        string title
-        string license_number UK
-        boolean offers_online
-    }
-    services {
-        bigint id PK
-        bigint nutritionist_id FK
-        string name
-        decimal price
-        string city FK
-        string street_address
-        integer duration_minutes
-        decimal latitude
-        decimal longitude
-    }
-    appointment_requests {
-        bigint id PK
-        bigint nutritionist_id FK
-        bigint service_id FK
-        string guest_name
-        string guest_email
-        datetime starts_at
-        datetime ends_at
-        string status
-        boolean online
-        datetime answered_at
-        string rejection_reason
-        datetime answer_notified_at
-        string language
-    }
-```
-
-Guests have no account or separate table. Their name and normalized email live
-on each request. Service addresses allow a nutritionist to work in several
-cities or at several practices in one city. `services.city` references the
-unique city name. Prices use fixed-precision decimals. A service's latitude
-and longitude are its practice's, and are both unknown until the address is
-geocoded.
-
-A request stores its UTC start and end times. The end time captures the service's
-duration at booking, so later duration changes do not move an existing request.
-Its status is `pending`, `accepted`, `rejected`, or `superseded`. A superseded
-request was replaced by the guest and does not count as a nutritionist's answer.
-
-PostgreSQL backs the domain rules with constraints:
-
-| Rule | Database enforcement |
-| --- | --- |
-| At most one pending request per guest | Partial unique index on `lower(guest_email)` for pending rows |
-| No overlapping accepted appointments for a nutritionist | GiST exclusion constraint on `nutritionist_id` and `tsrange(starts_at, ends_at)`, using `btree_gist` |
-| A request's service belongs to its nutritionist | Composite foreign key to `services(nutritionist_id, id)` |
-| Valid state and answer metadata | Checks on status, rejection reason, answer timestamp, and notification timestamp |
-| Answer emails in a supported language | Check that `language` is `en-GB` or `pt-PT` |
-| Valid sizes and values | Checks on guest input lengths, positive durations, nonnegative prices, and ordered times |
-| A practice is either located or not | Checks that a service's latitude and longitude are both set or both null, and on the globe |
-
-Time ranges are half-open. An appointment ending at 11:00 does not overlap one
-starting at 11:00. Indexes on `services(city, nutritionist_id)` and
-`appointment_requests(nutritionist_id, status, starts_at)` support city searches
-and pending lists. Distance has no index: it is computed for each matching
-service, which costs less than a spatial index at a few hundred services. A
-large catalogue would add PostGIS or `earthdistance` with a radius filter. Solid Queue uses additional tables in the same database.
-
-## Retry a failed answer email
-
-An answer email that still fails after its retries stays in Solid Queue. In
-`pnpm backend:console`, `SolidQueue::FailedExecution` lists those jobs with
-their errors, and `failed.retry` queues one again once the cause is fixed. The
-job skips the send if `answer_notified_at` is already set.
-
-## Main decisions
-
-- **Render every page per request, without Cache Components.** The locale
-  cookie sets `<html lang>`, so no page can be prerendered in a single
-  language, and appointment lists must always be fresh. The Rails API answers
-  locally in milliseconds, so no data was worth caching. Suspense still
-  streams page data.
-- **Let request pages handle missing nutritionists.** Malformed and unknown IDs
-  show the not-found page with `noindex`. The page shell streams before the
-  missing ID is resolved, so the HTTP status remains 200, a soft 404. There is
-  no proxy that duplicates backend ID validation to change the status code.
-- **Keep business rules in Rails.** The UI renders API results and translates
-  field error codes. Backend validation protects every caller, including
-  callers that bypass the form.
-- **Identify professionals by licence number.** `id` identifies each database
-  row and is used in routes. A unique `license_number` identifies the
-  professional and makes seeding idempotent. Names need not be unique; the
-  earlier name-derived slug was removed.
-- **Put addresses on services, not nutritionists.** Each service requires a
-  street address and city. A nutritionist can work in several cities or at
-  several addresses in the same city, without a separate practices table.
-  Search cards list distinct addresses from the services in the selected city.
-  The agreed booking behavior is to show each service's address in the selector
-  for in-person appointments and hide it for online appointments. The current
-  selector shows only name, price, and duration, so distinguishing service
-  locations before submission remains a UI gap.
-- **Keep online as a choice on the request.** Every service still has a physical
-  address. Guests can choose online only when the nutritionist offers it;
-  otherwise the checkbox is hidden, and Rails rejects an online submission.
-  The same service supplies the price and duration for either choice. For online
-  appointments, answer emails show "Online" instead of a street address.
-  Online-only services are outside this model.
-- **Keep overdue requests answerable.** A new request must start in the future,
-  but an existing pending request does not expire automatically. It remains in
-  the list, ordered by start time and then ID, with an overdue badge. The
-  nutritionist may still accept or reject it and trigger the usual email.
-  Acceptance still checks for overlapping accepted appointments. This keeps
-  unanswered requests visible and follows the requirement that they stay
-  pending until answered.
-- **Distinguish replacement from rejection.** A guest's new valid request
-  supersedes their previous pending request, even with another nutritionist.
-  Superseding sends no email because it is the guest's replacement, rather than
-  an answer. Superseded and answered requests cannot be answered again.
-- **Preserve the booked interval, but read the current service address.**
-  `ends_at` captures the duration at booking. Service names, addresses, and
-  prices are not copied onto requests. There is no service-editing interface,
-  so this is a deliberate limitation. Before adding one, snapshot the address
-  and price on the request so edits do not rewrite booking history or change
-  the location shown in a delayed email.
-- **Use transactions, locks, and constraints together.** Submissions take a
-  transaction-scoped advisory lock derived from the guest's email before
-  superseding their pending request. Invalid submissions roll back that change.
-  Answers lock the nutritionist with `FOR NO KEY UPDATE`, then the request,
-  so concurrent answers serialize. Submissions hold the same nutritionist row
-  `FOR SHARE`, taken before superseding, so a submission and an acceptance for
-  one nutritionist never interleave. A request either sees the accepted
-  appointment and is refused, or is committed in time for the acceptance to
-  reject it and email the guest. Submissions to the same nutritionist do not
-  block each other. Database constraints remain the final protection.
-- **Show what accepting will reject, and reject nothing unseen.** The pending
-  list gives each request the `overlapping_ids` that accepting it would reject,
-  computed in SQL with the same `overlapping` scope the accept uses. Accept on
-  such a card opens a confirmation listing those guests and times; without
-  overlaps it stays one click. The accept sends back the ids it showed, and
-  inside the answer transaction Rails refuses with `overlaps_changed` if it
-  would reject any other, so a request that arrived after the page loaded is
-  never rejected blind. The page refreshes to show it. A shown request that has
-  since left the pending list does not block the accept.
-- **Queue email in the answer transaction.** Solid Queue shares the domain
-  database, so a rollback also removes the jobs. A Redis-backed queue would
-  need an outbox to give the same atomic enqueue guarantee.
-- **Guarantee the email job, not its delivery.** The answer and its email jobs
-  commit atomically, so every answer has a job. The job does not guarantee
-  that the guest receives a copy, nor only one. Transient network and SMTP
-  errors retry with backoff, up to ten attempts. Permanent SMTP,
-  authentication, and TLS errors fail at once. Either way, a job can end in
-  failed executions without delivering anything (see
-  [Retry a failed answer email](#retry-a-failed-answer-email)). The job locks
-  the request and skips it if `answer_notified_at` is set. It sends while
-  holding the database row lock, but SMTP does not take part in the database
-  transaction and cannot be rolled back. The marker is written after the send
-  returns and commits when the transaction completes. A job that runs after
-  that commit sends nothing. Any failure after the SMTP server
-  accepts the message and before the marker commits rolls the marker back, so
-  the email can arrive twice. That includes a crash and a lost database
-  commit. It also includes a timeout or reset while reading the server's reply
-  to the message or to `QUIT`. Those look transient, so the job retries them
-  automatically and each retry can send another copy. Closing that gap needs a
-  provider that deduplicates on an idempotency key.
-- **Book in the practice's time zone.** Guests submit a date and time as picked.
-  Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
-  permits future starts Monday to Saturday, every half hour from 09:00 to 18:00
-  except 13:00 and 13:30. These opening hours are a project assumption. Rails
-  rejects requests overlapping an accepted appointment, accounting for service
-  duration. Durations that are not a multiple of 30 minutes can leave a short
-  gap no start time fills.
-- **Keep search in PostgreSQL.** Generated normalized names and `pg_trgm`
-  provide word-level typo tolerance without a separate index or refresh job.
-  All query words must match, so a common word alone does not select a service.
-- **Default unknown locations to Braga.** Blank locations also use Braga.
-  Matching ignores case and accents.
-- **Sort by real distance from the guest, within the city.** The city is
-  always a filter and always shows in the location field. A "Sort by" select
-  beside the results switches between relevance and distance. Distance asks
-  for the browser's position; "Use my location" also fills the city of the
-  nearest practice. Each nutritionist appears once, ranked by their nearest
-  service that matches the query. The card lists that practice first with its
-  distance, and booking starts from that service. Services without
-  coordinates come last, without a distance.
-- **Keep the position in the URL, rounded.** Distance order is search state
-  like the query and the city, so `latitude` and `longitude` live in the URL.
-  Results stay server-rendered, and pagination, refresh, back, and shared links
-  keep the order. The browser rounds the position to three decimals, about
-  100 m, before it leaves the page. Rails filters it from the logs and never
-  stores it.
-- **Geocode demo addresses once.** The seeds use public streets and squares,
-  resolved with OpenStreetMap's Nominatim and committed with their
-  coordinates, so setup and tests need no network or API key. A
-  service-editing interface would geocode on save and leave the coordinates
-  unknown when the match is not precise.
-- **Keep translations where they are rendered.** The frontend's English and
-  Portuguese share typed message keys. Answer emails are rendered by Rails, so
-  their copy lives in `backend/config/locales/en-GB.yml` and `pt-PT.yml`, which
-  a test keeps in step. User-entered service names and addresses remain as
-  written.
-- **Answer each guest in the language they booked in.** The form sends the
-  language it was shown in, so switching the site's language in another tab
-  before submitting changes nothing. The request keeps it in `language`, and
-  every email that answers it uses it, automatic overlap rejections included.
-  Another variant of a supported language, such as `pt-BR`, gets that language.
-  Requests from before the column, and any other value, get English.
-- **Follow the reference with deliberate accessibility adjustments.** The
-  design uses a darker green for readable text and flat fills instead of
-  gradients. Outfit replaces the commercial reference font. The full choices
-  are in `frontend/DESIGN.md`.
-
-The scope has no authentication, nutritionist administration, or service-editing
-interface. The personal-page button is a placeholder. This is a challenge demo;
-the unauthenticated pending-request pages expose guest information and need an
-access boundary before any public deployment with real data.
-
-## Demo data
-
-[The seeds](backend/db/seeds.rb) create 30 nutritionists across Braga, Porto,
-Lisboa, Guimarães, Coimbra, Leiria, Aveiro, and Faro. Services have different
-prices and durations, including First appointment, Follow-up, and specialist
-consultations. Names and prices use a fixed Faker seed. The nutritionists are
-fictional; their practices are public streets and squares in each city, with
-real coordinates.
-
-Braga has eight nutritionists for pagination. Three also offer services in
-Porto, and one works at two Braga addresses. The first seeded nutritionist has
-four pending requests for the next Monday and Tuesday. Two start at the same
-time, so accepting either demonstrates automatic overlap rejection.
-
-Try these flows after a fresh setup:
-
-| What to try | URL or action | Expected result |
-| --- | --- | --- |
-| Default location | <http://localhost:3000> | Braga results and pagination |
-| Service search | <http://localhost:3000/?q=first&location=Braga> | Nutritionists offering First appointment in Braga |
-| Another city | <http://localhost:3000/?location=Leiria> | Leiria results |
-| Search near you | Select the crosshair in the location field and allow location access | The nearest city's nutritionists, nearest first, with distances |
-| Sort by distance | <http://localhost:3000/?location=Braga&latitude=41.551&longitude=-8.42> | Braga results nearest that point first, with distances; "Sort by" switches back to relevance |
-| Unknown city | <http://localhost:3000/?location=Mars> | Braga results with a fallback notice |
-| Empty results | <http://localhost:3000/?q=zzzznomatch&location=Braga> | Empty state with a way to clear the search |
-| Request an appointment | Select Schedule appointment on any search card | Dialog with service, name, email, date, and time |
-| Replace a request | Book again with the same email, including with another nutritionist | Previous pending request disappears from its list |
-| Answer requests | The links `pnpm db:seed` prints | Pending cards with Accept and Reject actions |
-| Automatic rejection | Accept one of the seeded 10:00 requests | A confirmation names the overlapping request first; then both cards leave the list, and each guest gets an email |
-| Read answer emails | <http://localhost:8025> | Accepted, declined, and overlap-rejection messages |
-| Change language | Use the language selector above the header | Translated UI that persists across visits |
-| Answer in the guest's language | Book in Português, then answer the request | The answer email arrives in Portuguese |
-
-Nutritionist IDs change when the database is reseeded, because PostgreSQL does
-not reset its sequences, so the pending-request pages have no fixed URL. The
-seeds end by printing them with the current IDs, and running `pnpm db:seed`
-again is safe whenever you need them:
-
-```text
-Try the pending-requests page:
-- Aline Moreira, with 4 seeded requests: http://localhost:3000/nutritionists/242/requests
-  - Accepting Alessandro Carvalho also rejects Fábio Carvalho's request, which overlaps it. Both cards leave and the toast reads "1 overlapping request was rejected."
-  - Hugo Oliveira and Lucas Souza don't overlap anyone, so accepting or rejecting either one removes only that card.
-- Heitor Pereira, with no requests: http://localhost:3000/nutritionists/243/requests shows the empty state.
-- An ID with no nutritionist: http://localhost:3000/nutritionists/999999/requests shows the not-found page.
-```
-
-The list describes the seeded scenario. Requests you answer in the app stay
-answered, so the first page then shows fewer cards.
-
-`pnpm db:seed` adds missing demo records and preserves answered requests. It does
-not restore the original pending list. To erase development records and rebuild
-the demo data, stop the backend first so its job worker does not poll queue
-tables while they are reset:
+To restore the original requests, run the following. This deletes the current application data. The backend stays stopped during the reset because its email worker uses the same database.
 
 ```sh
 docker compose stop backend
@@ -469,98 +68,120 @@ docker compose run --rm --no-deps backend bin/rails db:seed:replant
 docker compose up -d --wait backend
 ```
 
-## Testing strategy
+## System Design
 
-Tests focus on observable behavior and the backend invariants. PostgreSQL tests
-use the real database engine so locks, foreign keys, and exclusion constraints
-are exercised. Frontend tests stub the HTTP boundary. End-to-end tests connect
-the real browser, frontend, API, database, job worker, and inbox.
+This project and repo has two apps. Rails owns the data and booking rules. Next.js renders the frontend and handles the forms through Server Actions, which call the Rails API.
+| Part | Stack |
+| --- | --- |
+| Backend | Ruby 3.4, Rails 8.1 API, PostgreSQL 18 |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui with Base UI |
+| Email | Active Job and Solid Queue, with Mailpit for the demo inbox |
 
-### What is covered
+The frontend container runs the Next.js dev server. Rails, PostgreSQL, and Mailpit run alongside it in Compose. The email worker runs inside Puma, so there is no separate worker service to start.
 
-| Layer | Tools and location | Coverage |
-| --- | --- | --- |
-| Domain and database | Minitest in `backend/test/models/` | Booking rules, replacement, overlap rejection, search, constraints, and concurrent submissions and answers |
-| HTTP API integration | `ActionDispatch::IntegrationTest` in `backend/test/controllers/` | Real routing and JSON responses, validation errors, conflicts, and OpenAPI compliance through `committee-rails` |
-| Email and jobs | `backend/test/mailers/` and `backend/test/jobs/` | Email content in English and Portuguese, retry exhaustion, and repeat-send protection |
-| Seeds | `backend/test/seeds_test.rb` | Demo data and idempotence |
-| Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
-| Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |
-| API contract | Frontend `stubApi` and backend request assertions | Exercised requests and JSON responses checked against the same `openapi.yaml` |
-| End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, language persistence, and answer emails in the booking's language |
+### Booking Rules
 
-Contract checks cover the calls these tests make, not every possible request.
-Fixtures that are malformed on purpose opt out with `checkContract: false`.
-
-Backend and end-to-end search tests exercise PostgreSQL, including typo tolerance.
-Playwright checks Lisbon booking behavior from a browser configured in Los Angeles.
-
-### Run backend and frontend checks
-
-`pnpm check` runs the same backend and frontend checks as CI, plus the
-end-to-end lint and typecheck. It does not run the Playwright suite. It needs
-the development stack running and the frontend and end-to-end dependencies
-installed. Stop a local frontend development server first because the build
-writes `frontend/.next`.
-
-```sh
-pnpm --dir e2e install --frozen-lockfile
-pnpm check
+```mermaid
+erDiagram
+    cities ||--o{ services : locates
+    nutritionists ||--o{ services : offers
+    nutritionists ||--o{ appointment_requests : receives
+    services ||--o{ appointment_requests : books
 ```
 
-It runs these commands in order and stops at the first failure:
+Some rules:
+
+- Guests have no account.
+- Each request stores their name and email.
+- Nutritionists have a unique licence number.
+- A service belongs to one nutritionist and has its own price, duration, street address, and city (keeping
+addresses on services lets a nutritionist work at several practices).
+
+A request can be `pending`, `accepted`, `rejected`, or `superseded`.
+
+- A guest can have one pending request across all nutritionists. A valid new request replaces it. An invalid submission leaves the old request alone.
+- Replacing a request marks it as `superseded` and sends no email. It is the guest changing their choice, not a nutritionist answering it.
+- Accepting a request rejects every other pending request for that nutritionist that overlaps it. Each answered request gets an email job.
+- Overlap uses the full service duration. An appointment ending at 11:00 leaves 11:00 available for the next one.
+- Pending requests do not expire. They remain answerable after their requested time, with an overdue badge. New requests must be in the future.
+
+I enforce these rules both with Rails transactions and database constraints. The database allows only one pending request per email, prevents double bookings for the same nutritionist, and checks that the selected service belongs to that nutritionist. There are also checks for valid states, prices, durations, and time ranges.
+
+Submissions use an advisory lock per guest email and a shared lock on the nutritionist. Accepting or rejecting locks the nutritionist with `FOR NO KEY UPDATE`, then locks the request. These locks prevent race conditions, with database constraints as a final safeguard.
+
+Before accepting, the UI shows which overlapping requests will be rejected. Rails rechecks them inside the transaction. If a new overlap has appeared, acceptance is blocked until the nutritionist reviews it.
+
+### Dates, services, and online appointments
+
+- I assumed a fixed schedule: Monday to Saturday, with appointment starts every 30 minutes from 09:00 to 18:00 and a lunch break from 13:00 to 14:00.
+
+- Already booked times are disabled
+in the calendar, and Rails checks availability again when the form is submitted.
+
+- The request keeps the end time calculated at booking. Changing a service duration later would not move that appointment. Prices and addresses still come from the service.
+- Online is an option when the nutritionist offers it. It uses the same service, price, and duration, and the email shows "Online" instead of an address.
+- Services still need a physical address; online-only services are outside the scope.
+
+### Search
+
+- I kept search in PostgreSQL with `pg_trgm` and GIN indexes. It handles names, services, accents, and some typos without a separate search service.
+
+- Every query word must match the nutritionist or the same service. Results rank by relevance unless the guest chooses distance.
+
+- Distance sorting stays within the selected city and uses each nutritionist's nearest matching service.
+- Demo addresses use real streets and coordinates, already included in the seeds.
+
+### Frontend
+
+- Pages fetch data in Server Components. Interactive parts, such as the booking modal and calendar, use Client Components.
+- Search filters and pagination live in the URL, so results can be shared and browser navigation works as expected.
+- API responses are validated with Zod.
+- Server Actions submit bookings and answers, then refresh the affected page data.
+- UI and answer emails support English and Portuguese. The selected language is saved in a cookie, and each request keeps the language used when booking. Service names and addresses stay as entered.
+
+### Email
+
+- Solid Queue shares the application database. Answering a request and queuing its emails happen in the same transaction, including automatic rejections.
+- A rollback removes both the answer and its jobs.
+- The delivery job retries temporary SMTP failures up to 10 attempts and records
+when a message was sent. SMTP cannot guarantee exactly-once delivery: if it
+accepts a message but the job fails before saving that marker, a retry can send
+another copy. Permanent failures remain in Solid Queue for inspection and retry
+through `SolidQueue::FailedExecution` in the Rails console. The same applies
+when a job runs out of retries.
+
+## Tests
+
+- I test the booking rules against PostgreSQL, including constraints and concurrent submissions and answers.
+- Frontend tests cover form behavior and API handling.
+- Playwright runs the whole flow through the browser, database, email worker, and inbox.
+
+| Tests                                      | Tools                                                                                                  |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Models, requests, mailers, jobs, and seeds | Minitest                                                                                               |
+| Frontend logic and components              | Vitest and React Testing Library                                                                       |
+| API requests and responses                 | Shared [OpenAPI contract](backend/public/openapi.yaml), checked by backend tests and frontend fixtures |
+| Full user flows (E2E)                      | Playwright in Chromium                                                                                 |
+
+E2E covers search, distance sorting, booking, replacement, acceptance, rejection, overlap emails, and both languages.
+
+To run the checks, install Node.js at the version in [.nvmrc](.nvmrc) and pnpm 12.18.0. With the demo stack running, run these from the repository root:
 
 ```sh
-pnpm backend:ci
-pnpm frontend:lint
-pnpm frontend:typecheck
-pnpm frontend:test
-pnpm frontend:build
-pnpm e2e:lint
-pnpm e2e:typecheck
-```
-
-`pnpm backend:ci` replants only the test database.
-
-For a focused backend run:
-
-```sh
-pnpm backend:test test/models/appointment_request_test.rb
-pnpm backend:lint
-```
-
-### Run end-to-end tests
-
-Install the test dependencies and Chromium once:
-
-```sh
+pnpm --dir frontend install --frozen-lockfile
 pnpm --dir e2e install --frozen-lockfile
 pnpm --dir e2e exec playwright install chromium
-```
-
-On Linux, use `playwright install --with-deps chromium` when system browser
-dependencies are missing. Then run:
-
-```sh
-pnpm e2e:lint
-pnpm e2e:typecheck
+pnpm check
 pnpm e2e
 ```
 
-Each run resets the separate Compose project `nutribook-e2e`, adds dedicated
-fixtures, clears its mailbox, and builds and serves the production frontend.
-Its database and search volumes are separate from development. Default ports
-are 3100 for Next.js, 3101 for Rails, and 8125 for Mailpit. Override them with
-`E2E_FRONTEND_PORT`, `E2E_BACKEND_PORT`, and `E2E_MAILPIT_PORT`.
+Each Playwright run resets its own `nutribook-e2e` Compose stack and mailbox.
+It uses ports 3100, 3101, and 8125 by default and leaves the demo data alone.
+Tests run one at a time, with no retries. Failures keep screenshots and traces
+in `e2e/test-results/`.
 
-The suite runs one worker with no retries because the tests share a database.
-Fixtures assign separate nutritionists to the flows, guests use unique emails,
-and test dates remain in the future. Do not run two suites against the same
-end-to-end stack at once. The suite builds into `frontend/.next-e2e`, so a
-local frontend development server can keep running during it.
-
-Failures retain screenshots and traces in `e2e/test-results/`. Open the HTML
-report with:
+For a shorter run, use `pnpm test` for the Rails and frontend suites, or `pnpm lint` for the linters alone. `pnpm e2e:down` removes the end-to-end stack
+and its data. To open the Playwright report:
 
 ```sh
 pnpm --dir e2e exec playwright show-report

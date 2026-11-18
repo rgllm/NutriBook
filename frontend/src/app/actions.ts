@@ -5,8 +5,7 @@ import { getTranslations } from "next-intl/server"
 
 import { toMessageKey } from "@/i18n/message-key"
 import { createAppointmentRequest } from "@/lib/api/appointment-requests"
-import { ApiNotFoundError, ApiUnavailableError } from "@/lib/api/http"
-import { fetchNearestCity } from "@/lib/api/locations"
+import { ApiUnavailableError } from "@/lib/api/http"
 import { toAppointmentErrors, type RequestAppointmentState } from "@/lib/appointment-request"
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "")
@@ -48,16 +47,5 @@ export async function requestAppointment(
       errors: { form: t("unavailable") },
       values,
     }
-  }
-}
-
-export type NearestCityResult = { status: "found"; city: string } | { status: "unavailable" }
-
-export async function findNearestCity(latitude: number, longitude: number): Promise<NearestCityResult> {
-  try {
-    return { status: "found", city: await fetchNearestCity(latitude, longitude) }
-  } catch (error) {
-    if (error instanceof ApiUnavailableError || error instanceof ApiNotFoundError) return { status: "unavailable" }
-    throw error
   }
 }

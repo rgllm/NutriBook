@@ -9,8 +9,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
-COPY . .
-RUN pnpm build
-
+# compose.yaml mounts ./frontend over /app, so the dev server picks up edits.
 EXPOSE 3000
-CMD ["pnpm", "start", "--hostname", "0.0.0.0"]
+CMD ["pnpm", "dev", "--hostname", "0.0.0.0"]

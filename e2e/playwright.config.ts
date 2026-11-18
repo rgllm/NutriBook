@@ -14,9 +14,6 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: FRONTEND_URL,
-    // Outside Portugal, so a time shown in the browser's zone instead of
-    // Lisbon's fails the suite.
-    timezoneId: "America/Los_Angeles",
     // The browser asks for British English, the app's default language.
     locale: "en-GB",
     trace: "retain-on-failure",

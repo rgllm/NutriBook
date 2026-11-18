@@ -1,18 +1,27 @@
 services:
-  # The production build of the Next.js app. It calls Rails over the Compose
-  # network; `pnpm dev` skips it and runs the frontend locally instead.
+  # The Next.js dev server, with hot reload from the mounted source. It calls
+  # Rails over the Compose network.
   frontend:
     build: ./frontend
+    # Rebuild on every `up`, so a dependency change needs no --build flag.
+    pull_policy: build
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
     environment:
       API_URL: http://backend:3000
+    volumes:
+      - ./frontend:/app
+      # Keep the image's Linux dependencies and the container's build output
+      # apart from any host install.
+      - /app/node_modules
+      - /app/.next
     depends_on:
       backend:
         condition: service_healthy
 
   backend:
     build: ./backend
+    pull_policy: build
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3001}:3000"
     environment:

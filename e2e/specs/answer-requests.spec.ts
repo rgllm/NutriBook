@@ -34,7 +34,6 @@ test("accepting a request lists the requests it overlaps, rejects them, and emai
   await expect(pendingRequest(page, adjacent)).not.toContainText("Overlaps")
   await page.getByRole("button", { name: `Accept the request from ${accepted.name}` }).click()
 
-  // The browser runs in Los Angeles; the times are Lisbon's.
   const confirmation = page.getByRole("dialog", { name: `Accept ${accepted.name}'s request?` })
   await expect(confirmation.getByRole("listitem")).toHaveText([
     new RegExp(`${longerEarlier.name}.*Extended assessment, 09:00–10:30`),
