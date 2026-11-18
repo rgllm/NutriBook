@@ -61,10 +61,17 @@ class AppointmentRequest < ApplicationRecord
   # the one-pending-per-guest index is never hit by a race. The pending request
   # is matched on lower(guest_email), the expression that index uses, so the
   # lookup is indexed and finds every row the index would conflict with.
+  #
+  # The nutritionist's FOR SHARE lock waits for an answer in flight and holds
+  # off new answers until this commits, so a request is either checked against
+  # an accepted appointment or rejected by its acceptance. Submissions don't
+  # block each other. It comes before superseding: an accept that holds the
+  # nutritionist may be waiting to reject the guest's pending request.
   def self.submit(attributes)
     request = new(attributes)
     transaction do
       connection.execute(sanitize_sql([ "SELECT pg_advisory_xact_lock(hashtext(?))", request.guest_email.to_s ]))
+      Nutritionist.lock("FOR SHARE").find_by(id: request.service.nutritionist_id) if request.service
       pending.where("lower(guest_email) = ?", request.guest_email).update_all(status: "superseded", updated_at: Time.current)
       raise ActiveRecord::Rollback unless request.save
     end
@@ -74,9 +81,8 @@ class AppointmentRequest < ApplicationRecord
   # Accepts or rejects this request. Accepting also rejects the nutritionist's
   # pending requests that overlap it, and returns their ids.
   #
-  # The nutritionist's row lock makes their answers run one at a time. It is
-  # FOR NO KEY UPDATE so guests can still insert requests that reference the
-  # nutritionist, which FOR UPDATE would block.
+  # The nutritionist's row lock makes their answers run one at a time, and run
+  # apart from submissions to them, which hold it FOR SHARE.
   #
   # Every request answered here gets one email job, enqueued inside this
   # transaction on purpose: Solid Queue shares the database, so the jobs commit

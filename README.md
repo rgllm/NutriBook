@@ -294,8 +294,12 @@ job skips the send if `answer_notified_at` is already set.
   transaction-scoped advisory lock derived from the guest's email before
   superseding their pending request. Invalid submissions roll back that change.
   Answers lock the nutritionist with `FOR NO KEY UPDATE`, then the request,
-  so concurrent answers serialize without blocking foreign-key checks for new
-  requests. Database constraints remain the final protection.
+  so concurrent answers serialize. Submissions hold the same nutritionist row
+  `FOR SHARE`, taken before superseding, so a submission and an acceptance for
+  one nutritionist never interleave. A request either sees the accepted
+  appointment and is refused, or is committed in time for the acceptance to
+  reject it and email the guest. Submissions to the same nutritionist do not
+  block each other. Database constraints remain the final protection.
 - **Queue email in the answer transaction.** Solid Queue shares the domain
   database, so a rollback also removes the jobs. A Redis-backed queue would
   need an outbox to give the same atomic enqueue guarantee.
