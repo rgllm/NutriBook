@@ -4,9 +4,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   resources :appointment_requests, only: :create
-  resources :locations, only: :index do
-    get :nearest, on: :collection
-  end
+  resources :locations, only: :index
   resources :nutritionists, only: :index do
     resources :appointment_requests, only: %i[index update], constraints: { nutritionist_id: /[1-9]\d*/, id: /[1-9]\d*/ }
   end
