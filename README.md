@@ -47,10 +47,8 @@ A Docker volume preserves its data across restarts. The credentials in
 `compose.yaml` are for local development. Set `FRONTEND_PORT`, `BACKEND_PORT`,
 or `MAILPIT_PORT` to publish a service on another host port.
 
-The `frontend` container serves a production build of Next.js and calls Rails
-over the Compose network at `http://backend:3000`. Rails accepts that host name
-through `RAILS_DEVELOPMENT_HOSTS`. Rebuild with `docker compose up --build`
-after changing frontend code.
+The `frontend` container serves a production build, so rebuild it with
+`docker compose up --build` after changing frontend code.
 
 ### Develop the frontend locally
 
@@ -77,7 +75,6 @@ Backend commands require the development Compose stack to be running.
 | `pnpm dev` | Build and start the backend services in Docker, then run the frontend locally in development |
 | `pnpm stop` | Stop and remove development containers while keeping their data volumes |
 | `pnpm backend:logs` | Follow Rails logs |
-| `pnpm frontend:logs` | Follow the frontend container's logs |
 | `pnpm backend:console` | Open the Rails console |
 | `pnpm rails <args>` | Run a Rails command inside the backend container |
 | `pnpm db:migrate` | Apply pending migrations |

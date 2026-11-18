@@ -12,7 +12,6 @@
     "backend:ci": "docker compose exec backend bin/ci",
     "backend:console": "docker compose exec backend bin/rails console",
     "backend:logs": "docker compose logs -f backend",
-    "frontend:logs": "docker compose logs -f frontend",
     "db:migrate": "docker compose exec backend bin/rails db:migrate",
     "db:rollback": "docker compose exec backend bin/rails db:rollback",
     "db:seed": "docker compose exec backend bin/rails db:seed",
