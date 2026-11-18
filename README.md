@@ -4,9 +4,7 @@ Nutribook is a web application where guests find a nutritionist and request an a
 
 ## Demo
 
-*Demo video coming soon.*
-
-<!-- Replace the line above with the demo video once it is uploaded. -->
+![NutriBook demonstration](docs/demo.gif)
 
 ## How to run it
 
