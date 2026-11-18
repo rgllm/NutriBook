@@ -253,9 +253,8 @@ job skips the send if `answer_notified_at` is already set.
   missing ID is resolved, so the HTTP status remains 200, a soft 404. There is
   no proxy that duplicates backend ID validation to change the status code.
 - **Use a neutral public URL.** Pages live under `/professionals`, which covers
-  nutritionists and dietitians alike. Old `/nutritionists/...` page links get a
-  301 to the same path under `/professionals`. The API, models, and code keep
-  the `nutritionists` name, as renaming them would change no behaviour.
+  nutritionists and dietitians alike. The API, models, and code keep the
+  `nutritionists` name, as renaming them would change no behaviour.
 - **Keep business rules in Rails.** The UI renders API results and translates
   field error codes. Backend validation protects every caller, including
   callers that bypass the form.
@@ -438,7 +437,7 @@ the real browser, frontend, API, database, job worker, and inbox.
 | Frontend logic | Vitest Node project, `*.test.ts` | API parsing, Server Actions, search parameters, formatting, locale selection, and translation keys |
 | Frontend components | Vitest jsdom project with Testing Library, `*.test.tsx` | Dialog flow, field errors, pending buttons, and language selection through roles and labels |
 | API contract | Frontend `stubApi` and backend request assertions | Exercised requests and JSON responses checked against the same `openapi.yaml` |
-| End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, language persistence, answer emails in the booking's language, and the old `/nutritionists` redirect |
+| End to end | Playwright Chromium in `e2e/specs/` | Search, geolocation, booking, replacement, answers, overlap emails, language persistence, and answer emails in the booking's language |
 
 Contract checks cover the calls these tests make, not every possible request.
 Fixtures that are malformed on purpose opt out with `checkContract: false`.

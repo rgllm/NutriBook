@@ -6,12 +6,6 @@ const nextConfig: NextConfig = {
   // The project's own AGENTS.md lives at the repository root.
   agentRules: false,
   reactCompiler: true,
-  // 301, not the 308 that `permanent: true` sends, as old links are only ever GETs.
-  async redirects() {
-    return [
-      { source: "/nutritionists/:path*", destination: "/professionals/:path*", statusCode: 301 },
-    ];
-  },
   turbopack: {
     rules: {
       "*.css": {
