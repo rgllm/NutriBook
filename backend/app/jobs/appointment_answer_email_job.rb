@@ -3,9 +3,11 @@ require "net/smtp"
 # Emails the guest how their request was answered. AppointmentRequest#answer!
 # enqueues it in the transaction that answers the request.
 #
-# A job can run again after a successful send. answer_notified_at, set under
-# the row lock, turns that retry into a no-op. A crash or connection loss after
-# SMTP acceptance but before the marker commits can still duplicate delivery.
+# Delivery is at least once. answer_notified_at commits with the send under the
+# row lock, so a run after that commit sends nothing. A failure after the SMTP
+# server accepts the message but before the marker commits rolls the marker
+# back and can deliver twice. That includes a timeout or reset on the reply to
+# DATA or QUIT, which retry_on retries.
 class AppointmentAnswerEmailJob < ApplicationJob
   retry_on SocketError, Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, Net::SMTPServerBusy,
     Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ETIMEDOUT, Errno::EHOSTUNREACH, Errno::ENETUNREACH,
