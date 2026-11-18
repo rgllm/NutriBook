@@ -100,6 +100,7 @@
     "online": "Online",
     "inPerson": "Presencial",
     "overdue": "Em atraso",
+    "overlaps": "{count, plural, one {Sobrepõe-se a 1 pedido} other {Sobrepõe-se a # pedidos}}",
     "email": "Email",
     "date": "Data",
     "time": "Hora",
@@ -111,6 +112,11 @@
     "reject": "Rejeitar",
     "rejecting": "A rejeitar…",
     "rejectLabel": "Rejeitar o pedido de {guest}",
+    "confirmAcceptTitle": "Aceitar o pedido de {guest}?",
+    "confirmAcceptDescription": "{count, plural, one {Sobrepõe-se a este pedido pendente, que será rejeitado. O cliente recebe um email.} other {Sobrepõe-se a estes # pedidos pendentes, que serão rejeitados. Cada cliente recebe um email.}}",
+    "confirmAccept": "{count, plural, one {Aceitar e rejeitar 1} other {Aceitar e rejeitar #}}",
+    "cancel": "Cancelar",
+    "close": "Fechar",
     "answered": "Pedido de {guest} {answer, select, accepted {aceite} other {rejeitado}}.{rejected, plural, =0 {} one { 1 pedido sobreposto foi rejeitado.} other { # pedidos sobrepostos foram rejeitados.}}",
     "gone": "Este pedido já não existe.",
     "failed": "Não foi possível responder a este pedido.",
@@ -120,7 +126,8 @@
     "alreadyAccepted": "Este pedido já foi aceite.",
     "alreadyRejected": "Este pedido já foi rejeitado.",
     "superseded": "O cliente substituiu este pedido por um mais recente.",
-    "overlapsAccepted": "Esta hora sobrepõe-se a uma consulta aceite. Rejeite o pedido."
+    "overlapsAccepted": "Esta hora sobrepõe-se a uma consulta aceite. Rejeite o pedido.",
+    "overlapsChanged": "Há novos pedidos sobrepostos a este. Reveja a lista atualizada e aceite de novo."
   },
   "errorPage": {
     "title": "Algo correu mal",

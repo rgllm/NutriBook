@@ -10,8 +10,9 @@ class AppointmentRequest < ApplicationRecord
   LANGUAGES = %w[en-GB pt-PT].freeze
 
   # The request can no longer take the answer. The message is a code for why:
-  # it was already_accepted, already_rejected, or superseded, or accepting it
-  # overlaps_accepted an appointment.
+  # it was already_accepted, already_rejected, or superseded, accepting it
+  # overlaps_accepted an appointment, or it overlaps_changed: accepting would
+  # reject a request the nutritionist was not shown.
   class NotAnswerable < StandardError; end
 
   belongs_to :service
@@ -29,7 +30,12 @@ class AppointmentRequest < ApplicationRecord
   # overlapped a request they accepted. Set only on rejected requests.
   enum :rejection_reason, { declined: "declined", overlap: "overlap" }, prefix: :rejection
 
-  scope :overlapping, ->(starts_at, ends_at) { where("starts_at < ? AND ends_at > ?", ends_at, starts_at) }
+  # Half-open intervals, like the exclusion constraint's tsrange: an
+  # appointment ending at 11:00 does not overlap one starting at 11:00. The
+  # bounds may be times or another table's columns.
+  scope :overlapping, ->(starts_at, ends_at) {
+    where(arel_table[:starts_at].lt(ends_at).and(arel_table[:ends_at].gt(starts_at)))
+  }
 
   normalizes :guest_email, with: ->(email) { email.strip.downcase }
   normalizes :guest_name, with: ->(name) { name.squish }
@@ -71,8 +77,32 @@ class AppointmentRequest < ApplicationRecord
     request
   end
 
+  # For each of the given pending requests, the ids of the others among them
+  # that accepting it would reject, soonest first. Requests that overlap
+  # nothing are left out. Limited to the given requests so the answer matches
+  # the list the nutritionist is shown.
+  def self.overlapping_ids_among(requests)
+    accepting = arel_table.alias("accepting")
+    ids = requests.map(&:id)
+
+    where(id: ids)
+      .joins(arel_table.join(accepting).on(
+        accepting[:nutritionist_id].eq(arel_table[:nutritionist_id]).and(accepting[:id].not_eq(arel_table[:id]))
+      ).join_sources)
+      .where(accepting[:id].in(ids))
+      .overlapping(accepting[:starts_at], accepting[:ends_at])
+      .order(:starts_at, :id)
+      .pluck(accepting[:id], :id)
+      .group_by(&:first).transform_values { |pairs| pairs.map(&:last) }
+  end
+
   # Accepts or rejects this request. Accepting also rejects the nutritionist's
   # pending requests that overlap it, and returns their ids.
+  #
+  # overlapping_ids are the overlapping requests the nutritionist was shown.
+  # When given, accepting refuses to reject any other, so a request that
+  # arrived after the list loaded is never rejected unseen. Fewer is fine: a
+  # shown request that has since left the pending list is simply not rejected.
   #
   # The nutritionist's row lock makes their answers run one at a time. It is
   # FOR NO KEY UPDATE so guests can still insert requests that reference the
@@ -81,7 +111,7 @@ class AppointmentRequest < ApplicationRecord
   # Every request answered here gets one email job, enqueued inside this
   # transaction on purpose: Solid Queue shares the database, so the jobs commit
   # or roll back with the answers they announce.
-  def answer!(answer)
+  def answer!(answer, overlapping_ids: nil)
     unless answer.in?(ANSWERS)
       errors.add(:status, :not_an_answer)
       raise ActiveRecord::RecordInvalid, self
@@ -95,9 +125,12 @@ class AppointmentRequest < ApplicationRecord
       accepting = answer == "accepted"
       raise NotAnswerable, "overlaps_accepted" if accepting && overlaps_accepted?
 
+      rejected_ids = accepting ? pending_overlaps.lock.pluck(:id) : []
+      raise NotAnswerable, "overlaps_changed" if overlapping_ids && (rejected_ids - overlapping_ids).any?
+
       now = Time.current
       update!(status: answer, answered_at: now, rejection_reason: ("declined" unless accepting))
-      rejected_ids = accepting ? reject_overlapping(now) : []
+      AppointmentRequest.where(id: rejected_ids).update_all(status: "rejected", rejection_reason: "overlap", answered_at: now, updated_at: now)
 
       ActiveJob.perform_all_later([ id, *rejected_ids ].map { |answered_id| AppointmentAnswerEmailJob.new(answered_id) })
       rejected_ids
@@ -106,11 +139,8 @@ class AppointmentRequest < ApplicationRecord
 
   private
 
-  def reject_overlapping(now)
-    overlapping = AppointmentRequest.pending.where(nutritionist_id:).overlapping(starts_at, ends_at)
-    overlapping.lock.pluck(:id).tap do |ids|
-      AppointmentRequest.where(id: ids).update_all(status: "rejected", rejection_reason: "overlap", answered_at: now, updated_at: now)
-    end
+  def pending_overlaps
+    AppointmentRequest.pending.where(nutritionist_id:).where.not(id:).overlapping(starts_at, ends_at)
   end
 
   # Rails derives the nutritionist and booked end time from the service, never

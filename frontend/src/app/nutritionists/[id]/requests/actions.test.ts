@@ -8,10 +8,10 @@ vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ refresh: vi.fn() }))
 vi.mock("next-intl/server", () => import("@/test/translations"))
 
-function answer(status: string) {
+function answer(status: string, overlappingIds: number[] = []) {
   const formData = new FormData()
   formData.set("status", status)
-  return answerRequest("1", 7, { status: "idle" }, formData)
+  return answerRequest("1", 7, overlappingIds, { status: "idle" }, formData)
 }
 
 afterEach(() => {
@@ -20,11 +20,24 @@ afterEach(() => {
 
 describe("answerRequest", () => {
   it("refreshes the list and reports the answer with the overlapping rejections", async () => {
-    stubApi(
+    const fetch = stubApi(
       Response.json({ id: 7, status: "accepted", answered_at: "2026-11-20T12:00:00.000Z", rejected_ids: [9, 10] }),
     )
 
-    expect(await answer("accepted")).toEqual({ status: "answered", answer: "accepted", rejectedCount: 2 })
+    expect(await answer("accepted", [9, 10])).toEqual({ status: "answered", answer: "accepted", rejectedCount: 2 })
+    expect(JSON.parse(String(fetch.mock.calls[0][1].body))).toEqual({
+      appointment_request: { status: "accepted", overlapping_ids: [9, 10] },
+    })
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it("refreshes the overlaps when accepting would reject a request that was not shown", async () => {
+    stubApi(Response.json({ error: "overlaps_changed", status: "pending" }, { status: 409 }))
+
+    expect(await answer("accepted", [9])).toEqual({
+      status: "gone",
+      message: "New requests overlap this one. Check the updated list and accept again.",
+    })
     expect(refresh).toHaveBeenCalledOnce()
   })
 

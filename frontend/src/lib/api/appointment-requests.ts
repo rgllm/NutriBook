@@ -69,28 +69,42 @@ const pendingRequestsSchema = z
           ends_at: z.iso.datetime(),
           online: z.boolean(),
           service: z.object({ name: z.string() }),
+          overlapping_ids: z.array(z.number()),
         })
-        .transform(({ id, guest_name, guest_email, starts_at, ends_at, online, service }) => ({
-          id,
-          guestName: guest_name,
-          guestEmail: guest_email,
-          startsAt: new Date(starts_at),
-          endsAt: new Date(ends_at),
-          online,
-          serviceName: service.name,
-          // The API keeps requests whose time has passed until they are answered.
-          overdue: new Date(starts_at) <= new Date(),
+        .transform(({ id, guest_name, guest_email, starts_at, ends_at, online, service, overlapping_ids }) => ({
+          request: {
+            id,
+            guestName: guest_name,
+            guestEmail: guest_email,
+            startsAt: new Date(starts_at),
+            endsAt: new Date(ends_at),
+            online,
+            serviceName: service.name,
+            // The API keeps requests whose time has passed until they are answered.
+            overdue: new Date(starts_at) <= new Date(),
+          },
+          overlappingIds: overlapping_ids,
         })),
     ),
   })
-  .transform(({ nutritionist, appointment_requests }) => ({
-    nutritionist,
-    requests: appointment_requests,
-  }))
+  .transform(({ nutritionist, appointment_requests }) => {
+    const byId = new Map(appointment_requests.map(({ request }) => [request.id, request]))
+    return {
+      nutritionist,
+      // The API decides what overlaps, from requests in this same list; the
+      // ids only become the guests and times the nutritionist reads.
+      requests: appointment_requests.map(({ request, overlappingIds }) => ({
+        ...request,
+        overlaps: overlappingIds.flatMap((id) => byId.get(id) ?? []),
+      })),
+    }
+  })
 
 export type PendingRequests = z.infer<typeof pendingRequestsSchema>
 
 export type PendingRequest = PendingRequests["requests"][number]
+
+export type RequestOverlap = PendingRequest["overlaps"][number]
 
 // Resolves to null when no nutritionist has this id.
 export async function getPendingRequests(nutritionistId: string) {
@@ -110,13 +124,20 @@ const answeredRequestSchema = z
   .transform(({ id, status, rejected_ids }) => ({ id, status, rejectedIds: rejected_ids }))
 
 // The status is the API's: "accepted" or "rejected". Anything else comes back
-// as a validation error on status. A request that was already answered throws
-// ApiConflictError; one that is not this nutritionist's throws ApiNotFoundError.
-export function answerAppointmentRequest(nutritionistId: string, requestId: number, status: string) {
+// as a validation error on status. The overlapping ids are the ones the
+// nutritionist was shown; accepting refuses to reject any other. A request that
+// was already answered, or whose overlaps changed, throws ApiConflictError; one
+// that is not this nutritionist's throws ApiNotFoundError.
+export function answerAppointmentRequest(
+  nutritionistId: string,
+  requestId: number,
+  status: string,
+  overlappingIds: number[],
+) {
   return apiWrite(
     "PATCH",
     `/nutritionists/${encodeURIComponent(nutritionistId)}/appointment_requests/${requestId}`,
-    { appointment_request: { status } },
+    { appointment_request: { status, overlapping_ids: overlappingIds } },
     answeredRequestSchema,
   )
 }
