@@ -4,7 +4,14 @@ Nutribook is a web application where guests find a nutritionist and request an a
 
 ## Demo
 
-<!-- Add the demo GIF using GitHub’s Markdown editor. -->
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/57dc498b-dcdd-4f50-b8da-491006310100"
+    alt="NutriBook demo: search nutritionists and request an appointment"
+    width="800"
+  />
+</p>
+
 
 ## How to run it
 
