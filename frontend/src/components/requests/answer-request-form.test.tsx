@@ -2,7 +2,7 @@ import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { answerRequest } from "@/app/nutritionists/[id]/requests/actions"
+import { answerRequest } from "@/app/professionals/[id]/requests/actions"
 import { AnswerRequestForm } from "@/components/requests/answer-request-form"
 import type { AnswerRequestState } from "@/lib/pending-requests"
 import { render } from "@/test/render"

@@ -122,7 +122,7 @@ The three custom sizes carry their line height, letter spacing, and weight (600)
 
 ## Pending requests page
 
-Lives at `/nutritionists/[id]/requests` and reads the nutritionist's pending requests from the API.
+Lives at `/professionals/[id]/requests` and reads the nutritionist's pending requests from the API.
 
 - A page title "Pending requests" in `text-heading`, with a one-line graphite description under it.
 - A grid of cards: one column on mobile, two from `sm`, three from `lg`.

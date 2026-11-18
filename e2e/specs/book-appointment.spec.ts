@@ -61,7 +61,7 @@ test("a guest requests an appointment and the nutritionist sees it", async ({ pa
   await expect(dialog).toContainText(`Follow-up on ${spokenDay(tuesday)} at 14:00`)
   await expect(dialog).toContainText(guest.email)
 
-  await page.goto(`/nutritionists/${nutritionist.id}/requests`)
+  await page.goto(`/professionals/${nutritionist.id}/requests`)
   const request = pendingRequest(page, guest)
   await expect(request).toContainText("Follow-up")
   await expect(request).toContainText(guest.email)

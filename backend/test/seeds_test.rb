@@ -34,10 +34,10 @@ class SeedsTest < ActiveSupport::TestCase
 
     assert_match(/\ASeeded \d+ nutritionists, \d+ services/, out)
     busy = Nutritionist.find(AppointmentRequest.pending.group(:nutritionist_id).count.max_by(&:last).first)
-    assert_includes out, "#{busy.name}, with 4 seeded requests: http://localhost:3000/nutritionists/#{busy.id}/requests"
+    assert_includes out, "#{busy.name}, with 4 seeded requests: http://localhost:3000/professionals/#{busy.id}/requests"
     assert_match(/Accepting .+ also rejects .+'s request, which overlaps it/, out)
-    assert_match(%r{/nutritionists/\d+/requests shows the empty state}, out)
-    assert_match(%r{/nutritionists/\d+/requests shows the not-found page}, out)
+    assert_match(%r{/professionals/\d+/requests shows the empty state}, out)
+    assert_match(%r{/professionals/\d+/requests shows the not-found page}, out)
   end
 
   private

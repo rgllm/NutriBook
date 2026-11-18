@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function NutritionistRequestsPage({
   params,
-}: PageProps<"/nutritionists/[id]/requests">) {
+}: PageProps<"/professionals/[id]/requests">) {
   return (
     <>
       <SiteHeader />

@@ -29,7 +29,7 @@ test("accepting a request rejects the requests it overlaps and emails every gues
   await api.requestAppointment(nutritionist, { service: "Extended assessment", guest: longerEarlier, day, time: "09:00" })
   await api.requestAppointment(nutritionist, { service: "Follow-up", guest: adjacent, day, time: "11:00" })
 
-  await page.goto(`/nutritionists/${nutritionist.id}/requests`)
+  await page.goto(`/professionals/${nutritionist.id}/requests`)
   await page.getByRole("button", { name: `Accept the request from ${accepted.name}` }).click()
 
   await expect(page.getByText(`Accepted ${accepted.name}'s request. 2 overlapping requests were rejected.`)).toBeVisible()
@@ -59,7 +59,7 @@ test("rejecting a request emails the guest that it was declined", async ({ page,
     time: "15:00",
   })
 
-  await page.goto(`/nutritionists/${nutritionist.id}/requests`)
+  await page.goto(`/professionals/${nutritionist.id}/requests`)
   await page.getByRole("button", { name: `Reject the request from ${guest.name}` }).click()
 
   await expect(pendingRequest(page, guest)).toHaveCount(0)

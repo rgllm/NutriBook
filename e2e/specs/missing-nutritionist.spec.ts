@@ -13,7 +13,7 @@ const MISSING_IDS = [
 // the nutritionist is missing, so these pages are soft 404s marked noindex.
 for (const [label, id] of MISSING_IDS) {
   test(`the requests page for ${label} shows the not-found page`, async ({ page }) => {
-    const response = await page.goto(`/nutritionists/${id}/requests`)
+    const response = await page.goto(`/professionals/${id}/requests`)
 
     expect(response?.status()).toBe(200)
     await expect(page.getByText("Page not found")).toBeVisible()

@@ -1,7 +1,7 @@
 import { refresh } from "next/cache"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { answerRequest } from "@/app/nutritionists/[id]/requests/actions"
+import { answerRequest } from "@/app/professionals/[id]/requests/actions"
 import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))

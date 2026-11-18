@@ -41,7 +41,7 @@ test("a guest who books in Portuguese is answered in Portuguese, even after swit
   await dialog.getByRole("button", { name: "Pedir consulta" }).click()
   await expect(dialog).toHaveAccessibleName("Consulta pedida")
 
-  await page.goto(`/nutritionists/${nutritionist.id}/requests`)
+  await page.goto(`/professionals/${nutritionist.id}/requests`)
   await pendingRequest(page, guest).getByRole("button", { name: `Accept the request from ${guest.name}` }).click()
   await expect(pendingRequest(page, guest)).toHaveCount(0)
 

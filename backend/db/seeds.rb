@@ -177,7 +177,7 @@ puts "Seeded #{Nutritionist.count} nutritionists, #{Service.count} services, " \
 # pending-requests page. This describes the seeded scenario: answering requests
 # in the app changes what the first link shows.
 frontend_url = ENV.fetch("FRONTEND_URL", "http://localhost:3000")
-requests_url = ->(id) { "#{frontend_url}/nutritionists/#{id}/requests" }
+requests_url = ->(id) { "#{frontend_url}/professionals/#{id}/requests" }
 booked, overlapping, *free = demo_requests.map(&:guest_name)
 busy, idle = nutritionists.first(2)
 
