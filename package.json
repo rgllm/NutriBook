@@ -1,7 +1,7 @@
 {
   "name": "NutriBook",
   "scripts": {
-    "dev": "docker compose up --build -d --wait && pnpm --dir frontend dev",
+    "dev": "docker compose up --build -d --wait backend && pnpm --dir frontend dev",
     "stop": "docker compose down",
     "test": "pnpm backend:test && pnpm frontend:test",
     "check": "pnpm backend:ci && pnpm frontend:lint && pnpm frontend:typecheck && pnpm frontend:test && pnpm frontend:build && pnpm e2e:lint && pnpm e2e:typecheck",
