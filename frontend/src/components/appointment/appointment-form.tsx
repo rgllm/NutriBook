@@ -38,6 +38,7 @@ import type { Locale } from "@/i18n/locale"
 import {
   bookingDayInstant,
   isSlotInPast,
+  isSlotTaken,
   practiceToday,
   TIME_SLOTS,
   toBookingDay,
@@ -91,7 +92,15 @@ export function AppointmentForm({
   )
   const [online, setOnline] = useState(false)
   const [date, setDate] = useState<Date>()
-  const [time, setTime] = useState<TimeSlot>()
+  const [pickedTime, setTime] = useState<TimeSlot>()
+  const service = services.find((candidate) => candidate.id === serviceId)
+  // A slot is taken when the chosen service would overlap an accepted
+  // appointment there. Before a service is chosen, only when every one would.
+  const isTaken = (day: Date, slot: TimeSlot) =>
+    (service ? [service] : services).every(({ takenSlots }) => isSlotTaken(takenSlots, day, slot))
+  const isUnavailable = (day: Date, slot: TimeSlot) => isSlotInPast(day, slot) || isTaken(day, slot)
+  // Another service or day, or fresher data, can take the picked time away.
+  const time = date && pickedTime && !isUnavailable(date, pickedTime) ? pickedTime : undefined
   // The API's errors for the last submission, minus those the guest has since
   // addressed by changing the field.
   const [errors, setErrors] = useState(state.errors)
@@ -124,7 +133,6 @@ export function AppointmentForm({
 
   function selectDate(next: Date | undefined) {
     setDate(next)
-    if (time && isSlotInPast(next, time)) setTime(undefined)
     clearError("when")
   }
 
@@ -240,7 +248,11 @@ export function AppointmentForm({
               locale={CALENDAR_LOCALES[locale]}
               selected={date}
               onSelect={selectDate}
-              disabled={[{ before: practiceToday() }, { dayOfWeek: [0] }]}
+              disabled={[
+                { before: practiceToday() },
+                { dayOfWeek: [0] },
+                (day) => TIME_SLOTS.every((slot) => isUnavailable(day, slot)),
+              ]}
               className="rounded-lg border p-0 sm:p-2"
             />
           </Field>
@@ -258,15 +270,20 @@ export function AppointmentForm({
               onValueChange={selectTime}
               className="grid w-full grid-cols-3"
             >
-              {TIME_SLOTS.map((slot) => (
-                <ToggleGroupItem
-                  key={slot}
-                  value={slot}
-                  disabled={!date || isSlotInPast(date, slot)}
-                >
-                  {slot}
-                </ToggleGroupItem>
-              ))}
+              {TIME_SLOTS.map((slot) => {
+                const taken = date !== undefined && isTaken(date, slot)
+                return (
+                  <ToggleGroupItem
+                    key={slot}
+                    value={slot}
+                    disabled={!date || isUnavailable(date, slot)}
+                    aria-label={taken ? t("takenSlot", { time: slot }) : undefined}
+                    className={taken ? "line-through" : undefined}
+                  >
+                    {slot}
+                  </ToggleGroupItem>
+                )
+              })}
             </ToggleGroup>
             {errors.when ? (
               <FieldError id={errorId("when")}>{errors.when}</FieldError>

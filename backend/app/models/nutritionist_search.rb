@@ -29,6 +29,7 @@ class NutritionistSearch
   def nutritionists
     @nutritionists ||= result.records.tap do |records|
       ActiveRecord::Associations::Preloader.new(records:, associations: :services, scope: listed_services).call
+      ActiveRecord::Associations::Preloader.new(records:, associations: :upcoming_appointments).call
     end
   end
 

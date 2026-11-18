@@ -24,6 +24,8 @@ const payload = {
           city: "Porto",
           duration_minutes: 60,
           distance_km: null,
+          // 14:00 in Lisbon's winter, and 10:00 in its summer time.
+          taken_slots: ["2026-12-01T14:00:00.000Z", "2027-07-05T09:00:00.000Z"],
         },
         {
           id: 34,
@@ -33,6 +35,7 @@ const payload = {
           city: "Porto",
           duration_minutes: 30,
           distance_km: null,
+          taken_slots: [],
         },
         {
           id: 35,
@@ -42,6 +45,7 @@ const payload = {
           city: "Porto",
           duration_minutes: 45,
           distance_km: null,
+          taken_slots: [],
         },
       ],
       nearest_service_id: null,
@@ -83,6 +87,7 @@ describe("searchNutritionists", () => {
               city: "Porto",
               durationMinutes: 60,
               distanceKm: null,
+              takenSlots: ["2026-12-01 14:00", "2027-07-05 10:00"],
             },
             {
               id: 34,
@@ -92,6 +97,7 @@ describe("searchNutritionists", () => {
               city: "Porto",
               durationMinutes: 30,
               distanceKm: null,
+              takenSlots: [],
             },
             {
               id: 35,
@@ -101,6 +107,7 @@ describe("searchNutritionists", () => {
               city: "Porto",
               durationMinutes: 45,
               distanceKm: null,
+              takenSlots: [],
             },
           ],
         },

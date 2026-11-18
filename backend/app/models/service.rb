@@ -13,4 +13,13 @@ class Service < ApplicationRecord
   def self.cities
     distinct.order(:city).pluck(:city)
   end
+
+  # The future slots booking this service would refuse as taken, because the
+  # appointment would overlap one the nutritionist has accepted.
+  def taken_slots
+    now = Time.current
+    nutritionist.upcoming_appointments
+      .flat_map { |appointment| BookingSchedule.slots_overlapping(appointment.starts_at, appointment.ends_at, duration_minutes.minutes) }
+      .select { |slot| slot > now }.uniq.sort
+  end
 end

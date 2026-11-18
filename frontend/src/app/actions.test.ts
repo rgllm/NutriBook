@@ -1,10 +1,16 @@
-import { describe, expect, it, vi } from "vitest"
+import { refresh } from "next/cache"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { requestAppointment } from "@/app/actions"
 import { stubApi } from "@/test/stub-api"
 
 vi.mock("server-only", () => ({}))
 vi.mock("next-intl/server", () => import("@/test/translations"))
+vi.mock("next/cache", () => ({ refresh: vi.fn() }))
+
+beforeEach(() => {
+  vi.mocked(refresh).mockClear()
+})
 
 const initialState = { status: "editing", errors: {}, values: { name: "", email: "" } } as const
 
@@ -92,6 +98,17 @@ describe("requestAppointment", () => {
       values: { name: "Joana Silva", email: "joana@example" },
     })
     expect(JSON.parse(String(fetch.mock.calls[0][1].body)).appointment_request).not.toHaveProperty("service_id")
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it("refreshes the page's taken slots when the time was taken after it loaded", async () => {
+    stubApi(Response.json({ errors: { starts_at: ["taken"] } }, { status: 422 }))
+
+    expect(await submit(filledIn)).toMatchObject({
+      status: "editing",
+      errors: { when: "This time is no longer available. Pick another." },
+    })
+    expect(refresh).toHaveBeenCalledOnce()
   })
 
   it("asks to try again and keeps what the guest typed when the API is unavailable", async () => {

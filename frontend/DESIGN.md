@@ -115,7 +115,7 @@ The three custom sizes carry their line height, letter spacing, and weight (600)
 
 - The title uses `font-heading text-subheading`, and the description names the nutritionist.
 - Name and email sit side by side, then the service select, listing each service's name, price and duration in minutes (preselected when there is only one), with an "Online appointment" checkbox under it, shown only when the nutritionist offers online. The selected value keeps the same details. Then the calendar next to a three-column grid of time slots.
-- A selected day or slot is a primary (green) fill with white text. Unavailable days are struck through as well as dimmed.
+- A selected day or slot is a primary (green) fill with white text. Unavailable days are struck through as well as dimmed. A time the chosen service cannot take because the nutritionist accepted an appointment then is struck through and disabled, and is announced as already booked; a past time is only disabled. A day with no time left counts as unavailable.
 - The footer has "Cancel" (outline) and "Request appointment" (primary). While the request is sent, the button shows a spinner and "Requesting…" and is disabled.
 - Errors come from the API and show under their field in `text-destructive`: the day and time share one message under the time slots. A message that belongs to no field, such as the API being unreachable, sits above the footer. Changing a field clears its message.
 - The confirmation says the appointment is requested, not confirmed, and that the answer arrives by email. Do not style a pending request as a confirmed booking.

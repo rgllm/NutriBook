@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { apiGet } from "@/lib/api/http"
+import { toPracticeSlot } from "@/lib/appointment-request"
 import { searchQuery, type SearchState } from "@/lib/search-params"
 
 const serviceSchema = z
@@ -12,13 +13,16 @@ const serviceSchema = z
     city: z.string(),
     duration_minutes: z.number(),
     distance_km: z.number().nullable(),
+    taken_slots: z.array(z.iso.datetime()),
   })
-  .transform(({ price, street_address, duration_minutes, distance_km, ...service }) => ({
+  .transform(({ price, street_address, duration_minutes, distance_km, taken_slots, ...service }) => ({
     ...service,
     priceEur: price,
     streetAddress: street_address,
     durationMinutes: duration_minutes,
     distanceKm: distance_km,
+    // The slots booking this service would refuse, as Lisbon days and times.
+    takenSlots: taken_slots.map(toPracticeSlot),
   }))
 
 type ApiService = z.infer<typeof serviceSchema>
