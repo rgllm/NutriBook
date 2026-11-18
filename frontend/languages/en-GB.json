@@ -62,6 +62,7 @@
     "dateAndTime": "Date and time",
     "time": "Time",
     "pickDay": "Pick a day to see available times.",
+    "takenSlot": "{time}, already booked",
     "cancel": "Cancel",
     "submit": "Request appointment",
     "submitting": "Requesting…",

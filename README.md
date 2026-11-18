@@ -10,29 +10,30 @@ request automatically rejects every pending request that overlaps it.
 ### What to install
 
 - Docker
-- Node.js 24, at the exact version in `.nvmrc`. CI reads the same file.
+
+That is enough to run the whole application. To work on the frontend with hot
+reload, or to run the frontend and end-to-end checks, also install:
+
+- Node.js 24, at the exact version in `.nvmrc`. CI and `frontend/Dockerfile`
+  use the same version.
 - pnpm
 
 With nvm, run `nvm install` in the repository root to install and select this
 Node version.
 
-Ruby, PostgreSQL, and Mailpit run in Docker. You do not need to
-install them on your machine. The frontend runs locally with pnpm.
-
 ### Run the project
 
-Clone the repository and install the frontend dependencies:
+Clone the repository and start every service:
 
 ```sh
 git clone https://github.com/rgllm/NutriBook.git
 cd NutriBook
-pnpm --dir frontend install --frozen-lockfile
-pnpm dev
+docker compose up --build
 ```
 
 On a fresh database, the backend creates the schema and loads the demo seeds
-before serving requests, so there is no separate seed step.
-Open [the application](http://localhost:3000).
+before serving requests, so there is no separate seed step. The frontend
+starts once Rails is healthy. Open [the application](http://localhost:3000).
 
 | Service | Address | Purpose |
 | --- | --- | --- |
@@ -43,10 +44,26 @@ Open [the application](http://localhost:3000).
 
 PostgreSQL is available only inside the Compose network.
 A Docker volume preserves its data across restarts. The credentials in
-`compose.yaml` are for local development.
+`compose.yaml` are for local development. Set `FRONTEND_PORT`, `BACKEND_PORT`,
+or `MAILPIT_PORT` to publish a service on another host port.
 
-The frontend runs on port 3000 and calls the Rails API at
-`http://localhost:3001` by default, so no `.env` file is needed.
+The `frontend` container serves a production build, so rebuild it with
+`docker compose up --build` after changing frontend code.
+
+### Develop the frontend locally
+
+For hot reload, run the frontend on your machine instead of in Docker:
+
+```sh
+docker compose stop frontend    # if the full stack is running
+pnpm --dir frontend install --frozen-lockfile
+pnpm dev
+```
+
+`pnpm dev` starts Rails, PostgreSQL, and Mailpit in Docker, without the
+`frontend` container, then runs `next dev` on port 3000. The local frontend
+calls the Rails API at `http://localhost:3001` by default, so no `.env` file is
+needed.
 
 ### Main commands
 
@@ -55,7 +72,7 @@ Backend commands require the development Compose stack to be running.
 
 | Command | What it does |
 | --- | --- |
-| `pnpm dev` | Build and start Docker services, then run the frontend in development |
+| `pnpm dev` | Build and start the backend services in Docker, then run the frontend locally in development |
 | `pnpm stop` | Stop and remove development containers while keeping their data volumes |
 | `pnpm backend:logs` | Follow Rails logs |
 | `pnpm backend:console` | Open the Rails console |
@@ -88,7 +105,7 @@ and small plain Ruby objects:
 | Component | Responsibility |
 | --- | --- |
 | `AppointmentRequest` | Submit, supersede, accept, and reject requests inside transactions |
-| `BookingSchedule` | Interpret Lisbon dates and enforce bookable start times |
+| `BookingSchedule` | Interpret Lisbon dates, enforce bookable start times, and find the slots an appointment would overlap |
 | `NutritionistSearch` | Resolve locations, match, order by relevance, name, or distance, and paginate |
 | `Coordinates` | Parse the guest's position and measure great-circle distances in SQL |
 | `AppointmentAnswerEmailJob` | Send answer emails with retries and a delivery marker |
@@ -119,7 +136,7 @@ The main endpoints are:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/nutritionists?q=&location=&page=&latitude=&longitude=` | Search nutritionists, five per page, nearest first when given a position |
+| GET | `/nutritionists?q=&location=&page=&latitude=&longitude=` | Search nutritionists, five per page, nearest first when given a position, with each service's taken slots |
 | GET | `/locations` | List cities with services and the default city |
 | GET | `/locations/nearest?latitude=&longitude=` | The city of the nearest service with coordinates |
 | POST | `/appointment_requests` | Submit a guest's appointment request |
@@ -144,6 +161,15 @@ tracks form results and `useFormStatus` supplies pending feedback. Answering a
 request refreshes the page data so answered and automatically rejected cards
 leave the list. Transport failures show retry messages, while unexpected
 responses reach the error boundary.
+
+The booking calendar strikes out the times the chosen service cannot take and
+the days with none left. Each service in the search response lists its
+`taken_slots`: future slot starts where an appointment of that service's
+duration would overlap one the nutritionist accepted. Rails computes them with
+the same rule that refuses a booking as `taken`, and they carry no guest data.
+Changing the service or the day drops a picked time that became taken. The
+list is as fresh as the page, so a time accepted after it loaded is still
+refused on submit, and that refusal refreshes the page to strike it out.
 
 The UI uses Tailwind CSS v4 and shadcn/ui with Base UI primitives. The React
 Compiler is enabled. [DESIGN.md](frontend/DESIGN.md) defines the reference layout,
@@ -294,8 +320,12 @@ job skips the send if `answer_notified_at` is already set.
   transaction-scoped advisory lock derived from the guest's email before
   superseding their pending request. Invalid submissions roll back that change.
   Answers lock the nutritionist with `FOR NO KEY UPDATE`, then the request,
-  so concurrent answers serialize without blocking foreign-key checks for new
-  requests. Database constraints remain the final protection.
+  so concurrent answers serialize. Submissions hold the same nutritionist row
+  `FOR SHARE`, taken before superseding, so a submission and an acceptance for
+  one nutritionist never interleave. A request either sees the accepted
+  appointment and is refused, or is committed in time for the acceptance to
+  reject it and email the guest. Submissions to the same nutritionist do not
+  block each other. Database constraints remain the final protection.
 - **Show what accepting will reject, and reject nothing unseen.** The pending
   list gives each request the `overlapping_ids` that accepting it would reject,
   computed in SQL with the same `overlapping` scope the accept uses. Accept on
@@ -308,12 +338,24 @@ job skips the send if `answer_notified_at` is already set.
 - **Queue email in the answer transaction.** Solid Queue shares the domain
   database, so a rollback also removes the jobs. A Redis-backed queue would
   need an outbox to give the same atomic enqueue guarantee.
-- **Make delivery retries safe where possible.** The email job locks the request
-  and checks `answer_notified_at` before sending. Transient network and SMTP
-  errors retry with backoff, up to ten attempts. Permanent SMTP, authentication,
-  and TLS errors fail at once. A crash after SMTP accepts an email but before
-  the marker is saved can still duplicate delivery. A provider with an
-  idempotency key would be needed to close that gap.
+- **Guarantee the email job, not its delivery.** The answer and its email jobs
+  commit atomically, so every answer has a job. The job does not guarantee
+  that the guest receives a copy, nor only one. Transient network and SMTP
+  errors retry with backoff, up to ten attempts. Permanent SMTP,
+  authentication, and TLS errors fail at once. Either way, a job can end in
+  failed executions without delivering anything (see
+  [Retry a failed answer email](#retry-a-failed-answer-email)). The job locks
+  the request and skips it if `answer_notified_at` is set. It sends while
+  holding the database row lock, but SMTP does not take part in the database
+  transaction and cannot be rolled back. The marker is written after the send
+  returns and commits when the transaction completes. A job that runs after
+  that commit sends nothing. Any failure after the SMTP server
+  accepts the message and before the marker commits rolls the marker back, so
+  the email can arrive twice. That includes a crash and a lost database
+  commit. It also includes a timeout or reset while reading the server's reply
+  to the message or to `QUIT`. Those look transient, so the job retries them
+  automatically and each retry can send another copy. Closing that gap needs a
+  provider that deduplicates on an idempotency key.
 - **Book in the practice's time zone.** Guests submit a date and time as picked.
   Rails interprets them in `Europe/Lisbon` and stores UTC. The fixed schedule
   permits future starts Monday to Saturday, hourly from 09:00 to 18:00 except

@@ -1,5 +1,6 @@
 "use server"
 
+import { refresh } from "next/cache"
 import { getTranslations } from "next-intl/server"
 
 import { toMessageKey } from "@/i18n/message-key"
@@ -35,9 +36,11 @@ export async function requestAppointment(
       online: formData.get("online") === "true",
       language: text(formData, "language"),
     })
-    return result.ok
-      ? { status: "sent", request: result.data }
-      : { status: "editing", errors: toAppointmentErrors(result.errors, describe), values }
+    if (result.ok) return { status: "sent", request: result.data }
+    // The page was loaded before the time was taken: refreshing it brings the
+    // service's taken slots up to date, so the form drops the time it refused.
+    if (result.errors.starts_at?.includes("taken")) refresh()
+    return { status: "editing", errors: toAppointmentErrors(result.errors, describe), values }
   } catch (error) {
     if (!(error instanceof ApiUnavailableError)) throw error
     return {

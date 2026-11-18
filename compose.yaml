@@ -1,10 +1,24 @@
 services:
+  # The production build of the Next.js app. It calls Rails over the Compose
+  # network; `pnpm dev` skips it and runs the frontend locally instead.
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+    environment:
+      API_URL: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+
   backend:
     build: ./backend
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3001}:3000"
     environment:
       RAILS_ENV: development
+      # Lets the frontend container reach Rails by its service name.
+      RAILS_DEVELOPMENT_HOSTS: backend
       DATABASE_HOST: db
       DATABASE_PORT: 5432
       DATABASE_USERNAME: nutribook

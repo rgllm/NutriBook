@@ -1,6 +1,8 @@
 require "test_helper"
 
 class NutritionistsControllerTest < ActionDispatch::IntegrationTest
+  setup { travel_to Time.utc(2026, 11, 20, 12, 0) }
+
   test "lists the nutritionists at the location with their services there" do
     mary = nutritionists(:mary_jane)
 
@@ -22,7 +24,8 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
             "street_address" => "Rua do Souto 45",
             "city" => "Braga",
             "duration_minutes" => 60,
-            "distance_km" => nil
+            "distance_km" => nil,
+            "taken_slots" => [ "2026-12-01T14:00:00.000Z" ]
           },
           {
             "id" => services(:mary_follow_up).id,
@@ -31,7 +34,8 @@ class NutritionistsControllerTest < ActionDispatch::IntegrationTest
             "street_address" => "Rua do Souto 45",
             "city" => "Braga",
             "duration_minutes" => 30,
-            "distance_km" => nil
+            "distance_km" => nil,
+            "taken_slots" => [ "2026-12-01T14:00:00.000Z" ]
           }
         ],
         "nearest_service_id" => nil

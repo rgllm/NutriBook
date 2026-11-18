@@ -11,7 +11,7 @@ class NutritionistsController < ApplicationController
       nutritionists: search.nutritionists.map do |nutritionist|
         nutritionist.as_json(
           only: %i[id name title license_number offers_online],
-          include: { services: { only: %i[id name price street_address city duration_minutes distance_km] } }
+          include: { services: { only: %i[id name price street_address city duration_minutes distance_km], methods: :taken_slots } }
         ).merge("nearest_service_id" => search.nearest_service_ids[nutritionist.id])
       end,
       location: { city: search.location, source: search.location_source },

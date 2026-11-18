@@ -183,6 +183,57 @@ describe("AppointmentForm", () => {
     expect(screen.getByLabelText("Email")).toHaveValue("joana@example")
   })
 
+  describe("times the nutritionist has already accepted", () => {
+    const MONDAY = /Monday, 23 November 2026/
+    const editing: EditingState = { status: "editing", errors: {}, values: { name: "", email: "" } }
+    const withTaken = (takenSlots: string[]) => ({
+      ...nutritionist,
+      services: [{ ...nutritionist.services[0], takenSlots }],
+    })
+    const formWith = (takenSlots: string[]) => (
+      <Dialog open>
+        <DialogContent>
+          <AppointmentForm nutritionist={withTaken(takenSlots)} state={editing} action={vi.fn()} />
+        </DialogContent>
+      </Dialog>
+    )
+
+    it("strikes out a taken time and keeps the times around it open", async () => {
+      const user = userEvent.setup()
+      render(formWith(["2026-11-23 10:00"]))
+
+      await user.click(screen.getByRole("button", { name: MONDAY }))
+
+      expect(screen.getByRole("button", { name: "10:00, already booked" })).toBeDisabled()
+      expect(screen.getByRole("button", { name: "09:00" })).toBeEnabled()
+      expect(screen.getByRole("button", { name: "11:00" })).toBeEnabled()
+    })
+
+    it("drops the picked time when fresher data shows it was taken", async () => {
+      const user = userEvent.setup()
+      const { rerender } = render(formWith([]))
+      // The dialog renders in a portal, outside the render container.
+      const pickedTime = () => document.querySelector<HTMLInputElement>('input[name="time"]')?.value
+
+      await user.click(screen.getByRole("button", { name: MONDAY }))
+      await user.click(screen.getByRole("button", { name: "10:00" }))
+      expect(pickedTime()).toBe("10:00")
+
+      rerender(formWith(["2026-11-23 10:00"]))
+
+      expect(screen.getByRole("button", { name: "10:00, already booked" })).not.toHaveAttribute("aria-pressed", "true")
+      expect(pickedTime()).toBe("")
+    })
+
+    it("strikes out a day with no time left", () => {
+      const fullMonday = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
+      render(formWith(fullMonday.map((time) => `2026-11-23 ${time}`)))
+
+      expect(screen.getByRole("button", { name: MONDAY })).toBeDisabled()
+      expect(screen.getByRole("button", { name: /Tuesday, 24 November 2026/ })).toBeEnabled()
+    })
+  })
+
   it("sends the language the form is shown in, for the answer email", async () => {
     const user = userEvent.setup()
     const answer = vi.fn<(formData: FormData) => EditingState>(() => ({

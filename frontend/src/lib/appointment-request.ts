@@ -63,10 +63,12 @@ const practiceClock = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 })
 
-function practiceNow(now: Date) {
-  const part = Object.fromEntries(practiceClock.formatToParts(now).map(({ type, value }) => [type, value]))
+// What a Lisbon wall clock shows at `instant`.
+function practiceClockAt(instant: Date) {
+  const part = Object.fromEntries(practiceClock.formatToParts(instant).map(({ type, value }) => [type, value]))
   return {
     day: `${part.year}-${part.month}-${part.day}`,
+    time: `${part.hour}:${part.minute}`,
     minutes: Number(part.hour) * 60 + Number(part.minute),
   }
 }
@@ -79,13 +81,23 @@ export const toBookingDay = (date: Date) => format(date, "yyyy-MM-dd")
 export const bookingDayInstant = (date: Date) => new Date(`${toBookingDay(date)}T12:00:00Z`)
 
 // Today in Lisbon, as a calendar day in the browser's zone.
-export const practiceToday = (now = new Date()) => parseISO(practiceNow(now).day)
+export const practiceToday = (now = new Date()) => parseISO(practiceClockAt(now).day)
 
 export function isSlotInPast(date: Date | undefined, slot: TimeSlot, now = new Date()) {
   if (!date) return false
-  const practice = practiceNow(now)
+  const practice = practiceClockAt(now)
   const day = toBookingDay(date)
   if (day !== practice.day) return day < practice.day
   const [hours, minutes] = slot.split(":").map(Number)
   return hours * 60 + minutes <= practice.minutes
 }
+
+// A slot the API sends as an instant, as the day and time the guest picks in
+// Lisbon: "2026-12-01 14:00".
+export function toPracticeSlot(instant: string) {
+  const { day, time } = practiceClockAt(new Date(instant))
+  return `${day} ${time}`
+}
+
+export const isSlotTaken = (takenSlots: readonly string[], date: Date, slot: TimeSlot) =>
+  takenSlots.includes(`${toBookingDay(date)} ${slot}`)
