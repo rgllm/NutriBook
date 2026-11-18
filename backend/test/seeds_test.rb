@@ -9,6 +9,27 @@ class SeedsTest < ActiveSupport::TestCase
     end
   end
 
+  test "demo requests use December dates and reseeding refreshes old dates" do
+    existing_ids = AppointmentRequest.ids
+    load_seeds
+    seeded = AppointmentRequest.where.not(id: existing_ids).order(:starts_at)
+    expected = [
+      BookingSchedule.starts_at("2026-12-21", "10:00"),
+      BookingSchedule.starts_at("2026-12-21", "10:00"),
+      BookingSchedule.starts_at("2026-12-21", "14:00"),
+      BookingSchedule.starts_at("2026-12-22", "09:00")
+    ]
+
+    assert_equal expected, seeded.pluck(:starts_at)
+    seeded.update_all("starts_at = starts_at - interval '60 days', ends_at = ends_at - interval '60 days'")
+    load_seeds
+
+    assert_equal expected, seeded.pluck(:starts_at)
+    seeded.each do |request|
+      assert_equal request.starts_at + request.service.duration_minutes.minutes, request.ends_at
+    end
+  end
+
   test "every demo practice has coordinates, the same for each service there" do
     load_seeds
 

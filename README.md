@@ -45,6 +45,8 @@ With pnpm installed, `pnpm dev` and `pnpm stop` run the same two commands from t
 
 The seed data has 30 nutritionists across 8 cities, with different services, prices, and durations. Some work in more than one city or at more than one address. Braga has enough results to try pagination.
 
+The four demo requests are scheduled for 21 and 22 December 2026. Running `docker compose exec backend bin/rails db:seed` refreshes their dates without resetting their answers or changing requests created through the app.
+
 1. Search by nutritionist name or service, then change the city. A blank or unknown location falls back to Braga. Try `sprts nutrition` to see typo matching, or sort by **Distance** to order the selected city’s practices by distance from you.
 2. Open **Schedule appointment**, choose a service, and enter a name, email, date, and time. This sends a request. The appointment is only confirmed when the nutritionist accepts it.
 3. Make another request with the same email, even with a different nutritionist. It **replaces the previous pending request**.

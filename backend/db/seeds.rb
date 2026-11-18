@@ -2,7 +2,7 @@
 #
 # Faker runs with a fixed random seed, so every run generates the same people
 # and services. Records are looked up by their natural keys before creating
-# them, which keeps this file idempotent: running it twice changes nothing.
+# them. Rerunning keeps the same records and refreshes demo request dates.
 #
 # Braga, the default search location, gets enough nutritionists to fill more
 # than one results page.
@@ -147,7 +147,7 @@ ActiveRecord::Base.transaction do
 
   # Pending requests for the first Braga nutritionist. The first two overlap,
   # so accepting one rejects the other automatically.
-  day = BookingSchedule::TIME_ZONE.today.next_occurring(:monday)
+  day = Date.new(2026, 12, 21)
   first_appointment = nutritionists.first.services.find_by!(name: "First appointment", city: "Braga")
   follow_up = nutritionists.first.services.find_by!(name: "Follow-up", city: "Braga")
 
@@ -161,12 +161,14 @@ ActiveRecord::Base.transaction do
     guest_email = "#{guest_name.parameterize(separator: ".")}@example.com"
 
     # Each demo guest gets one seeded request, so the email identifies it
-    # whatever its status. Once answered in the app, reseeding leaves it alone.
-    AppointmentRequest.find_or_create_by!(guest_email: guest_email) do |request|
-      request.service = service
-      request.guest_name = guest_name
-      request.starts_at = BookingSchedule.starts_at(date.iso8601, time)
-    end
+    # whatever its status. Reseeding preserves answers and refreshes dates.
+    request = AppointmentRequest.find_or_initialize_by(guest_email: guest_email)
+    request.service = service
+    request.guest_name = guest_name
+    request.starts_at = BookingSchedule.starts_at(date.iso8601, time)
+    request.ends_at = request.starts_at + service.duration_minutes.minutes
+    request.save!
+    request
   end
 end
 
