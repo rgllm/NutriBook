@@ -4,9 +4,10 @@ require "net/smtp"
 # enqueues it in the transaction that answers the request.
 #
 # Retries are bounded, and a permanent error fails the job at once, so an email
-# can end up never delivered. The SMTP send happens outside the transaction
-# that holds the row lock. Only answer_notified_at, written after the send
-# returns, commits to the database, and a run after that commit sends nothing.
+# can end up never delivered. The job sends while holding the row lock, but
+# SMTP does not take part in the database transaction and cannot be rolled
+# back. answer_notified_at is written after the send returns and commits when
+# the transaction completes. A run after that commit sends nothing.
 # A failure after the SMTP server accepts the message but before the marker
 # commits rolls the marker back and can deliver twice. That includes a timeout
 # or reset on the reply to DATA or QUIT, which retry_on retries.

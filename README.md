@@ -306,10 +306,11 @@ job skips the send if `answer_notified_at` is already set.
   authentication, and TLS errors fail at once. Either way, a job can end in
   failed executions without delivering anything (see
   [Retry a failed answer email](#retry-a-failed-answer-email)). The job locks
-  the request and skips it if `answer_notified_at` is set. Otherwise it sends
-  through SMTP, which is outside the database transaction. Only after the send
-  returns does it write the marker, which commits with the transaction. A job
-  that runs after that commit sends nothing. Any failure after the SMTP server
+  the request and skips it if `answer_notified_at` is set. It sends while
+  holding the database row lock, but SMTP does not take part in the database
+  transaction and cannot be rolled back. The marker is written after the send
+  returns and commits when the transaction completes. A job that runs after
+  that commit sends nothing. Any failure after the SMTP server
   accepts the message and before the marker commits rolls the marker back, so
   the email can arrive twice. That includes a crash and a lost database
   commit. It also includes a timeout or reset while reading the server's reply
