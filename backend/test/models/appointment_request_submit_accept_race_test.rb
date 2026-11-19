@@ -41,7 +41,7 @@ class AppointmentRequestSubmitAcceptRaceTest < ActiveSupport::TestCase
 
     submitted = submit.value
     assert_equal [ submitted.id ], accept.value
-    assert submitted.reload.rejection_overlap?
+    assert submitted.reload.rejected?
     assert_empty pending_overlapping(@accepting)
     assert_equal [ @accepting.id, submitted.id ].sort, answer_email_ids.sort
   end

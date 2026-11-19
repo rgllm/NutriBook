@@ -167,9 +167,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
 
     assert request.reload.accepted?
     assert_equal Time.current, request.answered_at
-    assert_nil request.rejection_reason
     assert overlapping.reload.rejected?
-    assert overlapping.rejection_overlap?
     assert_equal Time.current, overlapping.answered_at
     assert adjacent.reload.pending?
     assert other_nutritionist.reload.pending?
@@ -183,7 +181,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
 
     assert_equal [ overlapping.id ], request.answer!("accepted")
 
-    assert overlapping.reload.rejection_overlap?
+    assert overlapping.reload.rejected?
     assert before.reload.pending?
   end
 
@@ -194,7 +192,6 @@ class AppointmentRequestTest < ActiveSupport::TestCase
     assert_empty request.answer!("rejected")
 
     assert request.reload.rejected?
-    assert request.rejection_declined?
     assert_equal Time.current, request.answered_at
     assert overlapping.reload.pending?
   end
@@ -372,7 +369,7 @@ class AppointmentRequestTest < ActiveSupport::TestCase
   test "a guest may keep answered and superseded requests next to a pending one" do
     assert_difference -> { AppointmentRequest.count }, 2 do
       build_request(guest_email: "rita.gomes@example.com", status: "superseded").save!
-      build_request(guest_email: "rita.gomes@example.com", status: "rejected", rejection_reason: "declined", answered_at: Time.current).save!
+      build_request(guest_email: "rita.gomes@example.com", status: "rejected", answered_at: Time.current).save!
     end
   end
 
@@ -419,24 +416,6 @@ class AppointmentRequestTest < ActiveSupport::TestCase
   test "an accepted request must have answered_at" do
     assert_raises(ActiveRecord::CheckViolation) do
       appointment_requests(:accepted).update_column(:answered_at, nil)
-    end
-  end
-
-  test "a rejected request must say why it was rejected" do
-    assert_raises(ActiveRecord::CheckViolation) do
-      appointment_requests(:rejected).update_column(:rejection_reason, nil)
-    end
-  end
-
-  test "only a rejected request has a rejection reason" do
-    assert_raises(ActiveRecord::CheckViolation) do
-      appointment_requests(:accepted).update_column(:rejection_reason, "declined")
-    end
-  end
-
-  test "rejection reasons are declined or overlap" do
-    assert_raises(ActiveRecord::CheckViolation) do
-      appointment_requests(:rejected).update_column(:rejection_reason, "busy")
     end
   end
 

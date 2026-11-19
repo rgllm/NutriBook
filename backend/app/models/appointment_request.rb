@@ -26,10 +26,6 @@ class AppointmentRequest < ApplicationRecord
     superseded: "superseded"
   }, validate: true
 
-  # Why a rejected request was rejected: the nutritionist declined it, or it
-  # overlapped a request they accepted. Set only on rejected requests.
-  enum :rejection_reason, { declined: "declined", overlap: "overlap" }, prefix: :rejection
-
   # Half-open intervals, like the exclusion constraint's tsrange: an
   # appointment ending at 11:00 does not overlap one starting at 11:00. The
   # bounds may be times or another table's columns.
@@ -135,8 +131,8 @@ class AppointmentRequest < ApplicationRecord
       raise NotAnswerable, "overlaps_changed" if overlapping_ids && (rejected_ids - overlapping_ids).any?
 
       now = Time.current
-      update!(status: answer, answered_at: now, rejection_reason: ("declined" unless accepting))
-      AppointmentRequest.where(id: rejected_ids).update_all(status: "rejected", rejection_reason: "overlap", answered_at: now, updated_at: now)
+      update!(status: answer, answered_at: now)
+      AppointmentRequest.where(id: rejected_ids).update_all(status: "rejected", answered_at: now, updated_at: now)
 
       ActiveJob.perform_all_later([ id, *rejected_ids ].map { |answered_id| AppointmentAnswerEmailJob.new(answered_id) })
       rejected_ids
