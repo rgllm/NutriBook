@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_18_100200) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_19_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -29,20 +29,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_100200) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "online", default: false, null: false
-    t.string "rejection_reason"
     t.datetime "answer_notified_at"
     t.string "language", default: "en-GB", null: false
     t.index "lower((guest_email)::text)", name: "index_appointment_requests_one_pending_per_guest", unique: true, where: "((status)::text = 'pending'::text)"
     t.index ["nutritionist_id", "status", "starts_at"], name: "idx_on_nutritionist_id_status_starts_at_b75b60395a"
     t.index ["service_id"], name: "index_appointment_requests_on_service_id"
     t.check_constraint "(answered_at IS NOT NULL) = (status::text = ANY (ARRAY['accepted'::character varying::text, 'rejected'::character varying::text]))", name: "appointment_requests_answered_at_matches_status"
-    t.check_constraint "(rejection_reason IS NOT NULL) = (status::text = 'rejected'::text)", name: "appointment_requests_rejection_reason_matches_status"
     t.check_constraint "answer_notified_at IS NULL OR answered_at IS NOT NULL", name: "appointment_requests_notified_only_when_answered"
     t.check_constraint "char_length(guest_email::text) <= 254", name: "appointment_requests_guest_email_length"
     t.check_constraint "char_length(guest_name::text) <= 100", name: "appointment_requests_guest_name_length"
     t.check_constraint "ends_at > starts_at", name: "appointment_requests_ends_after_starts"
     t.check_constraint "language::text = ANY (ARRAY['en-GB'::character varying::text, 'pt-PT'::character varying::text])", name: "appointment_requests_language_allowed"
-    t.check_constraint "rejection_reason::text = ANY (ARRAY['declined'::character varying::text, 'overlap'::character varying::text])", name: "appointment_requests_rejection_reason_allowed"
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'superseded'::character varying::text])", name: "appointment_requests_status_allowed"
     t.exclusion_constraint "nutritionist_id WITH =, tsrange(starts_at, ends_at) WITH &&", where: "(status)::text = 'accepted'::text", using: :gist, name: "appointment_requests_no_overlapping_accepted"
   end
